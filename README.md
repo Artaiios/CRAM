@@ -4,7 +4,7 @@ A single-file web application for managing crisis committee roles and substituti
 
 Runs entirely in the browser. No server, no database, no external dependencies at runtime. Works offline after the first page load and can be installed as a progressive web app.
 
-![Main view — Enterprise demo configuration with 30 roles across 5 levels, cascade lines showing active substitutions](docs/screenshots/01-main-view.png)
+![Main view — Enterprise demo configuration with 30 roles across 5 levels, cascade lines showing active substitutions](docs/screenshots/01-main-view-dark.png)
 
 ## What it does
 
