@@ -1,0 +1,1472 @@
+{
+  "format": "cram-export",
+  "formatVersion": 1,
+  "appVersion": "1.0.0-rc1",
+  "exportedAt": "2026-04-19T15:21:24.209251Z",
+  "config": {
+    "schemaVersion": 1,
+    "meta": {
+      "organizationName": "Globale Enterprise AG — Konzernkrisenstab",
+      "printTitle": "Konzernkrisenstab — Rollen und Vertretungen",
+      "lastModified": "2026-04-19T15:21:24.209251Z"
+    },
+    "persons": [
+      {
+        "id": "p1",
+        "name": "Dr. Mirja Bachmeier",
+        "phone": "+49 172 1000001",
+        "email": "mirja.bachmeier@example.com"
+      },
+      {
+        "id": "p2",
+        "name": "Sebastian Köhler",
+        "phone": "+49 170 1000002",
+        "email": "sebastian.koehler@example.com"
+      },
+      {
+        "id": "p3",
+        "name": "Dr. Franziska Öztürk",
+        "phone": "+49 173 1000003",
+        "email": "franziska.oeztuerk@example.com"
+      },
+      {
+        "id": "p4",
+        "name": "Matthias Großmann",
+        "phone": "+49 170 1000004",
+        "email": "matthias.grossmann@example.com"
+      },
+      {
+        "id": "p5",
+        "name": "Elena Süßmann",
+        "phone": "+43 660 1000005",
+        "email": "elena.suessmann@example.com"
+      },
+      {
+        "id": "p6",
+        "name": "Dr. Urs Kägi",
+        "phone": "+41 79 1000006",
+        "email": "urs.kaegi@example.com"
+      },
+      {
+        "id": "p7",
+        "name": "Margaux Lefèvre",
+        "phone": "+33 6 10 00 00 07",
+        "email": "margaux.lefevre@example.com"
+      },
+      {
+        "id": "p8",
+        "name": "Thibault Mercier",
+        "phone": "+33 6 10 00 00 08",
+        "email": "thibault.mercier@example.com"
+      },
+      {
+        "id": "p9",
+        "name": "Amélie Rousseau",
+        "phone": "+33 6 10 00 00 09",
+        "email": "amelie.rousseau@example.com"
+      },
+      {
+        "id": "p10",
+        "name": "Joost van der Berg",
+        "phone": "+31 6 10 00 00 10",
+        "email": "joost.vanderberg@example.com"
+      },
+      {
+        "id": "p11",
+        "name": "Francesca Lombardi",
+        "phone": "+39 340 1000011",
+        "email": "francesca.lombardi@example.com"
+      },
+      {
+        "id": "p12",
+        "name": "Giovanni Moretti",
+        "phone": "+39 340 1000012",
+        "email": "giovanni.moretti@example.com"
+      },
+      {
+        "id": "p13",
+        "name": "Carmen Núñez",
+        "phone": "+34 612 100013",
+        "email": "carmen.nunez@example.com"
+      },
+      {
+        "id": "p14",
+        "name": "Álvaro Espinoza",
+        "phone": "+34 612 100014",
+        "email": "alvaro.espinoza@example.com"
+      },
+      {
+        "id": "p15",
+        "name": "Joana Carvalho",
+        "phone": "+351 912 100015",
+        "email": "joana.carvalho@example.com"
+      },
+      {
+        "id": "p16",
+        "name": "Astrid Lindqvist",
+        "phone": "+46 70 1000016",
+        "email": "astrid.lindqvist@example.com"
+      },
+      {
+        "id": "p17",
+        "name": "Mikkel Sørensen",
+        "phone": "+45 20 1000017",
+        "email": "mikkel.sorensen@example.com"
+      },
+      {
+        "id": "p18",
+        "name": "Aino Virtanen",
+        "phone": "+358 40 1000018",
+        "email": "aino.virtanen@example.com"
+      },
+      {
+        "id": "p19",
+        "name": "Agnieszka Wiśniewska",
+        "phone": "+48 500 100019",
+        "email": "agnieszka.wisniewska@example.com"
+      },
+      {
+        "id": "p20",
+        "name": "Dragomir Petkov",
+        "phone": "+359 88 1000020",
+        "email": "dragomir.petkov@example.com"
+      },
+      {
+        "id": "p21",
+        "name": "Eleanor Whitfield",
+        "phone": "+44 7700 100021",
+        "email": "eleanor.whitfield@example.com"
+      },
+      {
+        "id": "p22",
+        "name": "Declan O'Sullivan",
+        "phone": "+353 85 1000022",
+        "email": "declan.osullivan@example.com"
+      },
+      {
+        "id": "p23",
+        "name": "Jennifer Martinez-Klein",
+        "phone": "+1 415 555 0023",
+        "email": "jennifer.martinez-klein@example.com"
+      },
+      {
+        "id": "p24",
+        "name": "Marcus Thompson",
+        "phone": "+1 212 555 0024",
+        "email": "marcus.thompson@example.com"
+      },
+      {
+        "id": "p25",
+        "name": "Sarah O'Connor",
+        "phone": "+1 617 555 0025",
+        "email": "sarah.oconnor@example.com"
+      },
+      {
+        "id": "p26",
+        "name": "DeAndre Williams",
+        "phone": "+1 312 555 0026",
+        "email": "deandre.williams@example.com"
+      },
+      {
+        "id": "p27",
+        "name": "Priya Patel-Johnson",
+        "phone": "+1 206 555 0027",
+        "email": "priya.patel-johnson@example.com"
+      },
+      {
+        "id": "p28",
+        "name": "Benjamin Goldstein",
+        "phone": "+1 202 555 0028",
+        "email": "benjamin.goldstein@example.com"
+      },
+      {
+        "id": "p29",
+        "name": "Marie-Claire Tremblay",
+        "phone": "+1 514 555 0029",
+        "email": "marie-claire.tremblay@example.com"
+      },
+      {
+        "id": "p30",
+        "name": "Connor MacDonald",
+        "phone": "+1 416 555 0030",
+        "email": "connor.macdonald@example.com"
+      },
+      {
+        "id": "p31",
+        "name": "Santiago Jiménez",
+        "phone": "+52 55 1000031",
+        "email": "santiago.jimenez@example.com"
+      },
+      {
+        "id": "p32",
+        "name": "Valentina Morales",
+        "phone": "+52 55 1000032",
+        "email": "valentina.morales@example.com"
+      },
+      {
+        "id": "p33",
+        "name": "Rafael Gonçalves",
+        "phone": "+55 11 1000033",
+        "email": "rafael.goncalves@example.com"
+      },
+      {
+        "id": "p34",
+        "name": "Camila Oliveira",
+        "phone": "+55 21 1000034",
+        "email": "camila.oliveira@example.com"
+      },
+      {
+        "id": "p35",
+        "name": "João Peixoto",
+        "phone": "+55 11 1000035",
+        "email": "joao.peixoto@example.com"
+      },
+      {
+        "id": "p36",
+        "name": "Luciana Rodríguez",
+        "phone": "+54 11 1000036",
+        "email": "luciana.rodriguez@example.com"
+      },
+      {
+        "id": "p37",
+        "name": "Matías Fernández",
+        "phone": "+54 11 1000037",
+        "email": "matias.fernandez@example.com"
+      },
+      {
+        "id": "p38",
+        "name": "Isabella Herrera",
+        "phone": "+57 300 1000038",
+        "email": "isabella.herrera@example.com"
+      },
+      {
+        "id": "p39",
+        "name": "Andrés Vargas",
+        "phone": "+56 9 1000039",
+        "email": "andres.vargas@example.com"
+      },
+      {
+        "id": "p40",
+        "name": "Beatriz Mendoza",
+        "phone": "+51 999 1000040",
+        "email": "beatriz.mendoza@example.com"
+      },
+      {
+        "id": "p41",
+        "name": "Chidinma Okonkwo",
+        "phone": "+234 803 1000041",
+        "email": "chidinma.okonkwo@example.com"
+      },
+      {
+        "id": "p42",
+        "name": "Oluwaseun Adeyemi",
+        "phone": "+234 803 1000042",
+        "email": "oluwaseun.adeyemi@example.com"
+      },
+      {
+        "id": "p43",
+        "name": "Thandiwe Nkosi",
+        "phone": "+27 82 1000043",
+        "email": "thandiwe.nkosi@example.com"
+      },
+      {
+        "id": "p44",
+        "name": "Sipho van Rensburg",
+        "phone": "+27 82 1000044",
+        "email": "sipho.vanrensburg@example.com"
+      },
+      {
+        "id": "p45",
+        "name": "Amina Hassan",
+        "phone": "+254 722 100045",
+        "email": "amina.hassan@example.com"
+      },
+      {
+        "id": "p46",
+        "name": "Kwame Mensah",
+        "phone": "+233 24 1000046",
+        "email": "kwame.mensah@example.com"
+      },
+      {
+        "id": "p47",
+        "name": "Fatou Diallo",
+        "phone": "+221 77 1000047",
+        "email": "fatou.diallo@example.com"
+      },
+      {
+        "id": "p48",
+        "name": "Youssef El Amrani",
+        "phone": "+212 6 1000048",
+        "email": "youssef.elamrani@example.com"
+      },
+      {
+        "id": "p49",
+        "name": "Nour Ibrahim",
+        "phone": "+20 10 1000049",
+        "email": "nour.ibrahim@example.com"
+      },
+      {
+        "id": "p50",
+        "name": "Zainab Bello",
+        "phone": "+234 803 1000050",
+        "email": "zainab.bello@example.com"
+      },
+      {
+        "id": "p51",
+        "name": "Li Wei 李伟",
+        "phone": "+86 138 0000051",
+        "email": "li.wei@example.com"
+      },
+      {
+        "id": "p52",
+        "name": "Wang Fang 王芳",
+        "phone": "+86 138 0000052",
+        "email": "wang.fang@example.com"
+      },
+      {
+        "id": "p53",
+        "name": "Zhang Min 张敏",
+        "phone": "+86 138 0000053",
+        "email": "zhang.min@example.com"
+      },
+      {
+        "id": "p54",
+        "name": "Chen Jing 陈静",
+        "phone": "+86 138 0000054",
+        "email": "chen.jing@example.com"
+      },
+      {
+        "id": "p55",
+        "name": "Liu Yang 刘洋",
+        "phone": "+86 138 0000055",
+        "email": "liu.yang@example.com"
+      },
+      {
+        "id": "p56",
+        "name": "Huang Xiulan 黄秀兰",
+        "phone": "+86 138 0000056",
+        "email": "huang.xiulan@example.com"
+      },
+      {
+        "id": "p57",
+        "name": "Zhao Qiang 赵强",
+        "phone": "+86 138 0000057",
+        "email": "zhao.qiang@example.com"
+      },
+      {
+        "id": "p58",
+        "name": "Xu Mei 徐梅",
+        "phone": "+86 138 0000058",
+        "email": "xu.mei@example.com"
+      },
+      {
+        "id": "p59",
+        "name": "Arjun Krishnamurthy",
+        "phone": "+91 98 100 00059",
+        "email": "arjun.krishnamurthy@example.com"
+      },
+      {
+        "id": "p60",
+        "name": "Aisha Bhattacharya",
+        "phone": "+91 98 100 00060",
+        "email": "aisha.bhattacharya@example.com"
+      },
+      {
+        "id": "p61",
+        "name": "Vikram Subramanian",
+        "phone": "+91 98 100 00061",
+        "email": "vikram.subramanian@example.com"
+      },
+      {
+        "id": "p62",
+        "name": "Deepika Venkatesh",
+        "phone": "+91 98 100 00062",
+        "email": "deepika.venkatesh@example.com"
+      },
+      {
+        "id": "p63",
+        "name": "Rajesh Chatterjee",
+        "phone": "+91 98 100 00063",
+        "email": "rajesh.chatterjee@example.com"
+      },
+      {
+        "id": "p64",
+        "name": "Meera Nair",
+        "phone": "+91 98 100 00064",
+        "email": "meera.nair@example.com"
+      },
+      {
+        "id": "p65",
+        "name": "Siddharth Mehta",
+        "phone": "+91 98 100 00065",
+        "email": "siddharth.mehta@example.com"
+      },
+      {
+        "id": "p66",
+        "name": "Priyanka Iyer",
+        "phone": "+91 98 100 00066",
+        "email": "priyanka.iyer@example.com"
+      },
+      {
+        "id": "p67",
+        "name": "Hiroshi Tanaka 田中浩",
+        "phone": "+81 90 1000067",
+        "email": "hiroshi.tanaka@example.com"
+      },
+      {
+        "id": "p68",
+        "name": "Sakura Yamamoto 山本桜",
+        "phone": "+81 90 1000068",
+        "email": "sakura.yamamoto@example.com"
+      },
+      {
+        "id": "p69",
+        "name": "Kenji Watanabe 渡辺健司",
+        "phone": "+81 90 1000069",
+        "email": "kenji.watanabe@example.com"
+      },
+      {
+        "id": "p70",
+        "name": "Ji-hoon Park 박지훈",
+        "phone": "+82 10 1000070",
+        "email": "jihoon.park@example.com"
+      },
+      {
+        "id": "p71",
+        "name": "Min-jun Kim 김민준",
+        "phone": "+82 10 1000071",
+        "email": "minjun.kim@example.com"
+      },
+      {
+        "id": "p72",
+        "name": "So-young Lee 이소영",
+        "phone": "+82 10 1000072",
+        "email": "soyoung.lee@example.com"
+      },
+      {
+        "id": "p73",
+        "name": "Somchai Chaiyasit",
+        "phone": "+66 81 1000073",
+        "email": "somchai.chaiyasit@example.com"
+      },
+      {
+        "id": "p74",
+        "name": "Nguyễn Thị Hương",
+        "phone": "+84 90 1000074",
+        "email": "nguyen.thihuong@example.com"
+      },
+      {
+        "id": "p75",
+        "name": "Trần Văn Minh",
+        "phone": "+84 90 1000075",
+        "email": "tran.vanminh@example.com"
+      },
+      {
+        "id": "p76",
+        "name": "Siti Nurhaliza",
+        "phone": "+62 812 1000076",
+        "email": "siti.nurhaliza@example.com"
+      },
+      {
+        "id": "p77",
+        "name": "Budi Santoso",
+        "phone": "+62 812 1000077",
+        "email": "budi.santoso@example.com"
+      },
+      {
+        "id": "p78",
+        "name": "Maria Cristina Reyes",
+        "phone": "+63 917 1000078",
+        "email": "maria.reyes@example.com"
+      },
+      {
+        "id": "p79",
+        "name": "Khalid Al-Mansouri",
+        "phone": "+971 50 1000079",
+        "email": "khalid.almansouri@example.com"
+      },
+      {
+        "id": "p80",
+        "name": "Layla Al-Rashid",
+        "phone": "+966 50 1000080",
+        "email": "layla.alrashid@example.com"
+      },
+      {
+        "id": "p81",
+        "name": "Omar Farouk",
+        "phone": "+962 79 1000081",
+        "email": "omar.farouk@example.com"
+      },
+      {
+        "id": "p82",
+        "name": "Reem Haddad",
+        "phone": "+961 3 1000082",
+        "email": "reem.haddad@example.com"
+      },
+      {
+        "id": "p83",
+        "name": "Yael Rosenberg",
+        "phone": "+972 50 1000083",
+        "email": "yael.rosenberg@example.com"
+      },
+      {
+        "id": "p84",
+        "name": "Eitan Shapiro",
+        "phone": "+972 50 1000084",
+        "email": "eitan.shapiro@example.com"
+      },
+      {
+        "id": "p85",
+        "name": "Zeynep Yılmaz",
+        "phone": "+90 532 1000085",
+        "email": "zeynep.yilmaz@example.com"
+      },
+      {
+        "id": "p86",
+        "name": "Mustafa Demirkan",
+        "phone": "+90 532 1000086",
+        "email": "mustafa.demirkan@example.com"
+      },
+      {
+        "id": "p87",
+        "name": "Niklas Eriksson",
+        "phone": "+46 70 1000087",
+        "email": "niklas.eriksson@example.com"
+      },
+      {
+        "id": "p88",
+        "name": "Pavel Novák",
+        "phone": "+420 777 100088",
+        "email": "pavel.novak@example.com"
+      },
+      {
+        "id": "p89",
+        "name": "Zsófia Kovács",
+        "phone": "+36 30 1000089",
+        "email": "zsofia.kovacs@example.com"
+      },
+      {
+        "id": "p90",
+        "name": "Dimitrios Papadopoulos",
+        "phone": "+30 69 1000090",
+        "email": "dimitrios.papadopoulos@example.com"
+      },
+      {
+        "id": "p91",
+        "name": "Jana Horáková",
+        "phone": "+420 777 100091",
+        "email": "jana.horakova@example.com"
+      },
+      {
+        "id": "p92",
+        "name": "Olivia Barrington",
+        "phone": "+61 4 1000092",
+        "email": "olivia.barrington@example.com"
+      },
+      {
+        "id": "p93",
+        "name": "Liam Chen-McKenzie",
+        "phone": "+61 4 1000093",
+        "email": "liam.chen-mckenzie@example.com"
+      },
+      {
+        "id": "p94",
+        "name": "Jasmine Washington",
+        "phone": "+1 404 555 0094",
+        "email": "jasmine.washington@example.com"
+      },
+      {
+        "id": "p95",
+        "name": "Hector Ramírez",
+        "phone": "+1 213 555 0095",
+        "email": "hector.ramirez@example.com"
+      },
+      {
+        "id": "p96",
+        "name": "Emma Sokolov",
+        "phone": "+1 646 555 0096",
+        "email": "emma.sokolov@example.com"
+      },
+      {
+        "id": "p97",
+        "name": "Derek Kim-Anderson",
+        "phone": "+1 650 555 0097",
+        "email": "derek.kim-anderson@example.com"
+      },
+      {
+        "id": "p98",
+        "name": "Ngozi Abiola",
+        "phone": "+234 803 1000098",
+        "email": "ngozi.abiola@example.com"
+      },
+      {
+        "id": "p99",
+        "name": "Tarek El-Sayed",
+        "phone": "+20 10 1000099",
+        "email": "tarek.elsayed@example.com"
+      },
+      {
+        "id": "p100",
+        "name": "Anjali Raman",
+        "phone": "+91 98 100 00100",
+        "email": "anjali.raman@example.com"
+      }
+    ],
+    "levels": [
+      {
+        "id": "l1",
+        "name": "Strategischer Krisenstab (Vorstand)",
+        "roles": [
+          {
+            "id": "r1",
+            "name": "Vorsitz Krisenstab",
+            "description": "Oberste Entscheidungsinstanz, Kommunikation mit Aufsichtsrat und Behördenleitung.",
+            "critical": true,
+            "assignments": [
+              {
+                "personId": "p1",
+                "rank": 0
+              },
+              {
+                "personId": "p2",
+                "rank": 1
+              },
+              {
+                "personId": "p4",
+                "rank": 2
+              }
+            ]
+          },
+          {
+            "id": "r2",
+            "name": "Stellvertretender Vorsitz",
+            "description": "Operative Stellvertretung bei Abwesenheit; Fokus auf laufende Geschäftsbereiche.",
+            "critical": true,
+            "assignments": [
+              {
+                "personId": "p2",
+                "rank": 0
+              },
+              {
+                "personId": "p6",
+                "rank": 1
+              },
+              {
+                "personId": "p7",
+                "rank": 2
+              }
+            ]
+          },
+          {
+            "id": "r3",
+            "name": "Chief Communications Officer",
+            "description": "Strategische externe Kommunikation, Sprecher gegenüber Medien und Öffentlichkeit.",
+            "critical": true,
+            "assignments": [
+              {
+                "personId": "p3",
+                "rank": 0
+              },
+              {
+                "personId": "p16",
+                "rank": 1
+              },
+              {
+                "personId": "p32",
+                "rank": 2
+              }
+            ]
+          },
+          {
+            "id": "r4",
+            "name": "General Counsel",
+            "description": "Juristische Gesamtverantwortung, Meldepflichten gegenüber Behörden, Rechtsstreitigkeiten.",
+            "critical": true,
+            "assignments": [
+              {
+                "personId": "p4",
+                "rank": 0
+              },
+              {
+                "personId": "p22",
+                "rank": 1
+              }
+            ]
+          },
+          {
+            "id": "r5",
+            "name": "Chief Risk Officer",
+            "description": "Übergreifende Risikobewertung, Eskalation kritischer Bedrohungsszenarien.",
+            "critical": true,
+            "assignments": [
+              {
+                "personId": "p5",
+                "rank": 0
+              },
+              {
+                "personId": "p7",
+                "rank": 1
+              },
+              {
+                "personId": "p9",
+                "rank": 2
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "l2",
+        "name": "Krisenstab-Führung",
+        "roles": [
+          {
+            "id": "r6",
+            "name": "Crisis Manager",
+            "description": "Operative Leitung des Krisenstabs, Koordination aller Workstreams, Reporting an Vorstand.",
+            "critical": true,
+            "assignments": [
+              {
+                "personId": "p7",
+                "rank": 0
+              },
+              {
+                "personId": "p8",
+                "rank": 1
+              },
+              {
+                "personId": "p9",
+                "rank": 2
+              },
+              {
+                "personId": "p11",
+                "rank": 3
+              }
+            ]
+          },
+          {
+            "id": "r7",
+            "name": "Deputy Crisis Manager",
+            "description": "Schicht-Stellvertretung, operative Durchsetzung der Entscheidungen.",
+            "critical": true,
+            "assignments": [
+              {
+                "personId": "p10",
+                "rank": 0
+              },
+              {
+                "personId": "p13",
+                "rank": 1
+              },
+              {
+                "personId": "p14",
+                "rank": 2
+              }
+            ]
+          },
+          {
+            "id": "r8",
+            "name": "Head of Security",
+            "description": "Leitung aller Security-Streams: IT, Physical, Information.",
+            "critical": true,
+            "assignments": [
+              {
+                "personId": "p8",
+                "rank": 0
+              },
+              {
+                "personId": "p15",
+                "rank": 1
+              },
+              {
+                "personId": "p17",
+                "rank": 2
+              }
+            ]
+          },
+          {
+            "id": "r9",
+            "name": "Head of Business Continuity",
+            "description": "Wiederanlauf geschäftskritischer Prozesse, Disaster Recovery-Koordination.",
+            "critical": true,
+            "assignments": [
+              {
+                "personId": "p9",
+                "rank": 0
+              },
+              {
+                "personId": "p18",
+                "rank": 1
+              },
+              {
+                "personId": "p19",
+                "rank": 2
+              }
+            ]
+          },
+          {
+            "id": "r10",
+            "name": "Legal & Compliance Lead",
+            "description": "DSGVO-Meldungen, behördliche Meldepflichten (BSI, BaFin, DPA), Vertragsthemen.",
+            "critical": true,
+            "assignments": [
+              {
+                "personId": "p12",
+                "rank": 0
+              },
+              {
+                "personId": "p22",
+                "rank": 1
+              },
+              {
+                "personId": "p26",
+                "rank": 2
+              }
+            ]
+          },
+          {
+            "id": "r11",
+            "name": "Head of Corporate Communications",
+            "description": "Pressearbeit, interne Kommunikation an Mitarbeitende, Social Media.",
+            "critical": false,
+            "assignments": [
+              {
+                "personId": "p11",
+                "rank": 0
+              },
+              {
+                "personId": "p20",
+                "rank": 1
+              },
+              {
+                "personId": "p24",
+                "rank": 2
+              }
+            ]
+          },
+          {
+            "id": "r12",
+            "name": "Head of External Relations",
+            "description": "Kommunikation mit Kunden, Partnern, Investoren und Aufsichtsbehörden.",
+            "critical": false,
+            "assignments": [
+              {
+                "personId": "p25",
+                "rank": 0
+              },
+              {
+                "personId": "p28",
+                "rank": 1
+              },
+              {
+                "personId": "p36",
+                "rank": 2
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "l3",
+        "name": "Fachbereichsleitung",
+        "roles": [
+          {
+            "id": "r13",
+            "name": "Chief Information Security Officer (CISO)",
+            "description": "Technische Incident-Response, SOC-Koordination, Forensik-Beauftragung.",
+            "critical": true,
+            "assignments": [
+              {
+                "personId": "p15",
+                "rank": 0
+              },
+              {
+                "personId": "p27",
+                "rank": 1
+              },
+              {
+                "personId": "p33",
+                "rank": 2
+              }
+            ]
+          },
+          {
+            "id": "r14",
+            "name": "Head of IT Operations",
+            "description": "Infrastruktur-Integrität, Netzwerk, Rechenzentren, Cloud-Services.",
+            "critical": true,
+            "assignments": [
+              {
+                "personId": "p16",
+                "rank": 0
+              },
+              {
+                "personId": "p28",
+                "rank": 1
+              },
+              {
+                "personId": "p35",
+                "rank": 2
+              }
+            ]
+          },
+          {
+            "id": "r15",
+            "name": "Head of Application Development",
+            "description": "Anwendungs-Verfügbarkeit, Code-Review bei Schwachstellen, Deployment-Kontrolle.",
+            "critical": false,
+            "assignments": [
+              {
+                "personId": "p18",
+                "rank": 0
+              },
+              {
+                "personId": "p29",
+                "rank": 1
+              },
+              {
+                "personId": "p37",
+                "rank": 2
+              }
+            ]
+          },
+          {
+            "id": "r16",
+            "name": "Head of HR Crisis Response",
+            "description": "Personalthemen während Krise: Schichtpläne, Urlaubssperren, Mitarbeiter-Support.",
+            "critical": false,
+            "assignments": [
+              {
+                "personId": "p19",
+                "rank": 0
+              },
+              {
+                "personId": "p30",
+                "rank": 1
+              },
+              {
+                "personId": "p41",
+                "rank": 2
+              }
+            ]
+          },
+          {
+            "id": "r17",
+            "name": "Head of Finance & Treasury",
+            "description": "Liquidität, Notfall-Budgets, Versicherungsabwicklung.",
+            "critical": false,
+            "assignments": [
+              {
+                "personId": "p21",
+                "rank": 0
+              },
+              {
+                "personId": "p31",
+                "rank": 1
+              },
+              {
+                "personId": "p42",
+                "rank": 2
+              }
+            ]
+          },
+          {
+            "id": "r18",
+            "name": "Head of Physical Security",
+            "description": "Zutrittskontrollen, Evakuierung, Werkschutz, Perimeter-Security.",
+            "critical": false,
+            "assignments": [
+              {
+                "personId": "p23",
+                "rank": 0
+              },
+              {
+                "personId": "p32",
+                "rank": 1
+              }
+            ]
+          },
+          {
+            "id": "r19",
+            "name": "Data Protection Officer (DPO)",
+            "description": "DSGVO-Bewertung, Datenschutzverletzungen, Kommunikation mit Aufsichtsbehörde.",
+            "critical": true,
+            "assignments": [
+              {
+                "personId": "p22",
+                "rank": 0
+              },
+              {
+                "personId": "p25",
+                "rank": 1
+              },
+              {
+                "personId": "p26",
+                "rank": 2
+              }
+            ]
+          },
+          {
+            "id": "r20",
+            "name": "Head of Facilities",
+            "description": "Gebäudetechnik, Strom-, Klima- und Notstromversorgung.",
+            "critical": false,
+            "assignments": [
+              {
+                "personId": "p45",
+                "rank": 0
+              },
+              {
+                "personId": "p47",
+                "rank": 1
+              },
+              {
+                "personId": "p59",
+                "rank": 2
+              }
+            ]
+          },
+          {
+            "id": "r21",
+            "name": "Head of Supply Chain",
+            "description": "Beschaffung kritischer Ersatzteile und Notfall-Dienstleistungen.",
+            "critical": false,
+            "assignments": [
+              {
+                "personId": "p38",
+                "rank": 0
+              },
+              {
+                "personId": "p40",
+                "rank": 1
+              },
+              {
+                "personId": "p62",
+                "rank": 2
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "l4",
+        "name": "Taktische Teamleitung",
+        "roles": [
+          {
+            "id": "r22",
+            "name": "SOC Shift Lead",
+            "description": "24/7-Schichtbetrieb des Security Operations Center, Eskalationsentscheidungen.",
+            "critical": true,
+            "assignments": [
+              {
+                "personId": "p27",
+                "rank": 0
+              },
+              {
+                "personId": "p34",
+                "rank": 1
+              },
+              {
+                "personId": "p43",
+                "rank": 2
+              },
+              {
+                "personId": "p49",
+                "rank": 3
+              }
+            ]
+          },
+          {
+            "id": "r23",
+            "name": "Incident Response Lead",
+            "description": "Ausführung der Containment-, Eradication- und Recovery-Schritte.",
+            "critical": true,
+            "assignments": [
+              {
+                "personId": "p33",
+                "rank": 0
+              },
+              {
+                "personId": "p36",
+                "rank": 1
+              },
+              {
+                "personId": "p47",
+                "rank": 2
+              }
+            ]
+          },
+          {
+            "id": "r24",
+            "name": "Forensics Team Lead",
+            "description": "Beweissicherung, Root-Cause-Analyse, Zusammenarbeit mit externen Forensikern.",
+            "critical": true,
+            "assignments": [
+              {
+                "personId": "p40",
+                "rank": 0
+              },
+              {
+                "personId": "p52",
+                "rank": 1
+              },
+              {
+                "personId": "p54",
+                "rank": 2
+              }
+            ]
+          },
+          {
+            "id": "r25",
+            "name": "Network Operations Lead",
+            "description": "Segmentierung, Traffic-Filter, VPN-Infrastruktur, BGP/Routing.",
+            "critical": false,
+            "assignments": [
+              {
+                "personId": "p28",
+                "rank": 0
+              },
+              {
+                "personId": "p44",
+                "rank": 1
+              },
+              {
+                "personId": "p50",
+                "rank": 2
+              }
+            ]
+          },
+          {
+            "id": "r26",
+            "name": "Endpoint Protection Lead",
+            "description": "EDR-Deployment, Client-Isolation, Patch-Koordination.",
+            "critical": false,
+            "assignments": [
+              {
+                "personId": "p37",
+                "rank": 0
+              },
+              {
+                "personId": "p46",
+                "rank": 1
+              },
+              {
+                "personId": "p55",
+                "rank": 2
+              }
+            ]
+          },
+          {
+            "id": "r27",
+            "name": "Threat Intelligence Lead",
+            "description": "IOC-Research, CTI-Feeds, Attribution, Austausch im CERT-Verbund.",
+            "critical": false,
+            "assignments": [
+              {
+                "personId": "p38",
+                "rank": 0
+              },
+              {
+                "personId": "p53",
+                "rank": 1
+              },
+              {
+                "personId": "p68",
+                "rank": 2
+              }
+            ]
+          },
+          {
+            "id": "r28",
+            "name": "Vulnerability Management Lead",
+            "description": "Scanning, Priorisierung und Patchplanung für bekannte Schwachstellen.",
+            "critical": false,
+            "assignments": [
+              {
+                "personId": "p48",
+                "rank": 0
+              },
+              {
+                "personId": "p55",
+                "rank": 1
+              },
+              {
+                "personId": "p61",
+                "rank": 2
+              }
+            ]
+          },
+          {
+            "id": "r29",
+            "name": "Communications Operations Lead",
+            "description": "Operative Krisenkommunikation, Statement-Erstellung, Q&A-Aufbereitung.",
+            "critical": false,
+            "assignments": [
+              {
+                "personId": "p24",
+                "rank": 0
+              },
+              {
+                "personId": "p39",
+                "rank": 1
+              },
+              {
+                "personId": "p48",
+                "rank": 2
+              }
+            ]
+          },
+          {
+            "id": "r30",
+            "name": "Customer Care Coordination",
+            "description": "Priorisierung von Kundenanfragen, Bereitstellung geprüfter FAQ-Inhalte.",
+            "critical": false,
+            "assignments": [
+              {
+                "personId": "p56",
+                "rank": 0
+              },
+              {
+                "personId": "p63",
+                "rank": 1
+              },
+              {
+                "personId": "p72",
+                "rank": 2
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "l5",
+        "name": "Operative Fach-Experten",
+        "roles": [
+          {
+            "id": "r31",
+            "name": "Cloud Security Specialist",
+            "description": "Absicherung von AWS/Azure/GCP-Umgebungen, Cloud-native Detection, Log-Analyse.",
+            "critical": false,
+            "assignments": [
+              {
+                "personId": "p45",
+                "rank": 0
+              },
+              {
+                "personId": "p51",
+                "rank": 1
+              },
+              {
+                "personId": "p56",
+                "rank": 2
+              }
+            ]
+          },
+          {
+            "id": "r32",
+            "name": "Identity & Access Specialist",
+            "description": "Active-Directory-Analyse, Credential-Rotation, Tier-0-Schutz.",
+            "critical": true,
+            "assignments": [
+              {
+                "personId": "p43",
+                "rank": 0
+              },
+              {
+                "personId": "p57",
+                "rank": 1
+              },
+              {
+                "personId": "p66",
+                "rank": 2
+              }
+            ]
+          },
+          {
+            "id": "r33",
+            "name": "OT / ICS Security Specialist",
+            "description": "Produktionsanlagen, SCADA, SPS, Air-Gap-Bewertung industrieller Systeme.",
+            "critical": false,
+            "assignments": [
+              {
+                "personId": "p58",
+                "rank": 0
+              },
+              {
+                "personId": "p62",
+                "rank": 1
+              },
+              {
+                "personId": "p68",
+                "rank": 2
+              }
+            ]
+          },
+          {
+            "id": "r34",
+            "name": "Malware Analyst",
+            "description": "Reverse-Engineering, Sandbox-Analyse, YARA-Rule-Entwicklung.",
+            "critical": false,
+            "assignments": [
+              {
+                "personId": "p54",
+                "rank": 0
+              },
+              {
+                "personId": "p59",
+                "rank": 1
+              },
+              {
+                "personId": "p67",
+                "rank": 2
+              }
+            ]
+          },
+          {
+            "id": "r35",
+            "name": "Recovery & Backup Specialist",
+            "description": "Backup-Integritätsprüfung, Restore-Planung, Clean-Room-Restore-Verfahren.",
+            "critical": true,
+            "assignments": [
+              {
+                "personId": "p46",
+                "rank": 0
+              },
+              {
+                "personId": "p60",
+                "rank": 1
+              },
+              {
+                "personId": "p69",
+                "rank": 2
+              }
+            ]
+          },
+          {
+            "id": "r36",
+            "name": "Cryptography & Key Management Specialist",
+            "description": "HSM-Betrieb, Schlüssel-Rotation, PKI-Bewertung bei Kompromittierung.",
+            "critical": false,
+            "assignments": [
+              {
+                "personId": "p64",
+                "rank": 0
+              },
+              {
+                "personId": "p70",
+                "rank": 1
+              },
+              {
+                "personId": "p75",
+                "rank": 2
+              }
+            ]
+          },
+          {
+            "id": "r37",
+            "name": "Application Security Specialist",
+            "description": "Code-Review kritischer Anwendungen, Prüfung von Software-Komponenten auf Schwachstellen.",
+            "critical": false,
+            "assignments": [
+              {
+                "personId": "p65",
+                "rank": 0
+              },
+              {
+                "personId": "p77",
+                "rank": 1
+              },
+              {
+                "personId": "p85",
+                "rank": 2
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "l6",
+        "name": "Regional Incident Commanders",
+        "roles": [
+          {
+            "id": "r38",
+            "name": "Regional Lead — Americas",
+            "description": "Vor-Ort-Koordination für Nord-, Mittel- und Südamerika.",
+            "critical": false,
+            "assignments": [
+              {
+                "personId": "p23",
+                "rank": 0
+              },
+              {
+                "personId": "p30",
+                "rank": 1
+              },
+              {
+                "personId": "p31",
+                "rank": 2
+              },
+              {
+                "personId": "p92",
+                "rank": 3
+              }
+            ]
+          },
+          {
+            "id": "r39",
+            "name": "Regional Lead — Asia-Pacific",
+            "description": "Vor-Ort-Koordination für Asien-Pazifik-Region inkl. Indien/China.",
+            "critical": false,
+            "assignments": [
+              {
+                "personId": "p51",
+                "rank": 0
+              },
+              {
+                "personId": "p55",
+                "rank": 1
+              },
+              {
+                "personId": "p59",
+                "rank": 2
+              },
+              {
+                "personId": "p70",
+                "rank": 3
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "l7",
+        "name": "Support & Administration",
+        "roles": [
+          {
+            "id": "r40",
+            "name": "Crisis Staff Documentation",
+            "description": "Protokollführung, Zeitstempel aller Entscheidungen, Bereitstellung im Audit-Fall.",
+            "critical": false,
+            "assignments": [
+              {
+                "personId": "p71",
+                "rank": 0
+              },
+              {
+                "personId": "p72",
+                "rank": 1
+              },
+              {
+                "personId": "p74",
+                "rank": 2
+              },
+              {
+                "personId": "p76",
+                "rank": 3
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
