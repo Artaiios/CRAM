@@ -2,6 +2,22 @@
 
 All notable changes to CRAM are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-rc1.1] — 2026-04-19
+
+Documentation release. No functional changes to the tool itself beyond the version string.
+
+### Fixed
+
+- Screenshot filenames in `docs/screenshots/` now match what each image actually depicts. The original filenames were guessed from upload timestamps; several did not match their content, causing the README to show the wrong dialog for several sections.
+
+### Added
+
+- German user manual PDF (`CRAM-Anwenderhandbuch.pdf`) as a release asset. Same structure and layout as the English version, translated to German.
+
+### Changed
+
+- `APP_VERSION` bumped to `1.0.0-rc1.1` so the Settings → About value matches the release tag.
+
 ## [1.0.0-rc1] — 2026-04-19
 
 First release candidate. Feature-complete, pending field validation before a final 1.0 tag.
