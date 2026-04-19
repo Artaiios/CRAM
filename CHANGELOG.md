@@ -2,6 +2,19 @@
 
 All notable changes to CRAM are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-rc1.2] — 2026-04-19
+
+Documentation release. No functional changes to the tool itself beyond the version string.
+
+### Added
+
+- Complete **visual legend** in README, both Markdown handbooks, and both PDFs. Covers every colour-coded signal the tool uses: role card states (primary green, substitute yellow, deeper substitute dark orange, unoccupied red, critical pulsing), manual assignment markers (purple solid border with lock icon, purple dashed for manually-assigned-but-absent), cascade arrow colours and why the target role determines the colour, header status pills, and sidebar accents.
+
+### Changed
+
+- `APP_VERSION` bumped to `1.0.0-rc1.2`.
+- Cascade description in documentation was previously misleading — said "red dashed arrows" while in reality arrows are yellow for non-critical and red for critical cascades. Now accurate.
+
 ## [1.0.0-rc1.1] — 2026-04-19
 
 Documentation release. No functional changes to the tool itself beyond the version string.

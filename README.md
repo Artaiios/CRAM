@@ -79,7 +79,60 @@ Each role card shows its complete chain at the bottom, with struck-through names
 
 ### Cascade visualisation
 
-When one person covers for another on a different level, red dashed arrows are drawn between the affected role cards. This makes it immediately visible which chains are actively being exercised — useful when the committee is briefing and needs to know at a glance which positions are under substitution stress.
+When one person covers for another on a different level, CRAM draws an animated dashed arrow between the affected role cards. This makes it immediately visible which chains are actively being exercised — useful when the committee is briefing and needs to know at a glance which positions are under substitution stress.
+
+### Visual legend
+
+CRAM uses colour and animation to convey the current state of every role and cascade. The full legend:
+
+**Role card left border — the role's current state:**
+
+| Colour | State | Meaning |
+|---|---|---|
+| Green | Primary | The planned primary occupant is active |
+| Yellow | Substitute (Sub1) | The first substitute has taken over |
+| Dark orange | Substitute (Sub2 or deeper) | A second-tier or later substitute is active |
+| Red | Unoccupied | No one in the chain is available |
+| Red + pulsing | Unoccupied + critical | No one available for a critical role — needs attention |
+
+**Role card border and surroundings — special conditions:**
+
+| Signal | Meaning |
+|---|---|
+| Purple solid border + 🔒 badge | Role currently has a manual assignment in effect |
+| Purple dashed border + struck-through name | Role was manually assigned to someone who has since become unavailable |
+| Yellow outline around card | Card is part of a non-critical cascade (either source or target) |
+| Yellow outline + glow | Cascade target that is non-critical — this is where the substitute is actively standing in |
+| Red outline around card | Card is part of a cascade into a critical role |
+| Red outline + glow | Cascade target on a critical role |
+| Dimmed (50% opacity) | Cascade view is active and this card is not involved in any cascade |
+
+**Cascade arrows (only visible while cascade view is enabled):**
+
+| Colour | Animation | Meaning |
+|---|---|---|
+| Yellow dashed | Slow flow | Substitution into a non-critical role |
+| Red dashed, thicker | Faster pulse with red glow | Substitution into a **critical** role — watch this carefully |
+
+The arrow colour is determined by the **target role** (where the person is standing in), not the person's home role. A green-sub-filling-a-red role produces a red arrow; a red-primary-covering-a-green role produces a yellow arrow.
+
+**Header status pills — system-wide state:**
+
+| Colour | Meaning |
+|---|---|
+| Grey (neutral) | Informational count, no action required |
+| Yellow outline | Active but non-critical condition — substitutes have stepped in |
+| Red + pulsing | At least one critical role is unoccupied — attention required |
+
+**Sidebar accents:**
+
+| Element | Colour | Meaning |
+|---|---|---|
+| Roster entry, left border | Green | Role held by primary |
+| Roster entry, left border | Yellow | Role held by substitute |
+| Roster entry, left border | Dark orange | Role held by deeper substitute |
+| Roster entry, left border | Red | Role unoccupied |
+| People list entry, left border | Yellow | Person is currently unavailable |
 
 ### Manual assignments
 

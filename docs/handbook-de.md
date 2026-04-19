@@ -60,9 +60,62 @@ Nach dem Bestätigen gilt die Person als abwesend. Alle Rollen, in denen sie ein
 
 Wenn die Anzahl der Abwesenheiten zunimmt, entstehen Kaskaden: Eine Rolle verliert ihren Primärbesetzer, die Vertretung springt ein — ist aber selbst Primär in einer anderen Rolle, sodass dort eine weitere Verschiebung ausgelöst wird.
 
-CRAM visualisiert solche Kaskaden mit **roten gestrichelten Pfeilen** zwischen den betroffenen Rollenkarten. Das macht auf einen Blick sichtbar, welche Vertretungsketten aktuell unter Druck stehen — eine wichtige Information für die Krisenstabsleitung, wenn es darum geht abzuschätzen, wie robust die aktuelle Aufstellung ist.
+CRAM visualisiert solche Kaskaden mit animierten gestrichelten Pfeilen zwischen den betroffenen Rollenkarten. Das macht auf einen Blick sichtbar, welche Vertretungsketten aktuell unter Druck stehen — eine wichtige Information für die Krisenstabsleitung, wenn es darum geht abzuschätzen, wie robust die aktuelle Aufstellung ist.
 
 Gibt es keine verfügbare Person mehr in einer Kette, wird die Rolle als **Unoccupied** markiert. Das entsprechende Pill in der Kopfleiste zeigt die Anzahl unbesetzter Rollen an; bei kritischen Rollen wird das Pill rot eingefärbt.
+
+## Legende: Was die Farben und Symbole bedeuten
+
+CRAM nutzt Farben und Animationen, um den aktuellen Zustand jeder Rolle und jeder Kaskade zu signalisieren. Die vollständige Legende:
+
+### Linker Rand einer Rollenkarte — Zustand der Rolle
+
+| Farbe | Zustand | Bedeutung |
+|---|---|---|
+| Grün | Primary | Der planmäßige Primär-Besetzer ist aktiv |
+| Gelb | Substitute (Sub1) | Der erste Vertreter ist eingesprungen |
+| Dunkel-Orange | Substitute (Sub2 oder tiefer) | Ein Vertreter zweiter oder späterer Stufe ist aktiv |
+| Rot | Unoccupied | Niemand in der Kette verfügbar |
+| Rot + pulsierend | Unoccupied + kritisch | Kritische Rolle unbesetzt — Aufmerksamkeit erforderlich |
+
+### Rahmen und Umgebung der Karte — Sonderzustände
+
+| Signal | Bedeutung |
+|---|---|
+| Violetter Rahmen + 🔒-Symbol | Rolle hat eine aktive manuelle Zuordnung |
+| Violetter gestrichelter Rahmen + durchgestrichener Name | Manuell zugeordnete Person ist abwesend geworden |
+| Gelbe Umrandung | Karte ist Teil einer Kaskade (nicht kritisch) |
+| Gelbe Umrandung + Glow | Kaskaden-Ziel, nicht kritisch — hier springt gerade jemand ein |
+| Rote Umrandung | Karte ist Teil einer kritischen Kaskade |
+| Rote Umrandung + Glow | Kaskaden-Ziel auf einer kritischen Rolle |
+| Abgedunkelt (50% Deckkraft) | Kaskaden-Ansicht ist aktiv und diese Karte ist nicht beteiligt |
+
+### Kaskaden-Pfeile (nur sichtbar bei aktivierter Kaskaden-Ansicht)
+
+| Farbe | Animation | Bedeutung |
+|---|---|---|
+| Gelb gestrichelt | langsamer Fluss | Vertretung in einer nicht-kritischen Rolle |
+| Rot gestrichelt, dicker | schnellere Pulsation mit rotem Glow | Vertretung in einer **kritischen** Rolle — besonders beobachten |
+
+Die Pfeilfarbe richtet sich nach der **Ziel-Rolle** (wohin vertreten wird), nicht nach der Heim-Rolle der Person. Ein grüner Vertreter, der eine rote Rolle auffängt, erzeugt einen roten Pfeil; ein Primär aus einer kritischen Rolle, der in eine unkritische Rolle einspringt, erzeugt einen gelben.
+
+### Statuspills in der Kopfleiste — Gesamtzustand
+
+| Farbe | Bedeutung |
+|---|---|
+| Grau (neutral) | Reine Info-Zählung, keine Aktion nötig |
+| Gelber Rahmen | Aktiv, aber nicht kritisch — Vertreter sind eingesprungen |
+| Rot + pulsierend | Mindestens eine kritische Rolle ist unbesetzt |
+
+### Akzente in der Seitenleiste
+
+| Element | Farbe | Bedeutung |
+|---|---|---|
+| Roster-Eintrag, linker Rand | Grün | Rolle durch Primär besetzt |
+| Roster-Eintrag, linker Rand | Gelb | Rolle durch Vertreter besetzt |
+| Roster-Eintrag, linker Rand | Dunkel-Orange | Rolle durch tieferen Vertreter besetzt |
+| Roster-Eintrag, linker Rand | Rot | Rolle unbesetzt |
+| People-Eintrag, linker Rand | Gelb | Person ist aktuell abwesend |
 
 ## Manuelle Zuordnung
 

@@ -60,9 +60,62 @@ After confirmation, the person counts as unavailable. All roles in which they ar
 
 As the number of absences grows, cascades form: A role loses its primary, the substitute steps in — but is itself primary in another role, triggering a further shift there.
 
-CRAM visualises such cascades with **red dashed arrows** between the affected role cards. This makes it immediately visible which substitution chains are currently under stress — an important piece of information for the committee lead when assessing how robust the current lineup is.
+CRAM visualises such cascades with animated dashed arrows between the affected role cards. This makes it immediately visible which substitution chains are currently under stress — an important piece of information for the committee lead when assessing how robust the current lineup is.
 
 If no person is available anywhere in a chain, the role is flagged as **Unoccupied**. The corresponding pill in the header shows the count of unoccupied roles; it turns red when a critical role is affected.
+
+## Legend: what the colours and symbols mean
+
+CRAM uses colour and animation to signal the current state of every role and cascade. The full legend:
+
+### Role card left border — the role's current state
+
+| Colour | State | Meaning |
+|---|---|---|
+| Green | Primary | The planned primary occupant is active |
+| Yellow | Substitute (Sub1) | The first substitute has taken over |
+| Dark orange | Substitute (Sub2 or deeper) | A second-tier or later substitute is active |
+| Red | Unoccupied | Nobody in the chain is available |
+| Red + pulsing | Unoccupied + critical | Critical role is unoccupied — attention required |
+
+### Role card border and surroundings — special conditions
+
+| Signal | Meaning |
+|---|---|
+| Purple solid border + 🔒 badge | Role currently has a manual assignment in effect |
+| Purple dashed border + struck-through name | Role was manually assigned to someone who has since become unavailable |
+| Yellow outline around card | Card is part of a non-critical cascade |
+| Yellow outline + glow | Cascade target (non-critical) — this is where the substitute is actively standing in |
+| Red outline around card | Card is part of a cascade into a critical role |
+| Red outline + glow | Cascade target on a critical role |
+| Dimmed (50% opacity) | Cascade view is active and this card is not involved in any cascade |
+
+### Cascade arrows (only visible while cascade view is enabled)
+
+| Colour | Animation | Meaning |
+|---|---|---|
+| Yellow dashed | Slow flow | Substitution into a non-critical role |
+| Red dashed, thicker | Faster pulse with red glow | Substitution into a **critical** role — watch this carefully |
+
+The arrow colour is determined by the **target role** (where the person is standing in), not by the person's home role. A green substitute stepping into a red-critical role produces a red arrow; a primary from a critical role covering a non-critical role produces a yellow arrow.
+
+### Header status pills — system-wide state
+
+| Colour | Meaning |
+|---|---|
+| Grey (neutral) | Informational count, no action required |
+| Yellow outline | Active but non-critical condition — substitutes have stepped in |
+| Red + pulsing | At least one critical role is unoccupied |
+
+### Sidebar accents
+
+| Element | Colour | Meaning |
+|---|---|---|
+| Roster entry, left border | Green | Role held by primary |
+| Roster entry, left border | Yellow | Role held by substitute |
+| Roster entry, left border | Dark orange | Role held by deeper substitute |
+| Roster entry, left border | Red | Role unoccupied |
+| People list entry, left border | Yellow | Person is currently unavailable |
 
 ## Manual assignment
 
