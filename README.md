@@ -262,14 +262,16 @@ Firefox users can still use every feature except the QR scanner. For mobile came
 
 ## Licence
 
-Apache License 2.0. See [LICENSE](LICENSE).
+Apache License 2.0. See [LICENSE](LICENSE) for the project licence and [NOTICE](NOTICE) for third-party attributions including the full MIT licence texts of embedded libraries.
+
+A CycloneDX 1.5 Software Bill of Materials is produced with each release (see `cram-sbom.cdx.json` in the release assets). It lists every embedded component with purl, SHA-256 hash, and licence identifier, suitable for ingestion into dependency-tracking tools.
 
 ## Acknowledgements
 
-CRAM embeds two third-party libraries, both inlined for the single-file architecture:
+CRAM embeds two third-party libraries, both inlined for the single-file architecture. Full licence texts are reproduced in [NOTICE](NOTICE) and as comment blocks directly above each library's code inside `crisis-role-manager.html`.
 
-- **fflate** by Arjun Barrett — MIT License. Compression for QR transfer payloads.
-- **qrcode-generator** by Kazuhiko Arase — MIT License. QR matrix generation.
+- **fflate** 0.8.2 by Arjun Barrett — MIT License. Compression for QR transfer payloads.
+- **qrcode-generator** 1.4.4 by Kazuhiko Arase — MIT License. QR matrix generation.
 
 ## Contributing
 

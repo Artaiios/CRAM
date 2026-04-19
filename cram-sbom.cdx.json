@@ -1,0 +1,154 @@
+{
+  "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "serialNumber": "urn:uuid:53ab115b-5f80-4757-8853-a26436fd92e5",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-04-19T19:42:08Z",
+    "tools": [
+      {
+        "vendor": "CRAM project",
+        "name": "generate_sbom.py",
+        "version": "1.0.0"
+      }
+    ],
+    "component": {
+      "type": "application",
+      "bom-ref": "pkg:generic/cram@1.0.0-rc1.3",
+      "name": "CRAM",
+      "version": "1.0.0-rc1.3",
+      "description": "Crisis Role Availability Manager — single-file HTML tool for managing crisis committee roles and substitution chains",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "copyright": "Copyright 2026 Patrick Zeller",
+      "purl": "pkg:generic/cram@1.0.0-rc1.3",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "93fb1de66d4637f194086e5f8f34f04548e48ddf859c7bd7398c3dab7dde00ab"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/Artaiios/CRAM"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/Artaiios/CRAM.git"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/Artaiios/CRAM/issues"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/fflate@0.8.2",
+      "name": "fflate",
+      "version": "0.8.2",
+      "description": "High performance (de)compression in an 8kB package",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "copyright": "Copyright (c) 2023 Arjun Barrett",
+      "purl": "pkg:npm/fflate@0.8.2",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "e05ff56381f2e5cb2b1054d45e5bf06f6e119313dc71e193df2fdd15eebe0a57"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/101arrowz/fflate"
+        },
+        {
+          "type": "distribution",
+          "url": "https://www.npmjs.com/package/fflate/v/0.8.2"
+        }
+      ],
+      "properties": [
+        {
+          "name": "cram:embedding",
+          "value": "inline-in-crisis-role-manager.html"
+        },
+        {
+          "name": "cram:purpose",
+          "value": "gzip compression for JSON exports and QR-transfer payloads"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/qrcode-generator@1.4.4",
+      "name": "qrcode-generator",
+      "version": "1.4.4",
+      "description": "QR Code Generator implementation in JavaScript",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "copyright": "Copyright (c) 2009 Kazuhiko Arase",
+      "purl": "pkg:npm/qrcode-generator@1.4.4",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "091fe3b381a282b24f90e53dcbe26beec85bc6dbe71149f818d5cccbff9e2c4b"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://github.com/kazuhikoarase/qrcode-generator"
+        },
+        {
+          "type": "distribution",
+          "url": "https://www.npmjs.com/package/qrcode-generator/v/1.4.4"
+        }
+      ],
+      "properties": [
+        {
+          "name": "cram:embedding",
+          "value": "inline-in-crisis-role-manager.html"
+        },
+        {
+          "name": "cram:purpose",
+          "value": "QR code generation for device-to-device configuration and state transfer"
+        },
+        {
+          "name": "cram:version-pin-rationale",
+          "value": "Deliberately held at 1.4.4. The 2.0.x series adds TypeScript typings (issue #120) and one narrow bugfix (issue #121) with no runtime API changes. Revisit on security advisory or functional need."
+        }
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "pkg:generic/cram@1.0.0-rc1.3",
+      "dependsOn": [
+        "pkg:npm/fflate@0.8.2",
+        "pkg:npm/qrcode-generator@1.4.4"
+      ]
+    }
+  ]
+}

@@ -2,6 +2,30 @@
 
 All notable changes to CRAM are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-rc1.3] — 2026-04-19
+
+Security and compliance release. No functional feature changes; the tool behaves identically to rc1.2.
+
+### Added
+
+- **Content Security Policy** (S-01) as a `<meta http-equiv>` tag in the HTML head. Allows only inline scripts (required for the single-file architecture) and inline styles, plus `data:` / `blob:` URIs for images, fonts, manifest, and media. Blocks all external script, style, font, and connection sources. Note: `frame-ancestors` cannot be set via meta — servers hosting CRAM should additionally set `X-Frame-Options: DENY` or `Content-Security-Policy: frame-ancestors 'none'` as an HTTP header.
+- **Full MIT licence texts** for the two embedded libraries (L-01). Previously only short attribution comments were present; this violated the MIT licence's requirement to reproduce the licence text in all distributions. Licence texts now appear both as `/*! ... */` comment blocks directly above each library's code in `crisis-role-manager.html` and in the `NOTICE` file.
+- **SPDX headers** in `crisis-role-manager.html` (L-03): `SPDX-License-Identifier: Apache-2.0` and `SPDX-FileCopyrightText: 2026 Patrick Zeller` as HTML comments directly after `<!DOCTYPE html>`. Enables automated compliance tools (scancode, reuse, SBOM generators) to detect the licence without human interpretation.
+- **CycloneDX 1.5 SBOM** (L-04) as a release asset (`cram-sbom.cdx.json`). Lists CRAM itself plus both embedded libraries with purl, SHA-256 hash, and SPDX licence identifiers. Ready for ingestion into tools like OWASP Dependency-Track or DefectDojo.
+- **Version-pin rationale** for qrcode-generator (L-02): explicit code comment explaining why CRAM stays on 1.4.4 rather than upgrading to 2.0.x. Summary: the 2.0 series adds TypeScript typings that do not apply to our vanilla-JS use case; the runtime API is unchanged; stability over novelty.
+
+### Removed
+
+- **External Google Fonts dependency.** Previously `crisis-role-manager.html` pulled IBM Plex Sans and IBM Plex Mono from `fonts.googleapis.com` on every load. This contradicted the offline-first architecture and would have forced the CSP to whitelist external style sources. The CSS font-family stacks now fall back through `-apple-system`, `Segoe UI`, `system-ui`, and generic families — robust on every platform.
+
+### Changed
+
+- `APP_VERSION` bumped to `1.0.0-rc1.3`.
+
+### Security impact summary
+
+With rc1.3, a successful XSS injection that somehow bypassed CRAM's input escaping would still be contained: the browser would refuse to load external scripts, exfiltrate data to third-party URLs, or execute `eval()`-based payloads. CSP is the second defence layer behind the existing `escapeHTML()` routine. The third layer — systematic verification of every `innerHTML` site — is tracked as S-02 and is the primary remaining security item before v1.0.
+
 ## [1.0.0-rc1.2] — 2026-04-19
 
 Documentation release. No functional changes to the tool itself beyond the version string.
