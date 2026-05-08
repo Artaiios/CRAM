@@ -8,7 +8,7 @@
      Hinweis: 'frame-ancestors' funktioniert nur als HTTP-Header, nicht im
      Meta-Tag. Wer CRAM hinter einem Server betreibt, sollte zusätzlich
      'X-Frame-Options: DENY' oder 'frame-ancestors none' als Header setzen. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' blob: data:; manifest-src 'self' blob:; media-src 'self' blob: data:; base-uri 'none'; form-action 'none';" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' blob: data: https: http://localhost:* http://127.0.0.1:*; manifest-src 'self' blob:; media-src 'self' blob: data:; base-uri 'none'; form-action 'none';" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="color-scheme" content="dark light" />
 <title>Crisis Role Availability Manager</title>
@@ -3512,6 +3512,95 @@ const Sync = (function() {
     buildEnvelope, applyEnvelope,
     pull, push,
   };
+})();
+
+/* =========================================================================
+   SYNC BACKEND S1 — HTTP PUT/GET
+   Backend für selbst-gehostete HTTPS-Endpoints (nginx mit dav_methods,
+   Caddy + webdav, MinIO, SharePoint-WebDAV, Synology NAS).
+
+   source.config schema:
+     {
+       url:        'https://corp.example.com/cram/state.json',  // required
+       authType:   'none' | 'basic' | 'bearer',                  // default 'none'
+       authUser:   '...' (basic only),
+       authPass:   '...' (basic only),
+       authToken:  '...' (bearer only)
+     }
+
+   Server requirements: GET, HEAD, PUT, OPTIONS support; CORS headers
+   permitting CRAM origin and Authorization, Content-Type headers.
+   See docs/specs/v1.2-manual-sync.md for nginx/Caddy reference setups.
+   For local development, scripts/dev-sync-backend.py provides a minimal
+   stdlib-only Python server on http://127.0.0.1:8765/cram/state.json.
+   ========================================================================= */
+(function() {
+  function buildAuthHeader(cfg) {
+    if (cfg.authType === 'basic' && cfg.authUser) {
+      return { 'Authorization': 'Basic ' + btoa(cfg.authUser + ':' + (cfg.authPass || '')) };
+    }
+    if (cfg.authType === 'bearer' && cfg.authToken) {
+      return { 'Authorization': 'Bearer ' + cfg.authToken };
+    }
+    return {};
+  }
+
+  function createHttpClient(source) {
+    const cfg = source.config || {};
+    if (!cfg.url) throw new Error('HTTP source requires config.url');
+
+    return {
+      async read() {
+        const res = await fetch(cfg.url, {
+          method: 'GET',
+          headers: buildAuthHeader(cfg),
+          cache: 'no-store',
+        });
+        if (res.status === 404) return null;
+        if (!res.ok) {
+          throw new Error('GET ' + cfg.url + ' failed: ' + res.status + ' ' + res.statusText);
+        }
+        const text = await res.text();
+        if (!text) return null;
+        return JSON.parse(text);
+      },
+
+      async write(envelope) {
+        const headers = Object.assign(
+          { 'Content-Type': 'application/json' },
+          buildAuthHeader(cfg)
+        );
+        const res = await fetch(cfg.url, {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify(envelope),
+        });
+        if (!res.ok) {
+          throw new Error('PUT ' + cfg.url + ' failed: ' + res.status + ' ' + res.statusText);
+        }
+      },
+
+      async probe() {
+        try {
+          const res = await fetch(cfg.url, {
+            method: 'HEAD',
+            headers: buildAuthHeader(cfg),
+            cache: 'no-store',
+          });
+          return {
+            reachable: res.ok || res.status === 404,
+            status: res.status,
+            lastModified: res.headers.get('Last-Modified'),
+            etag: res.headers.get('ETag'),
+          };
+        } catch (e) {
+          return { reachable: false, error: String(e.message || e) };
+        }
+      },
+    };
+  }
+
+  Sync.registerBackend('http', createHttpClient);
 })();
 
 /* =========================================================================
