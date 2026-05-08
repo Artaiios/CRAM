@@ -3287,6 +3287,234 @@ const Storage = (function() {
 })();
 
 /* =========================================================================
+   SYNC LAYER (V1.2 — manual)
+   Sync-Source-Abstraktion: einheitliche Schnittstelle für Backend-Typen
+   (HTTP, FileSystem, ...). State unter cram.sync.v1. Version-Counter wird
+   beim Push inkrementiert; lastSyncedVersion markiert den letzten
+   erfolgreichen Push, dirty signalisiert lokale Änderungen seit Push.
+
+   Backend-Implementierungen (S1, S5, ...) registrieren sich via
+   Sync.registerBackend(type, factory). Sync.createSourceClient(source)
+   liefert ein Client-Objekt mit asynchronen read()/write()/probe().
+
+   Detail-Spec: docs/specs/v1.2-manual-sync.md
+   ========================================================================= */
+const Sync = (function() {
+  const KEY = 'cram.sync.v1';
+  const SCHEMA_VERSION = 1;
+
+  const DEFAULT_STATE = {
+    schemaVersion: SCHEMA_VERSION,
+    lastSyncedVersion: 0,
+    lastSyncedAt: null,
+    lastSyncedSourceId: null,
+    dirty: false,
+    lastError: null,
+    sources: [],
+  };
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (!raw) return Object.assign({}, DEFAULT_STATE);
+      return Object.assign({}, DEFAULT_STATE, JSON.parse(raw));
+    } catch (e) {
+      console.warn('Sync state read failed, using default:', e);
+      return Object.assign({}, DEFAULT_STATE);
+    }
+  }
+
+  function save(state) {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(state));
+      return true;
+    } catch (e) {
+      console.error('Sync state write failed:', e);
+      return false;
+    }
+  }
+
+  function markDirty() {
+    const state = load();
+    if (!state.dirty) {
+      state.dirty = true;
+      save(state);
+    }
+  }
+
+  function isDirty() {
+    return !!load().dirty;
+  }
+
+  function getStatus() {
+    const state = load();
+    if (!state.sources || state.sources.length === 0) return 'disabled';
+    if (state.lastError) return 'error';
+    if (state.dirty) return 'out-of-sync';
+    return 'synced';
+  }
+
+  /* ---- Source CRUD ---- */
+
+  function listSources() {
+    return load().sources || [];
+  }
+
+  function getSource(id) {
+    return listSources().find(s => s.id === id) || null;
+  }
+
+  function addSource(input) {
+    if (!input || !input.type) throw new Error('Source must have a type');
+    const state = load();
+    const source = {
+      id: uid('src'),
+      type: input.type,
+      label: input.label || 'Unnamed source',
+      config: input.config || {},
+      encryption: Object.assign({ enabled: true }, input.encryption || {}),
+      createdAt: new Date().toISOString(),
+    };
+    state.sources.push(source);
+    save(state);
+    return source;
+  }
+
+  function updateSource(id, patch) {
+    const state = load();
+    const idx = state.sources.findIndex(s => s.id === id);
+    if (idx < 0) return null;
+    state.sources[idx] = Object.assign({}, state.sources[idx], patch);
+    save(state);
+    return state.sources[idx];
+  }
+
+  function removeSource(id) {
+    const state = load();
+    state.sources = state.sources.filter(s => s.id !== id);
+    save(state);
+  }
+
+  /* ---- Backend factory registry ---- */
+
+  const backends = {};
+
+  function registerBackend(type, factory) {
+    backends[type] = factory;
+  }
+
+  function listBackendTypes() {
+    return Object.keys(backends);
+  }
+
+  function createSourceClient(source) {
+    const factory = backends[source.type];
+    if (!factory) {
+      throw new Error('No backend registered for source type: ' + source.type);
+    }
+    return factory(source);
+  }
+
+  /* ---- Payload helpers ---- */
+
+  function buildEnvelope() {
+    const state = load();
+    const nextVersion = (state.lastSyncedVersion || 0) + 1;
+    return {
+      format: 'cram-sync-v1',
+      version: nextVersion,
+      timestamp: Date.now(),
+      fingerprint: computeConfigHash(State.config),
+      encrypted: false,
+      payload: {
+        format: 'cram-export',
+        formatVersion: EXPORT_FORMAT_VERSION,
+        appVersion: APP_VERSION,
+        exportedAt: new Date().toISOString(),
+        config: State.config,
+        runtime: State.runtime,
+      },
+    };
+  }
+
+  function applyEnvelope(envelope) {
+    if (!envelope || envelope.format !== 'cram-sync-v1') {
+      throw new Error('Invalid envelope format');
+    }
+    const inner = envelope.payload;
+    if (!inner || inner.format !== 'cram-export') {
+      throw new Error('Invalid inner payload format');
+    }
+    const localFp = computeConfigHash(State.config);
+    if (envelope.fingerprint && envelope.fingerprint !== localFp) {
+      throw new Error('Fingerprint mismatch (local ' + localFp + ', remote ' + envelope.fingerprint + ')');
+    }
+    State.config = inner.config;
+    State.runtime = inner.runtime || { unavailable: {}, manualAssignments: {} };
+    Storage.saveConfig(State.config);
+    Storage.saveRuntime(State.runtime);
+  }
+
+  /* ---- Manual sync actions ---- */
+
+  async function pull(sourceId) {
+    const source = getSource(sourceId);
+    if (!source) throw new Error('Source not found: ' + sourceId);
+    try {
+      const client = createSourceClient(source);
+      const envelope = await client.read();
+      if (envelope === null) return null;
+      applyEnvelope(envelope);
+      const state = load();
+      state.lastSyncedVersion = envelope.version;
+      state.lastSyncedAt = Date.now();
+      state.lastSyncedSourceId = sourceId;
+      state.dirty = false;
+      state.lastError = null;
+      save(state);
+      return envelope;
+    } catch (e) {
+      const state = load();
+      state.lastError = String(e.message || e);
+      save(state);
+      throw e;
+    }
+  }
+
+  async function push(sourceId) {
+    const source = getSource(sourceId);
+    if (!source) throw new Error('Source not found: ' + sourceId);
+    try {
+      const client = createSourceClient(source);
+      const envelope = buildEnvelope();
+      await client.write(envelope);
+      const state = load();
+      state.lastSyncedVersion = envelope.version;
+      state.lastSyncedAt = Date.now();
+      state.lastSyncedSourceId = sourceId;
+      state.dirty = false;
+      state.lastError = null;
+      save(state);
+      return envelope;
+    } catch (e) {
+      const state = load();
+      state.lastError = String(e.message || e);
+      save(state);
+      throw e;
+    }
+  }
+
+  return {
+    load, save,
+    markDirty, isDirty, getStatus,
+    listSources, getSource, addSource, updateSource, removeSource,
+    registerBackend, listBackendTypes, createSourceClient,
+    buildEnvelope, applyEnvelope,
+    pull, push,
+  };
+})();
+
+/* =========================================================================
    SAMPLE / DEFAULT CONFIG
    Typische Krisenstab-Struktur für Cyber-Security-Vorfälle als Ausgangspunkt.
    ========================================================================= */
