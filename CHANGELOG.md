@@ -2,6 +2,27 @@
 
 All notable changes to CRAM are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] — 2026-05-08
+
+First stable release. Functionally identical to `1.0.0-rc1.3`; the rc cycle (rc1 → rc1.3) added compliance, security, and documentation polish without changing user-visible behaviour. After several weeks of practice testing, the tool is considered ready for production use.
+
+### Security audit completed (S-02)
+
+A penetration-test configuration with deliberately malicious payloads — `<img onerror>`, `<script>`, `<iframe javascript:>`, `<svg onload>`, HTML-entity-encoded scripts, `javascript:` URLs in href, CSS-injection attempts, and special characters — was imported and rendered through every user-facing view: organisation chart, all sidebar tabs (Roster, People, Log), person detail, mark-unavailable modal, manual-assignment modal, edit-mode CRUD for both persons and roles, all three print variants (Overview, Role detail, People list), all three sync channels (Code, QR, JSON), and the Settings modal. **No payloads executed in any rendering location.** The 308 `escapeHTML()` calls across 55 `innerHTML=` sites are confirmed consistent. The pen-test configuration itself is kept locally and is not part of the repository.
+
+`tel:` and `mailto:` href attributes were specifically reviewed: the protocol prefix is hardcoded, so user-controlled values cannot redirect the protocol to `javascript:`. The browser sandboxes both protocols against script execution.
+
+### Changed
+
+- `APP_VERSION` bumped to `1.0.0`.
+
+### What is next
+
+The next development phase is documented in [`ROADMAP.md`](ROADMAP.md):
+
+- **V1.2** introduces a sync-source abstraction with HTTP and File System Access API backends, optional E2E encryption, and explicit pull/push operations. Detailed spec in [`docs/specs/v1.2-manual-sync.md`](docs/specs/v1.2-manual-sync.md).
+- **V2.0** adds the automation layer (auto-polling, auto-push, conflict resolution) on top of the V1.2 architecture. Spec in [`docs/specs/v2.0-auto-sync.md`](docs/specs/v2.0-auto-sync.md).
+
 ## [1.0.0-rc1.3] — 2026-04-19
 
 Security and compliance release. No functional feature changes; the tool behaves identically to rc1.2.
