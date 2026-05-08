@@ -1,317 +1,204 @@
 # CRAM — Roadmap
 
-Stand: 19. April 2026, nach Release v1.0.0-rc1.2.
+Stand: 8. Mai 2026, nach Brainstorming-Konvergenz für V1.2/V2.0.
 
-Dies ist eine lebende Liste. Prioritäten können sich durch Praxis-Feedback verschieben. Das Dokument liegt im Repo, damit Mitbenutzer nachvollziehen können, woran wir denken.
+Lebende Liste. Prioritäten verschieben sich durch Praxis-Feedback. Liegt im Repo, damit Mitbenutzer nachvollziehen können, woran wir denken.
 
-## Aktuelle Phase: RC-Erprobung
+## Aktuelle Phase: V1.0 finalisieren
 
-Ziel: Aus v1.0.0-rc1.2 wird entweder eine Final-Version v1.0.0, oder — falls Findings auftauchen — eine Serie von rc1.3, rc1.4, bevor das 1.0-Tag gesetzt wird.
+Der RC ist mit rc1.3 in Praxis-Erprobung gewesen. Feedback der Tester eindeutig:
 
-Empfohlene Testdauer: 2 bis 3 Wochen aktiver Nutzung mit realistischen Daten und auf mindestens zwei verschiedenen Geräten.
+> "Robust, alle grundlegenden Funktionen vorhanden und nutzbar. Aber dadurch komplex jeden Status aktuell zu halten, vor allem in verteilten Teams. Air-Gap-Sync wichtig für Extremfälle, im Regelfall ist Netzwerk vorhanden — daher mittelfristig eine Option, die alle Mitglieder pro-aktiv synchron hält."
 
----
-
-## Vor v1.0.0 — Security-Nacharbeit (zwingend)
-
-### S-01: Content Security Policy einbauen
-
-**Priorität:** hoch. Blockt das 1.0-Release.
-
-**Umsetzung:**
-Ein Meta-Tag im `<head>` des Tools:
-
-```html
-<meta http-equiv="Content-Security-Policy" content="
-  default-src 'none';
-  script-src 'self' 'unsafe-inline';
-  style-src 'self' 'unsafe-inline';
-  img-src 'self' data: blob:;
-  font-src 'self' data:;
-  connect-src 'self' blob: data:;
-  manifest-src 'self' blob:;
-  media-src 'self' blob: data:;
-  base-uri 'none';
-  form-action 'none';
-  frame-ancestors 'none';
-">
-```
-
-**Begründung der Kompromisse:**
-
-- `script-src 'unsafe-inline'` ist unvermeidlich, weil CRAM bewusst als Single-File-Anwendung mit Inline-JavaScript gebaut ist. Das ist Architektur, nicht Schlamperei.
-- `'unsafe-eval'` wird **nicht** zugelassen — das Tool nutzt kein `eval()` oder `new Function()` (Stichprobe geprüft).
-- `data:` und `blob:` in `img-src`, `manifest-src`, `connect-src` sind für die PWA-Funktionalität nötig (Icon als Data-URI, Manifest als Blob-URL, QR-Codes werden als SVG inline gerendert).
-- `frame-ancestors 'none'` verhindert Clickjacking.
-- `base-uri 'none'`, `form-action 'none'` schließen weitere Angriffsvektoren.
-
-**Test vor Release:**
-Alle drei Transferkanäle durchgehen, QR-Scanner aktivieren, Kamera-Zugriff prüfen, PWA-Installation testen, Drucken testen. Wenn alles weiterhin funktioniert, CSP-Header committen.
-
-**Zeitaufwand:** 2–3 Stunden inkl. Test. Ein Release-Commit.
+Konsequenz: V1.0 wird wie geplant als stabile Single-Device-Variante released, **S-02 ist der einzige verbleibende Release-Blocker.** Online-Sync ist V2-Material — V1.2 dient als manueller Zwischenschritt, der die Sync-Source-Architektur einführt, ohne schon Auto-Magie zu bringen.
 
 ---
+
+## Vor V1.0 — Security
+
+### S-01: Content Security Policy ✓ erledigt mit rc1.3
+
+Inline-CSP-Meta-Tag im `<head>`, blockt externe Scripts/Styles, erlaubt nur Inline (Single-File-Architektur-Zwang). Kein `unsafe-eval`. Ausgeliefert.
 
 ### S-02: Systematische Verifikation von Nutzer-Input-Escaping
 
-**Priorität:** hoch. Blockt das 1.0-Release.
+**Status:** einziger verbleibender Release-Blocker für V1.0.
 
-**Ausgangslage:**
-Der Code nutzt heute bereits `escapeHTML()` an 308 Stellen — das ist diszipliniert. Aber es gibt 55 `innerHTML=`-Zuweisungen mit Template-Literals, und bei dieser Menge ist nicht bewiesen, dass in **jeder** davon jeder Nutzer-Input durch `escapeHTML()` läuft.
+**Ausgangslage:** Code nutzt heute 308 `escapeHTML()`-Aufrufe an 55 `innerHTML=`-Stellen. Diszipliniert, aber nicht bewiesen lückenlos.
 
 **Konkrete Maßnahmen:**
 
-1. **Audit mit Penetration-Test-Payload.** Eine Enterprise-Demo-Config mit bewusst bösartigen Strings in jedem Feld (Rollenname, Beschreibung, Personenname, Telefon, E-Mail, Notiz, Ebenen-Name, Organisations-Name, Drucktitel) bauen. Payload-Beispiele:
+1. **Pen-Test-Konfiguration bauen** — Demo-Config mit XSS-Payloads in jedem Feld. Bleibt **dauerhaft lokal**, kommt nie ins Repo (auch nicht in Branches).
    - `<img src=x onerror=alert(1)>`
    - `"><script>alert(1)</script>`
    - `javascript:alert(1)`
    - `</div><iframe src=javascript:alert(1)>`
-   - Unicode-Varianten mit Tricks wie `&#60;script&#62;`
-   
-   Diese Config in CRAM importieren. Alle Views durchklicken: Organigramm, alle Modals, alle drei Druckvarianten, Sidebar-Tabs, Audit-Log, Sync-Modal. Ergebnis: Wenn **irgendwo** ein Alert aufgeht oder eine Konsolen-Warnung erscheint, haben wir eine Lücke.
+   - HTML-Entity- und Unicode-Tricks: `&#60;script&#62;`
 
-2. **Automatisierter Regressions-Test.** Die Payload-Config in die bestehenden Testsuiten aufnehmen. Das Test-Framework prüft, dass nach Rendering keine `<script>`, keine `onerror=`, keine `javascript:`-URLs im DOM auftauchen, die nicht aus dem Tool selbst kommen.
+2. **Vollständiger View-Walkthrough** — Pen-Test-Config importieren, alle Views durchklicken: Organigramm, alle Modals, alle drei Druckvarianten, Sidebar-Tabs (Roster/People/Log), Audit-Log, Sync-Modal. Jedes ausgelöste Alert oder im DOM auftauchende `<script>`/`onerror=`/`javascript:` ohne Tool-Herkunft = Lücke.
 
-3. **Umstellung einzelner Stellen auf `textContent`.** Wo nur reiner Text angezeigt wird (Personen-Name in Sidebar, Telefonnummer, Rollenname in einer Karte), auf `textContent` umstellen. Das ist der systematisch sicherste Weg und eliminiert diese Stellen als Angriffsfläche permanent. `innerHTML` bleibt nur, wo tatsächlich HTML-Struktur aufgebaut wird.
+3. **Automatisierter Regressions-Test** — unter `tests/` festschreiben (Playwright + Headless-Chromium). Lädt CRAM mit Payload-Config, scannt DOM nach unerwünschten Tags/Attributen, schlägt fehl wenn welche gefunden werden.
 
-**Priorisierung innerhalb S-02:**
-- Schritt 1 (Pen-Test) zuerst — dauert 2–3 Stunden und schafft Klarheit über den Ist-Zustand
-- Schritt 2 (Regressions-Test) nur wenn Schritt 1 Probleme aufdeckt, sonst optional für später
-- Schritt 3 (textContent-Umstellung) sinnvoll für Hot-Paths, aber kein Blocker
+4. **Punktuelle Umstellung auf `textContent`** — wo nur Text angezeigt wird (Personen-Name, Telefonnummer, Rollen-Name in Card), `innerHTML` durch `textContent` ersetzen. Eliminiert Stellen dauerhaft als Angriffsfläche.
 
-**Zeitaufwand gesamt:** 1 Tag wenn alles sauber, 2–3 Tage wenn Lücken gefunden werden.
+**Aufwand:** 1-3 Tage je nach Findings. Branch: `s-02-input-audit`.
 
----
+### S-03 (optional): SHA-256 für Release-Assets
 
-### S-03 (optional): Subresource Integrity für inline Libraries
-
-**Priorität:** niedrig.
-
-Die beiden eingebetteten Libraries (fflate, qrcode-generator) liegen inline als Code im HTML. Wenn jemand die Datei zwischen Release-Asset-Upload und Download manipulieren würde, wäre das nicht erkennbar. Im Moment ist das Risiko theoretisch, weil GitHub-Release-Assets per HTTPS ausgeliefert werden, aber für sehr defensive Szenarien (Air-Gap-Transfer, interner Mirror) wäre eine SHA-256-Signatur der Release-Assets sinnvoll.
-
-Konkret: Neben jedem Asset auf der Release-Seite eine `.sha256`-Datei bereitstellen. Admin prüft vor Verteilung `sha256sum -c`.
-
-**Aufwand:** eine Stunde pro Release.
+Zurückgestellt. Nice-to-have, nicht blockierend. Wird umgesetzt, sobald ein Customer es anfragt.
 
 ---
 
-## Vor v1.0.0 — Lizenz-Compliance (zwingend)
+## Vor V1.0 — Lizenz-Compliance ✓ vollständig erledigt mit rc1.3
 
-### L-01: MIT-Lizenztext für eingebettete Libraries einfügen
-
-**Priorität:** hoch. Blockt das 1.0-Release.
-
-**Problem:** CRAM bettet zwei MIT-lizenzierte Libraries inline ein (fflate 0.8.2 von Arjun Barrett; qrcode-generator 1.4.4 von Kazuhiko Arase). Die MIT-Lizenz verlangt ausdrücklich, dass der vollständige Lizenztext in allen Distributionsartefakten mitgeführt wird:
-
-> The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-Im aktuellen Code steht nur eine Kurzattribution (Autor + Version). Die geforderte Permission Notice fehlt. Das ist keine Kosmetik, sondern eine echte Lizenzverletzung.
-
-**Umsetzung:**
-- In der HTML-Datei direkt vor jedem Library-Code-Block einen `/*! … */`-Kommentarblock einfügen, der den kompletten MIT-Lizenztext der jeweiligen Library enthält (inkl. Copyright-Zeile des Urhebers).
-- Zusätzlich in der `NOTICE`-Datei im Repo die beiden Lizenztexte aufnehmen (eine NOTICE-Datei existiert bisher nicht und wird neu angelegt — Apache-2.0 erlaubt beides ausdrücklich: die dritte-Party-Attributionen gehören in NOTICE, der Projekt-Lizenztext in LICENSE).
-- Im `README` einen kurzen Abschnitt „Third-Party-Software" ergänzen, der auf NOTICE verweist.
-
-Der `/*! … */`-Syntax wird verwendet (statt `/* … */`), weil viele JS-Minifier lizenzrechtlich relevante Kommentare mit `/*!` am Anfang standardmäßig erhalten — auch wenn wir aktuell nicht minifizieren, ist das die korrekte Konvention.
-
-**Zeitaufwand:** 1 Stunde.
+- **L-01** ✓ MIT-Lizenztexte für fflate und qrcode-generator inline + NOTICE-Datei
+- **L-02** ✓ qrcode-generator-Versions-Pin auf 1.4.4 mit Begründungs-Kommentar
+- **L-03** ✓ SPDX-Header in `crisis-role-manager.html`
+- **L-04** ✓ CycloneDX 1.5 SBOM als Release-Asset (`cram-sbom.cdx.json`)
 
 ---
 
-### L-02: qrcode-generator-Version dokumentieren
+## Vor V1.0 — Praxistest
 
-**Priorität:** mittel. Nicht blockierend, aber begründungspflichtig.
+### T-01: RC-Feedback eingearbeitet ✓
 
-**Ausgangslage:** CRAM verwendet qrcode-generator 1.4.4. Die aktuelle Version ist 2.0.4.
-
-**Bewertung der 2.0.x-Serie (Stand April 2026):** Die 2.0.x-Releases (2.0.1, 2.0.2, 2.0.4) drehen sich laut GitHub-Releases primär um TypeScript-Typings (Issue #120) und einen Bugfix für Issue #121. Für vanilla-JavaScript-Konsumenten wie CRAM ist der Unterschied funktional minimal. Wir nutzen drei API-Methoden: `qrcode(typeNumber, ecLevel)`, `addData()`, `make()`, `createSvgTag()`. Keine dieser API-Signaturen hat sich geändert.
-
-**Entscheidung:** **Bei 1.4.4 bleiben.**
-
-Die 2.0-Serie bringt für CRAMs Use-Case keinen funktionalen Mehrwert — wir profitieren weder von TypeScript-Typings noch von dem einen Bugfix für ein Szenario, das wir nicht nutzen. Jede Versionsänderung an einer Library, die QR-Codes korrekt generiert, hat dagegen ein nicht-null Regressionsrisiko. Das ist das klassische „never change a running system"-Szenario: Stabilität ist wichtiger als Aktualität.
-
-**Umsetzung:** Im Code-Kommentar vor der Library explizit vermerken, dass die Version bewusst bei 1.4.4 gehalten wird, mit Begründung und dem Hinweis, dass bei einer bekannten Sicherheitslücke in 1.4.4 oder einer funktionalen Notwendigkeit das Upgrade auf 2.0.x (oder höher) durchgeführt würde.
-
-**Wiedervorlage:** Einmal pro Jahr prüfen: Gibt es in der 1.4.x- oder 2.0.x-Serie einen Security-Advisory (npm audit, GitHub Security Advisory)? Wenn ja, Upgrade einplanen. Wenn nein, weiterhin bleiben.
-
-**Zeitaufwand:** 15 Minuten (nur Kommentar).
+Praxistest mit rc1.2/rc1.3 hat keine Bugs oder strukturellen Probleme aufgezeigt. Tool gilt als robust und funktional vollständig. Das größte Feedback-Item ist nicht V1-relevant, sondern Design-Driver für V2: pro-aktive Synchronisation für verteilte Teams. Siehe V1.2/V2.0.
 
 ---
 
-### L-03: SPDX-Header in der HTML-Datei
+## V1.2 — Manueller Online-Sync mit Awareness
 
-**Priorität:** niedrig. Nicht blockierend, aber billig und sinnvoll.
+**Ziel:** Sync-Source-Architektur etablieren, ohne Auto-Magie. User behält volle Kontrolle. Proof-of-Concept und Vertrauensaufbau für V2.
 
-**Umsetzung:** Direkt nach `<!DOCTYPE html>` zwei HTML-Kommentarzeilen einfügen:
+**Funktionsumfang:**
+- **Sync-Source-Abstraktion** (`read()`, `write()`, `version`) als zentrale Erweiterung
+- **Backend S1** (HTTP PUT/GET): self-hosted nginx, Caddy, MinIO, SharePoint-WebDAV, Synology
+- **Backend S5** (File System Access API): lokales Verzeichnis, deckt OneDrive-/Dropbox-/Drive-Sync-Folder und Network-Mounts ab
+- **Setup über Sync-Bundle** (URL + Auth-Token + Passphrase + Config-Fingerprint), distribuiert als QR-Code, Magic-Link oder JSON-Datei
+- **Encryption Default ON** via WebCrypto (AES-GCM, PBKDF2 aus Passphrase) — auch für S1, weil Customer-IT-Logs nicht im Klartext PII enthalten sollen (DSGVO)
+- **Zwei explizite Buttons** im Sync-Modal: "Stand vom Server holen" + "Stand auf Server schicken"
+- **Awareness-Indikator** im Header, separat vom Verfügbarkeitsstatus: synced / syncing / out-of-sync / disabled
+- **Browser-Warnung** bei eingeschränktem Funktionsumfang (Firefox: keine S5-Persistierung)
 
-```html
-<!DOCTYPE html>
-<!-- SPDX-License-Identifier: Apache-2.0 -->
-<!-- SPDX-FileCopyrightText: 2026 Patrick Zeller -->
-<html lang="de">
-```
+**Was nicht in V1.2 kommt:** Auto-Polling, Auto-Push, Konflikt-Auflösung, Multi-Source.
 
-**Nutzen:** Automatisierte Compliance-Tools (scancode, reuse.software, SBOM-Generatoren) erkennen die Lizenz ohne dass ein Mensch den Header manuell interpretieren muss. Macht CRAM für Enterprise-Integration leichter freigabefähig.
+**Detail-Spec:** [`docs/specs/v1.2-manual-sync.md`](docs/specs/v1.2-manual-sync.md).
 
-**Zeitaufwand:** 5 Minuten.
-
----
-
-### L-04: SBOM (Software Bill of Materials) als Release-Asset
-
-**Priorität:** mittel. Nicht blockierend für 1.0, aber stark gewünscht für Enterprise-Integration.
-
-**Format-Entscheidung:** **CycloneDX 1.5 JSON**.
-
-Begründung: Es gibt zwei etablierte Formate — SPDX und CycloneDX. Beide sind für unseren Zweck geeignet, aber CycloneDX ist in der Industrie-Security-Welt (OWASP, Dependency-Track, DefectDojo, Snyk, Dependabot) das verbreitetere Format und lässt sich mit weniger Mühe maschinell konsumieren. SPDX ist in der Open-Source-Lizenz-Welt dominant, aber aufwendiger im Handling. Für eine Projekt-Größe wie CRAM reicht CycloneDX vollkommen.
-
-**Inhalt der SBOM:** Minimaler, aber vollständiger Eintrag pro Komponente:
-
-- CRAM selbst (Apache-2.0, Patrick Zeller, Version aus Release-Tag)
-- fflate 0.8.2 (MIT, Arjun Barrett, mit PURL und Repository-URL)
-- qrcode-generator 1.4.4 (MIT, Kazuhiko Arase, mit PURL und Repository-URL)
-
-Dazu Hash-Angaben (SHA-256) für jede Komponente, damit Downstream-Consumer die Integrität verifizieren können.
-
-**Umsetzung:**
-
-1. Python-Script `/scripts/generate_sbom.py` im Repo, das aus einer kleinen Template-Struktur und den Hash-Werten der Library-Blöcke eine gültige CycloneDX-1.5-JSON erzeugt.
-2. Script wird manuell vor jedem Release ausgeführt; Output `cram-sbom.cdx.json` (die Endung `.cdx.json` ist CycloneDX-Konvention).
-3. Die SBOM wird als zusätzliches Release-Asset mit hochgeladen.
-4. Im README-Abschnitt „Third-Party-Software" kommt ein kurzer Verweis auf die SBOM.
-
-**Zeitaufwand:** 1–1,5 Stunden (Script schreiben, einmalig; danach 2 Minuten pro Release).
-
-**Alternative zu SBOM-Skript:** Tools wie `cyclonedx-npm` oder `cyclonedx-python-lib` können das automatisieren, aber sie erwarten eine `package.json` oder ein Python-Projekt. CRAM hat bewusst keines von beiden. Ein 50-Zeilen-Python-Script, das die drei Komponenten hart kodiert, ist pragmatischer und hat keine Build-Ketten-Abhängigkeit.
+**Branch:** `v1-2-manual-sync`. **Aufwand:** geschätzt 4–6 Sessions inklusive Tests, UI-Anpassung, Doku-Update.
 
 ---
 
-## Vor v1.0.0 — funktionale Nacharbeit (soweit Praxis zeigt)
+## V2.0 — Automatischer Online-Sync
 
-### T-01: Praxis-Test-Ergebnisse einarbeiten
+**Ziel:** "Set-and-forget"-UX. Sync läuft transparent im Hintergrund, im Krisenfall kein manueller Aufwand für die Nutzer.
 
-Alles was aus 2–3 Wochen Tests in den nächsten Tagen kommt. Vermutliche Kategorien:
-- UI-Polish (manche Dialoge sind enger oder weiter als erwartet)
-- Browser-spezifische Quirks (insbesondere Safari iOS)
-- Fehlende oder irreführende Hinweistexte
-- Erkannte Edge-Cases bei Kaskaden-Berechnung mit tiefen Hierarchien
+**Architektur:** identisch zu V1.2 (gleiche Sync-Source-Abstraktion, gleiche Backends).
 
-Jedes Finding wird als GitHub-Issue erfasst. Kleinere Issues werden in einem Sammel-Release (rc1.3) gefixt. Wirklich kritische Findings (Datenverlust, falsche Kaskaden) bekommen eigene Bugfix-Releases.
+**Was V2.0 dazubringt:**
+- **Auto-Polling** alle 90 Sekunden (konfigurierbar 30–300 Sek)
+- **Auto-Push** sofort nach jedem lokalen Save (mit Backoff bei Fehler)
+- **Pull-before-push** mit HTTP-If-Match für optimistische Konkurrenz-Kontrolle (S1, S2)
+- **Tab-Visibility-Sync** — sofortiger Pull bei Tab-Fokus
+- **Silent auto-apply** eingehender Updates, Toast-Notification ohne Dialog
+- **Konflikt-Verlust** wird ins Audit-Log geschrieben mit Recovery-Pfad
+- **Multi-Source** als Advanced-Option für Failover-Szenarien
+
+**Detail-Spec:** [`docs/specs/v2.0-auto-sync.md`](docs/specs/v2.0-auto-sync.md).
+
+**Branch:** `v2-0-auto-sync`. **Aufwand:** geschätzt 5–8 Sessions auf Basis der V1.2-Architektur.
 
 ---
 
-## Nach v1.0.0 — 1.x Feature-Set
+## V2.1 (optional) — S2-Backend (S3-presigned-URLs)
 
-Die folgenden Punkte wurden in früheren Sessions diskutiert aber zurückgestellt. Sie sind nicht zwingend, würden CRAM aber in konkreten Situationen verbessern.
+**Ziel:** Cloud-Storage-Backend ohne eigenen Server-Betrieb für Customer mit existierender AWS/MinIO/R2/B2-Infrastruktur.
+
+**Reibung:** Presigned URLs expiren (max 7 Tage bei AWS sigv4). Setup muss URL-Rotation einkalkulieren — entweder über regelmäßiges manuelles Sync-Bundle-Update oder über einen kleinen URL-Refresh-Endpoint.
+
+**Wird gebaut, wenn** die Praxis nach V2.0 zeigt, dass S1 + S5 nicht alle Customer abdecken und Cloud-Storage-Bedarf signifikant ist.
+
+---
+
+## 1.x Feature-Set (parallel oder nach V2)
+
+Nicht zwingend, aber praxisrelevante Verbesserungen. Reihenfolge ist Vorschlag, kann durch Praxis-Feedback verschoben werden.
 
 ### F-01: Suche über Rollen und Personen
 
-Strg+K öffnet ein Suchfeld. Eingabe „CISO" findet die Rolle. Eingabe „Martinez" findet die Person. Klick auf ein Ergebnis scrollt zur Rollenkarte oder öffnet den Personen-Detail-Dialog. Bei großen Stäben (40+ Rollen, 100+ Personen) eine echte Zeitersparnis.
-
-**Aufwand:** 1–2 Sessions.
+Strg+K öffnet Suchfeld. Eingabe "CISO" findet Rolle, "Martinez" findet Person. Klick scrollt zur Karte oder öffnet Detail-Dialog. Bei großen Stäben (40+ Rollen, 100+ Personen) deutliche Zeitersparnis. **Aufwand:** 1–2 Sessions.
 
 ### F-02: Audit-Log-Filter und CSV-Export
 
-Der Log-Tab bekommt oben einen Filter (nach Zeitraum, nach Typ, nach Person). Export als CSV für Nachbesprechungen und Compliance-Dokumentation. Heute muss man dazu Screenshots machen — nicht praxistauglich bei echten Incidents.
-
-**Aufwand:** 1 Session.
+Log-Tab bekommt Filter (Zeitraum, Typ, Person). CSV-Export für Nachbesprechungen und Compliance. Heute nur per Screenshot — nicht praxistauglich. **Aufwand:** 1 Session.
 
 ### F-03: Tags für Personen
 
-Personen bekommen Freitext-Tags (z. B. „Nachtschicht", „Remote verfügbar", „Sprecht Englisch"). Tags werden in der People-Liste angezeigt und als Filter nutzbar. Basis für F-04.
-
-**Aufwand:** 1 Session.
+Personen bekommen Freitext-Tags ("Nachtschicht", "Remote verfügbar", "Englisch"). Anzeige in People-Liste, nutzbar als Filter. Basis für F-04. **Aufwand:** 1 Session.
 
 ### F-04: Bulk-Operationen
 
-Mehrere Personen gleichzeitig als abwesend markieren (z. B. „alle mit Tag 'Standort-München' als 'Dienstreise' markieren"). Nützlich bei geplanten Events wie Firmenveranstaltungen oder Weiterbildungen. Braucht F-03.
+Mehrere Personen gleichzeitig als abwesend markieren ("alle mit Tag 'Standort-München' als 'Dienstreise'"). Nützlich bei geplanten Events. Braucht F-03. **Aufwand:** 1 Session.
 
-**Aufwand:** 1 Session.
+### F-05: Theme automatisch nach Systemeinstellung
 
-### F-05: Dunkel-/Hellmodus automatisch nach Systemeinstellung
+`prefers-color-scheme` als Default, manuelle Überschreibung weiterhin möglich. **Aufwand:** 1–2 Stunden.
 
-`prefers-color-scheme`-Media-Query respektieren als Default, weiterhin manuelle Überschreibung möglich. Kleiner, aber spürbarer Polish für Nutzer, die System-weite Theme-Einstellungen pflegen.
+### F-06: Drucklayout "Kontakt-Karte"
 
-**Aufwand:** 1–2 Stunden.
-
-### F-06: Drucklayout „Kontakt-Karte"
-
-Vierte Druckvorlage: eine A5/A6-Karte pro Stabsmitglied mit den eigenen Rollen, direkten Vertretern und deren Telefonnummern — so dass jeder eine persönliche Karte hat, die er in die Tasche steckt. Aus dem heutigen Role-Detail-Template ableitbar.
-
-**Aufwand:** 0.5–1 Session.
+Vierte Druckvorlage: A5/A6-Karte pro Stabsmitglied mit eigenen Rollen, direkten Vertretern, Telefonnummern. Persönliche Karte zum Mitnehmen. **Aufwand:** 0,5–1 Session.
 
 ### F-07: Drilldown von Statuspill zu betroffener Liste
 
-Klick auf „Sub. active 12" öffnet eine Liste der 12 aktiven Vertretungen. Klick auf „Unoccupied 1" zeigt die eine unbesetzte Rolle. Reine Navigation, keine neue Semantik.
-
-**Aufwand:** 1 Session.
+Klick auf "Sub. active 12" öffnet Liste der 12 aktiven Vertretungen. Klick auf "Unoccupied 1" zeigt unbesetzte Rolle. Reine Navigation, keine neue Semantik. **Aufwand:** 1 Session.
 
 ---
 
-## Größerer Sprung — 2.x, optional
+## V-02 (langfristig optional) — Historische Ansicht
 
-### V-01: Optionaler Online-Sync
+Über 30-Tage-Audit-Log hinausgehend: Snapshots zu Zeitpunkten (quartalsweise, nach größeren Änderungen) speichern und rückwärts einsehbar machen. Nützlich bei Audit-Szenarien nach echten Vorfällen.
 
-Der größte konzeptionelle Schritt. Würde bedeuten:
-- Optionales Backend (selbst-hostbar, Referenz-Implementierung Node.js / Express / SQLite)
-- Client bekommt ein Settings-Feld „Sync-Server-URL"
-- OIDC-Auth gegen Entra ID, Google Workspace, Keycloak
-- Differenz-Sync statt Voll-Replacement
-- Konflikt-Auflösung bei gleichzeitiger Bearbeitung
-
-**Erhebliche Konsequenzen:**
-- Single-File-Charakter für den Client bleibt, aber das Gesamt-System ist kein Single-File mehr
-- Server-Betrieb und Pflege wird zum laufenden Aufwand
-- Für Enterprise-Einsatz mit 50+ Stabsmitgliedern ein Gewinn, für kleine Stäbe Overkill
-
-**Sinnvoll nur, wenn Praxis-Einsatz zeigt, dass der aktuelle Offline-Ansatz nicht reicht.** Nicht aus der Hand schießen.
-
-**Aufwand:** 5–10 Sessions für Spec, Referenz-Backend, Client-Integration, Tests.
-
-### V-02: Historische Ansicht
-
-Über den 30-Tage-Audit-Log hinausgehend: Snapshots einer Konfiguration zu bestimmten Zeitpunkten (quartalsweise, nach größeren Änderungen) speichern und rückwärts einsehen können. Sinnvoll für Audit-Szenarien nach echten Vorfällen, um nachzuweisen „so sah der Stab zum Zeitpunkt X aus".
-
-Aufwand vs. Nutzen ist bei den meisten Organisationen wahrscheinlich nicht günstig. Erstmal als Idee parken.
+Aufwand vs. Nutzen für die meisten Organisationen wahrscheinlich nicht günstig. Erstmal als Idee parken.
 
 **Aufwand:** 2–3 Sessions.
 
 ---
 
-## Prozess-Roadmap — nicht technisch
+## Prozess-Roadmap
 
-### P-01: Beta-Feedback kanalisieren
+### P-01: Beta-Feedback kanalisieren ✓
 
-Nach den 2–3 Wochen Testphase ein strukturiertes Feedback-Gespräch mit den Testern. Templatisierte Issue-Form auf GitHub ist da (feature_request.md, bug_report.md), aber Menschen füllen oft lieber ein Gespräch aus. Nach dem Gespräch die Findings in Issues überführen.
+Strukturiertes Feedback-Gespräch hat stattgefunden, Ergebnis siehe T-01 und V1.2/V2.0-Specs.
 
 ### P-02: Versions-Kommunikation
 
-Mit dem 1.0-Release eine kurze Kommunikations-Kampagne: eine Ankündigung (Blog-Post, LinkedIn-Beitrag, interner Newsletter je nach Zielgruppe). Ziel nicht Marketing, sondern dass potenzielle Nutzer das Tool überhaupt finden. Wenn's nur drei Leute im eigenen Unternehmen benutzen, ist das völlig in Ordnung — dann braucht's keine Kampagne.
+Mit V1.0-Release kurze Ankündigung (Blog-Post / LinkedIn / interner Newsletter, je nach Zielgruppe). Ziel ist Findbarkeit, nicht Marketing. Wenn nur drei Leute im eigenen Unternehmen das Tool nutzen, ist das völlig okay — dann braucht's keine Kampagne.
 
 ### P-03: License-Kompatibilitäts-Scan
 
-Für Enterprise-Einsätze wichtig: Apache-2.0 ist kompatibel mit typischen Unternehmens-Lizenzen, aber eine schnelle Zertifikats-Prüfung mit Tools wie `scancode` oder `license-checker` auf das gesamte Projekt stellt sicher, dass kein versehentlich eingebauter GPL-Schnipsel darin ist.
+Für Enterprise-Einsätze sinnvoll: Apache-2.0 ist mit typischen Unternehmens-Lizenzen kompatibel, aber eine schnelle Prüfung mit `scancode` oder `license-checker` stellt sicher, dass nichts versehentlich GPL-Schnipsel enthält.
 
 ---
 
 ## Anti-Roadmap — was wir bewusst NICHT tun
 
-Dinge, die in Diskussionen gerne vorgeschlagen werden, aber nicht zum Projekt passen:
-
-- **npm-Package-Publishing.** CRAM ist eine Anwendung, keine Library. Ein `npm install cram` würde den Zweck verzerren.
-- **Docker-Image.** Overkill für eine Single-File-HTML-Anwendung. Wer einen Webserver hat, kann die Datei ausliefern. Wer keinen hat, nimmt `file://`.
-- **TypeScript-Refactoring.** Der Code ist bewusst vanilla JavaScript, damit jeder Admin mit Basis-Webkenntnissen ihn lesen und modifizieren kann. TypeScript würde eine Build-Kette erzwingen und das Single-File-Prinzip brechen.
-- **Build-Tools / Bundler.** Aus demselben Grund.
-- **Eigene Icons-Library / CSS-Framework.** Wir halten die CSS-Variablen-basierte Minimal-Implementierung bei. Tailwind etc. würde die Datei massiv vergrößern ohne erkennbaren Gewinn.
-- **Plugin-System.** CRAM ist ein Tool mit klarem Scope. Erweiterbarkeit über Plugins hätte einen enormen Design-Aufwand und würde die Oberfläche zerfasern. Wer es anpassen will, forkt und editiert — das ist die vorgesehene Extension-Methode.
+- **npm-Package-Publishing.** CRAM ist Anwendung, keine Library.
+- **Docker-Image.** Overkill für Single-File-HTML.
+- **TypeScript-Refactoring.** Bewusst Vanilla JS, damit jeder Admin den Code modifizieren kann.
+- **Build-Tools / Bundler.** Bricht Single-File-Prinzip.
+- **Eigene Icons-Library / CSS-Framework.** CSS-Variablen-basiertes Minimal-CSS bleibt.
+- **Plugin-System.** Forken und editieren ist die vorgesehene Extension-Methode.
+- **WebRTC P2P-Sync.** Falsches Modell für asynchrone Stab-Sync.
+- **Git-as-Backend für Sync.** Verwirrt mehr als es hilft (Commit-Floods, Rate-Limits, Audit-Log-Doppelung).
+- **Eigene CRAM-Cloud / SaaS.** Customer hostet eigenes Backend oder nutzt eigene Cloud — kein Phone-Home.
+- **OneDrive / Drive via OAuth.** OAuth-Flow-Komplexität nicht gerechtfertigt — der File-System-Access-Pfad (S5) deckt diese Use-Cases via Desktop-Sync-Folder ab.
 
 ---
 
 ## Reihenfolge-Vorschlag
 
-1. **Jetzt:** Test-Phase mit rc1.2 starten (2–3 Wochen).
-2. **Parallel dazu (ein Batch-Release rc1.3):** L-01 (MIT-Lizenztexte + NOTICE-Datei), L-02 (qrcode-generator-Begründung im Code), L-03 (SPDX-Header), L-04 (SBOM als Release-Asset), S-01 (CSP). Das sind alles rein textuelle oder deklarative Änderungen ohne Funktionsauswirkung, lassen sich in einer Session umsetzen und landen als rc1.3.
-3. **Nach Test-Phase:** S-02 (Input-Audit) mit Pen-Test-Config, plus alle Findings aus der Praxis. Landet als rc1.4.
-4. **Danach:** 1.0-Release, wenn alles sauber.
-5. **Nach 1.0:** Feature-Set 1.x in Priorität F-07 (Drilldown, günstig) → F-01 (Suche) → F-02 (Audit-Export) → F-05 (Auto-Theme) → F-03/F-04 (Tags + Bulk) → F-06 (Kontakt-Karte).
-6. **V-01 (Online-Sync) nur, wenn Praxis das Bedürfnis zeigt.** Nicht aus Prinzip.
+1. **Jetzt:** S-02 abschließen → V1.0 final taggen → GitHub-Release mit Assets.
+2. **Danach:** V1.2 implementieren (manueller Sync, Awareness-Indikator, Sync-Source-Architektur). Praxistest.
+3. **Nach V1.2-Praxistest:** V2.0 (Auto-Sync) als Switch-On auf der V1.2-Architektur.
+4. **Optional V2.1:** S2-Backend, wenn Bedarf da.
+5. **Parallel oder nach V2.0:** F-01..F-07 in praxis-getriebener Reihenfolge. Voraussichtlich F-07 (günstig) → F-01 (Suche, viel Wert) → F-02 (Audit-Export) → F-05 (Theme-Auto) → F-03/F-04 (Tags + Bulk) → F-06 (Kontakt-Karte).
+6. **Langfristig optional:** V-02 (historische Ansicht), wenn Audit-Bedürfnisse danach rufen.
