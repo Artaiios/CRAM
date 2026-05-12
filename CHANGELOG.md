@@ -2,6 +2,45 @@
 
 All notable changes to CRAM are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] — 2026-05-12
+
+Online synchronisation as a new transfer channel, manual mode. The previous three channels (sync code, QR transfer, JSON export/import) remain unchanged and continue to work as before. V1.2 adds a fourth: a server-or-folder-backed pull/push pair driven by two explicit buttons. V2.0 will automate it; V1.2 deliberately keeps the user in control of every operation.
+
+### Added
+
+- **Sync source abstraction.** A `Sync` module manages a list of configured sources with CRUD operations, version tracking, dirty flag, and a callback hook for the UI. Each source has a type, label, backend-specific config, and encryption settings. Stored under `cram.sync.v1` in localStorage.
+- **Backend S1 — HTTP(S) endpoint.** Talks `GET` / `HEAD` / `PUT` / `OPTIONS` against any HTTPS server that supports those (nginx with `dav_methods`, Caddy + WebDAV plugin, Apache + `mod_dav`, MinIO, Synology NAS, SharePoint WebDAV). Auth types: `none`, `basic`, `bearer`. Reference configurations in [`docs/server-setup.md`](docs/server-setup.md).
+- **Backend S5 — local directory (File System Access API).** User picks a folder once via the native browser picker; CRAM persists the directory handle in IndexedDB and writes the state file there on every push. Typical use: a OneDrive / Dropbox / Google Drive sync folder, where the vendor's desktop client distributes the file between devices without any server involved.
+- **End-to-end encryption.** Default ON for new sources. PBKDF2-HMAC-SHA256 with 250 000 iterations derives an AES-256-GCM key from a user passphrase + 16-byte per-source salt. Each write uses a fresh 12-byte IV. Pure WebCrypto, no external library. Passphrase lives in RAM only and is discarded when the tab closes.
+- **Sync-bundle share / import.** Onboards a second device against the same source. A `SyncBundle` JSON object carries source type, label, config, encryption salt, and passphrase. Distributed via JSON text or file (QR channel deferred). Receivers see a preview with a fingerprint comparison before confirming.
+- **Settings tab "Sync sources"** with CRUD UI: add HTTP source, add local-directory source, edit, share, delete. Form validates URL prefix, filename pattern, passphrase length (≥ 8) and match-confirm on creation.
+- **Sync modal: new "Online" channel** next to Code and QR. Lists every configured source with a Pull and a Push button, plus a last-synced line (version + timestamp) for the most recently used source. Empty state offers a direct shortcut to Settings → Sync sources.
+- **Awareness indicator in the header.** A compact pill left of the existing stab-status metrics, showing one of: ✓ synced, ↻ syncing, ↑ out-of-sync (local changes pending push), ✗ error. Hidden when no sources are configured. Reactive via a `Sync.onChange` subscription; tooltip carries source label, version, and a relative timestamp via `Intl.RelativeTimeFormat`.
+- **Browser support banner** in the Sync sources tab, automatically shown when the current browser is missing one of the V1.2 APIs (File System Access, BarcodeDetector). Adapts its lead sentence to Firefox / Safari / generic.
+- **Dev sync backend** (`scripts/dev-sync-backend.py`): a minimal stdlib-only Python HTTP server on `127.0.0.1:8765` that simulates a real backend (GET / HEAD / PUT / OPTIONS with full CORS) for local testing. Not for production.
+- **Server-setup documentation** (`docs/server-setup.md`): reference configurations for nginx with `dav_methods`, Caddy with the webdav community plugin, Apache with `mod_dav`, MinIO with presigned URLs, plus CORS requirements, auth options, TLS notes, and scaling expectations.
+- **Handbook chapters** in DE and EN covering the user-side flow: add a source, manual pull / push, share a bundle, common failure modes.
+- **CSP relaxation.** `connect-src` extended from `'self' blob: data:` to additionally allow `https:` (for production HTTPS endpoints) and `http://localhost:* http://127.0.0.1:*` (for local development). Documented as a deliberate second-layer trade-off; `escapeHTML` remains the first line of XSS defence and the URL of each source is matched against the configured-sources list before any fetch.
+
+### Changed
+
+- `APP_VERSION` bumped to `1.2.0`.
+- `Storage.set()` now calls `Sync.markDirty()` when `cram.config.v1` or `cram.runtime.v1` is written, so the awareness indicator switches to "out of sync" on every local edit without touching the callers.
+
+### Compatibility
+
+The new "Local directory" source type and the QR scanner both require browser APIs that Firefox does not implement. HTTP-based online sync, encryption, and bundle import work in every modern browser. Safari requires re-granting file-system permission per session; Chrome and Edge persist it.
+
+### Deferred
+
+- **QR channel for sync bundles** (rendered as scannable QR codes). The existing JSON-text and file channels cover the practical need for V1.2. QR will be added in a follow-up commit reusing the existing fragmentation pipeline if practice demands it.
+- **S2 backend — S3-style presigned URLs.** Originally planned for V2.1 because URL rotation (7-day max for AWS sigv4) does not fit the "set and forget" promise of the awareness indicator. Customers needing this today can use the HTTP backend against MinIO with manually refreshed presigned URLs.
+- **PDF user manuals** for V1.2 were not rebuilt in this release. The Markdown handbooks under `docs/` are the source of truth and have been updated; the previously bundled PDFs still reflect rc1.3 content. PDFs will be regenerated in a follow-up release.
+
+### Security model unchanged
+
+The S-02 audit conducted before v1.0.0 remains valid for the V1.2 surface — the new modals all flow through the same `escapeHTML()` discipline, and `innerHTML` is not introduced in any new code path that takes raw user input without escaping. Encryption is layered on top of the existing input-escaping defence, not as a replacement.
+
 ## [1.0.0] — 2026-05-08
 
 First stable release. Functionally identical to `1.0.0-rc1.3`; the rc cycle (rc1 → rc1.3) added compliance, security, and documentation polish without changing user-visible behaviour. After several weeks of practice testing, the tool is considered ready for production use.
