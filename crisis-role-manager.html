@@ -3838,6 +3838,19 @@ const Sync = (function() {
     }
   }
 
+  // V1.3 Trennung Sync (Status) vs Data (Config + Status): wenn Sync im
+  // 'status'-Modus operiert und Server-Fingerprint != lokaler Fingerprint,
+  // wird die Operation mit dieser Error-Klasse abgelehnt. Die UI fängt sie
+  // ab und verweist auf den Data-Tab für den Config-Abgleich.
+  class ConfigDriftError extends Error {
+    constructor(serverFingerprint, localFingerprint) {
+      super('Configuration drift: server ' + serverFingerprint + ' vs local ' + localFingerprint);
+      this.name = 'ConfigDriftError';
+      this.serverFingerprint = serverFingerprint;
+      this.localFingerprint = localFingerprint;
+    }
+  }
+
   function isSyncing() { return _syncing; }
 
   function onChange(fn) { _onChange = (typeof fn === 'function') ? fn : null; }
@@ -4039,7 +4052,17 @@ const Sync = (function() {
     Storage.saveRuntime(State.runtime);
   }
 
-  async function applyEnvelopeForSource(envelope, source) {
+  /* applyEnvelopeForSource(envelope, source, opts)
+       opts.mode = 'status' | 'full' (Default 'full')
+     'status'  → erzwingt Fingerprint-Match, applied NUR runtime
+     'full'    → ersetzt config + runtime, Fingerprint-Differenz wird
+                 ins Audit-Log geloggt aber nicht abgelehnt
+     Beide Modi geben den entschlüsselten inner payload zurück, damit
+     Caller darauf zugreifen können (UI für preview-vor-apply). */
+  async function applyEnvelopeForSource(envelope, source, opts) {
+    opts = opts || {};
+    const mode = opts.mode || 'full';
+
     if (!envelope || envelope.format !== 'cram-sync-v1') {
       throw new Error('Invalid envelope format');
     }
@@ -4074,13 +4097,21 @@ const Sync = (function() {
       throw new Error('Invalid inner payload format');
     }
 
-    // Online-Sync transportiert die KOMPLETTE Konfiguration + Runtime, nicht
-    // nur Status. Ein Fingerprint-Mismatch ist hier KEIN Fehler, sondern ein
-    // legitimer Config-Wechsel (User hat explizit gegen diese Source gepullt).
-    // Wir protokollieren den Wechsel im Audit-Log, damit er nachvollziehbar
-    // bleibt, und ersetzen lokal config + runtime durch den Server-Stand.
     const localFp = computeConfigHash(State.config);
     const remoteFp = envelope.fingerprint || computeConfigHash(inner.config);
+
+    if (mode === 'status') {
+      // Status-only: Fingerprint MUSS matchen. Sonst Drift-Error.
+      if (remoteFp !== localFp) {
+        throw new ConfigDriftError(remoteFp, localFp);
+      }
+      // Config bleibt unverändert; nur runtime wird angewandt.
+      State.runtime = inner.runtime || { unavailable: {}, manualAssignments: {} };
+      Storage.saveRuntime(State.runtime);
+      return inner;
+    }
+
+    // mode === 'full': config + runtime ersetzen, Drift loggen
     if (remoteFp !== localFp) {
       try {
         Storage.appendAudit({
@@ -4092,16 +4123,22 @@ const Sync = (function() {
         });
       } catch (e) { /* audit ist best-effort */ }
     }
-
     State.config = inner.config;
     State.runtime = inner.runtime || { unavailable: {}, manualAssignments: {} };
     Storage.saveConfig(State.config);
     Storage.saveRuntime(State.runtime);
+    return inner;
   }
 
   /* ---- Manual sync actions ---- */
 
-  async function pull(sourceId) {
+  /* pull(sourceId, opts)
+       opts.mode = 'status' | 'full' (Default 'status' für sicherheit)
+     'status' → nur Runtime wird angewandt; Drift → ConfigDriftError
+     'full'   → kompletter State (config + runtime) wird ersetzt */
+  async function pull(sourceId, opts) {
+    opts = opts || {};
+    const mode = opts.mode || 'status';
     const source = getSource(sourceId);
     if (!source) throw new Error('Source not found: ' + sourceId);
     _setSyncing(true);
@@ -4109,11 +4146,8 @@ const Sync = (function() {
       const client = createSourceClient(source);
       const envelope = await client.read();
       if (envelope === null) return null;
-      // Während applyEnvelope wird Storage.saveConfig/saveRuntime
-      // aufgerufen — wir wollen den dirty-flag dabei NICHT setzen,
-      // weil der Stand vom Server ja gerade synchron ist.
       _suppressDirty = true;
-      try { await applyEnvelopeForSource(envelope, source); }
+      try { await applyEnvelopeForSource(envelope, source, { mode }); }
       finally { _suppressDirty = false; }
       const state = load();
       state.lastSyncedVersion = envelope.version;
@@ -4124,9 +4158,7 @@ const Sync = (function() {
       save(state);
       return envelope;
     } catch (e) {
-      if (e && e.name === 'PassphraseRequiredError') {
-        // Passphrase-Fehler nicht als lastError persistieren — die UI
-        // promptet stattdessen und wiederholt die Aktion.
+      if (e && (e.name === 'PassphraseRequiredError' || e.name === 'ConfigDriftError')) {
         throw e;
       }
       const state = load();
@@ -4139,12 +4171,37 @@ const Sync = (function() {
     }
   }
 
-  async function push(sourceId) {
+  /* push(sourceId, opts)
+       opts.mode = 'status' | 'full' (Default 'status')
+     'status' → probt zuerst den Server-Fingerprint; bei Drift ConfigDriftError
+                und Abbruch. Verhindert versehentliches Überschreiben einer
+                fremden Server-Config.
+     'full'   → schreibt vollen Envelope ohne Probe. Ersetzt den Server-Stand. */
+  async function push(sourceId, opts) {
+    opts = opts || {};
+    const mode = opts.mode || 'status';
     const source = getSource(sourceId);
     if (!source) throw new Error('Source not found: ' + sourceId);
     _setSyncing(true);
     try {
       const client = createSourceClient(source);
+
+      // Status-mode pre-check: server muss gleiche Config haben
+      if (mode === 'status') {
+        let serverEnvelope = null;
+        try { serverEnvelope = await client.read(); } catch (e) {
+          // Server unerreichbar: lassen wir den Push trotzdem versuchen — der
+          // write() bringt dann den richtigen Fehler.
+        }
+        if (serverEnvelope) {
+          const localFp = computeConfigHash(State.config);
+          const remoteFp = serverEnvelope.fingerprint || '';
+          if (remoteFp && remoteFp !== localFp) {
+            throw new ConfigDriftError(remoteFp, localFp);
+          }
+        }
+      }
+
       const envelope = await buildEnvelopeForSource(source);
       await client.write(envelope);
       const state = load();
@@ -4156,7 +4213,7 @@ const Sync = (function() {
       save(state);
       return envelope;
     } catch (e) {
-      if (e && e.name === 'PassphraseRequiredError') {
+      if (e && (e.name === 'PassphraseRequiredError' || e.name === 'ConfigDriftError')) {
         throw e;
       }
       const state = load();
@@ -4167,6 +4224,114 @@ const Sync = (function() {
       _setSyncing(false);
       _emitChange();
     }
+  }
+
+  /* probeMeta(sourceId) — lädt das Envelope vom Server und gibt
+     ausschließlich Metadaten zurück. Keine Decryption, kein
+     Apply. Nutzbar für leichte "was liegt auf dem Server"-
+     Abfragen aus der UI (Sync-Modal-Card, Awareness-Indikator). */
+  async function probeMeta(sourceId) {
+    const source = getSource(sourceId);
+    if (!source) throw new Error('Source not found: ' + sourceId);
+    try {
+      const client = createSourceClient(source);
+      const envelope = await client.read();
+      if (envelope === null) {
+        return { reachable: true, empty: true };
+      }
+      return {
+        reachable: true,
+        empty: false,
+        version: envelope.version || 0,
+        timestamp: envelope.timestamp || 0,
+        fingerprint: envelope.fingerprint || '',
+        encrypted: !!envelope.encrypted,
+        _envelope: envelope,  // für previewDiff
+      };
+    } catch (e) {
+      return { reachable: false, error: String(e.message || e) };
+    }
+  }
+
+  /* previewDiff(sourceId) — vollständiger Vergleich Server vs lokal,
+     inklusive Decryption (falls Schlüssel im Cache) und Count-Stats.
+     Liefert ein Objekt, das die UI direkt rendern kann. Wenn die
+     Decryption fehlschlägt (Passphrase fehlt) wird ein eingeschränktes
+     Objekt zurückgegeben (nur Fingerprint-Vergleich möglich). */
+  async function previewDiff(sourceId) {
+    const meta = await probeMeta(sourceId);
+    if (!meta.reachable) return { reachable: false, error: meta.error };
+    if (meta.empty)     return { reachable: true, empty: true, fingerprintLocal: computeConfigHash(State.config) };
+
+    const source = getSource(sourceId);
+    const localFp = computeConfigHash(State.config);
+    const result = {
+      reachable: true,
+      empty: false,
+      version: meta.version,
+      timestamp: meta.timestamp,
+      fingerprint: meta.fingerprint,
+      fingerprintLocal: localFp,
+      fingerprintMatches: meta.fingerprint === localFp,
+      encrypted: meta.encrypted,
+      decrypted: false,
+    };
+
+    let inner;
+    if (meta.encrypted) {
+      const key = _keyCache.get(sourceId);
+      if (!key) {
+        result.needsPassphrase = true;
+        return result;
+      }
+      try {
+        inner = await SyncCrypto.decryptJSON(key, meta._envelope.iv, meta._envelope.ciphertext);
+      } catch (e) {
+        result.decryptError = String(e.message || e);
+        return result;
+      }
+    } else {
+      inner = meta._envelope.payload;
+    }
+    if (!inner || inner.format !== 'cram-export') {
+      result.malformed = true;
+      return result;
+    }
+    result.decrypted = true;
+
+    const sCfg = inner.config || {};
+    const sRt  = inner.runtime || { unavailable: {}, manualAssignments: {} };
+    const lCfg = State.config;
+    const lRt  = State.runtime;
+
+    function countRoles(cfg) {
+      return (cfg.levels || []).reduce((s, l) => s + (l.roles || []).length, 0);
+    }
+
+    result.stats = {
+      server: {
+        persons: (sCfg.persons || []).length,
+        levels:  (sCfg.levels  || []).length,
+        roles:   countRoles(sCfg),
+        absent:  Object.keys(sRt.unavailable || {}).length,
+        manual:  Object.keys(sRt.manualAssignments || {}).length,
+      },
+      local: {
+        persons: (lCfg.persons || []).length,
+        levels:  (lCfg.levels  || []).length,
+        roles:   countRoles(lCfg),
+        absent:  Object.keys(lRt.unavailable || {}).length,
+        manual:  Object.keys(lRt.manualAssignments || {}).length,
+      },
+    };
+
+    // Personen-Diff (welche IDs gibt es nur auf einer Seite)
+    const serverIds = new Set((sCfg.persons || []).map(p => p.id));
+    const localIds  = new Set((lCfg.persons || []).map(p => p.id));
+    result.onlyLocal  = (lCfg.persons || []).filter(p => !serverIds.has(p.id)).map(p => ({ id: p.id, name: p.name }));
+    result.onlyServer = (sCfg.persons || []).filter(p => !localIds.has(p.id)).map(p => ({ id: p.id, name: p.name }));
+
+    return result;
   }
 
   return {
@@ -4179,8 +4344,9 @@ const Sync = (function() {
     isEncryptionEnabled, hasKeyForSource, setKeyForSource,
     clearKeyForSource, clearAllKeys, needsPassphrase,
     setPassphraseForSource, getPassphraseForSource, hasPassphraseForSource,
-    PassphraseRequiredError,
+    PassphraseRequiredError, ConfigDriftError,
     pull, push,
+    probeMeta, previewDiff,
   };
 })();
 
@@ -9750,7 +9916,10 @@ async function syncOnlinePull(sourceId) {
   if (!src) return;
   showToast(t('sync.online_pulling', { label: src.label }), 'info');
   try {
-    const env = await withPassphraseRecovery(src, () => Sync.pull(sourceId));
+    // V1.3: dieser Wrapper wird im nächsten Commit durch zwei Pfade ersetzt
+    // (Status-Pull im Sync-Modal, Full-Pull im Data-Modal). Übergangsweise
+    // mode='full' damit das alte Verhalten bis dahin erhalten bleibt.
+    const env = await withPassphraseRecovery(src, () => Sync.pull(sourceId, { mode: 'full' }));
     if (env === null) {
       showToast(t('sync.online_empty'), 'info');
     } else {
@@ -9773,7 +9942,8 @@ async function syncOnlinePush(sourceId) {
   if (!src) return;
   showToast(t('sync.online_pushing', { label: src.label }), 'info');
   try {
-    const env = await withPassphraseRecovery(src, () => Sync.push(sourceId));
+    // V1.3: siehe Anmerkung in syncOnlinePull — Übergangs-mode='full'.
+    const env = await withPassphraseRecovery(src, () => Sync.push(sourceId, { mode: 'full' }));
     if (env !== null && env !== undefined) {
       showToast(t('sync.online_pushed', { version: env.version }), 'success');
     }
@@ -9855,6 +10025,28 @@ function passphrasePromptOk() {
 
 function passphrasePromptCancel() {
   if (passphrasePromptState.resolver) passphrasePromptState.resolver(null);
+}
+
+/* V1.3: Helper, der den Diff zwischen Server und lokal in eine
+   für die UI darstellbare Form bringt. Die Sync-Modal-Card und das
+   Data-Modal-Online-Tab nutzen beide diese Funktion. Cached pro
+   Source, damit Re-Renders nicht jedes Mal HTTP-Requests auslösen.
+   Cache wird invalidiert nach Push/Pull. */
+const _previewCache = new Map();   // sourceId -> { result, fetchedAt }
+function clearPreviewCache(sourceId) {
+  if (sourceId) _previewCache.delete(sourceId); else _previewCache.clear();
+}
+async function getCachedPreview(sourceId, maxAgeMs) {
+  maxAgeMs = (typeof maxAgeMs === 'number') ? maxAgeMs : 30000;
+  const cached = _previewCache.get(sourceId);
+  if (cached && (Date.now() - cached.fetchedAt) < maxAgeMs) return cached.result;
+  try {
+    const result = await Sync.previewDiff(sourceId);
+    _previewCache.set(sourceId, { result, fetchedAt: Date.now() });
+    return result;
+  } catch (e) {
+    return { reachable: false, error: String(e.message || e) };
+  }
 }
 
 /* Helper: führt Pull oder Push aus, fängt PassphraseRequiredError und
