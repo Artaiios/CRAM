@@ -192,6 +192,59 @@ Für **Archivierung, E-Mail-Versand oder Versionskontrolle**. Die Konfiguration 
 3. Vorschau prüfen (Anzahl Ebenen, Rollen, Personen)
 4. „Import" klicken — bestehende Daten werden überschrieben
 
+### Online-Sync (ab V1.2)
+
+Für die **regelmäßige Statusabgleichung verteilter Teams** über das Netzwerk. Im Gegensatz zu Code/QR/Datei ist hier **kein Live-Kontakt** zwischen Sender und Empfänger nötig — jeder schickt seinen Stand an einen geteilten Server und holt sich von dort den aktuellen Gesamtstand.
+
+In V1.2 sind beide Aktionen **manuell** (zwei Buttons im Sync-Modal). V2.0 wird das automatisieren.
+
+**Zwei Backend-Typen werden unterstützt:**
+
+- **HTTP-Server** — ein selbst gehosteter Endpunkt (nginx mit `dav_methods`, Caddy + WebDAV-Plugin, SharePoint-WebDAV, MinIO, Synology-NAS). Der Server hostet eine einzige Datei `state.json`. Setup-Hinweise siehe [`docs/server-setup.md`](server-setup.md).
+- **Lokales Verzeichnis** — typisch ein Ordner, der von OneDrive / Dropbox / Google Drive zwischen Geräten synchronisiert wird. CRAM schreibt nur die Datei in den Ordner, der Cloud-Sync-Client des Anbieters macht die Verteilung. Kein eigener Server nötig.
+
+**Eine Sync-Source einrichten:**
+
+1. Edit-Modus aktivieren (✎ in der Kopfleiste)
+2. Im Edit-Banner ⚙ **Einstellungen** klicken
+3. Auf den Tab **Sync-Sources** wechseln
+4. Wähle:
+   - **+ Neue HTTP-Source** — Bezeichnung (frei wählbar, z.B. „Hauptserver intern"), URL des Endpunkts, Authentifizierung (None / Basic / Bearer)
+   - **+ Lokales Verzeichnis** — Bezeichnung, dann „Verzeichnis wählen…" klicken; der Browser fragt nach einem Ordner; danach noch optional den Dateinamen anpassen (Default `cram-sync.json`)
+5. **Verschlüsselung** ist standardmäßig aktiviert (Ende-zu-Ende, AES-256-GCM mit PBKDF2 aus deiner Passphrase). Vergib eine Passphrase und bestätige sie. **Notiere sie in einem Passwort-Manager** — CRAM speichert sie nur im Arbeitsspeicher und vergisst sie bei jedem Tab-Schließen.
+6. Speichern.
+
+Sobald die Source angelegt ist, erscheint links der Status-Pills in der Kopfleiste ein kleiner **Sync-Indikator** mit aktuellem Zustand: ✓ Synchron, ↑ Änderungen (lokale ungepushte Edits), ↻ Sync läuft, ✗ Fehler.
+
+**Manuell synchronisieren:**
+
+1. ⇄ **Sync** in der Kopfleiste öffnen
+2. Kanal **🌐 Online (Server)** wählen
+3. Pro Source siehst du zwei Buttons:
+   - **↓ Vom Server holen** — lädt den Server-Stand und überschreibt deinen lokalen
+   - **↑ Zum Server schicken** — sendet deinen lokalen Stand und überschreibt den Server-Stand
+4. Bei verschlüsselten Sources fragt CRAM bei Bedarf nach der Passphrase (z.B. nach einem Tab-Neustart). Die Passphrase wird nicht gespeichert.
+
+**Eine Source mit dem Team teilen — Sync-Bundle:**
+
+Damit Kollegen gegen dieselbe Source synchronisieren können, exportierst du ein **Sync-Bundle**: ein JSON-Objekt mit allen nötigen Informationen (URL bzw. Dateiname, Auth-Daten, Salt, Passphrase).
+
+1. In **Settings → Sync-Sources** auf der jeweiligen Source „Teilen" klicken
+2. Modal zeigt das Bundle-JSON + einen Warnhinweis: **Bundle ist vertraulich**, enthält Passphrase und Anmeldedaten im Klartext
+3. Über einen sicheren Kanal verteilen: Signal/Threema, Passwort-Manager-Eintrag, persönliche Übergabe. **NICHT per E-Mail oder normalem Chat schicken.**
+4. Kollegin öffnet CRAM, Settings → Sync-Sources → **⇩ Bundle importieren**, fügt das JSON ein oder lädt es aus der Datei
+5. CRAM zeigt eine Vorschau mit Source-Typ, URL/Dateiname, Verschlüsselungs-Status und einem Fingerprint-Vergleich. Wenn die Fingerprints nicht übereinstimmen, würdet ihr gegen unterschiedliche Stabs-Konfigurationen syncen — CRAM warnt deutlich.
+6. „Übernehmen" — bei lokalen Verzeichnis-Bundles fragt CRAM jetzt nach dem lokalen Ordner (der Empfänger wählt seinen eigenen Pfad).
+
+**Was beim Online-Sync versehentlich passieren kann:**
+
+- **Server unerreichbar** — z.B. VPN aus, falsche URL: Sync-Indikator wird rot ✗ mit Fehlertext, lokale Daten bleiben unverändert
+- **Wrong Passphrase** — beim Pull schlägt die Entschlüsselung fehl: „Decryption failed — wrong passphrase?". Über das Modal kannst du sie erneut eingeben
+- **Versehentlich Klartext-Bundle teilen** — vor jedem Save wird mit `confirm()` nachgefragt, ob du Bundle ohne Verschlüsselung anlegen willst. Standard ist immer Encryption=ON
+- **Falscher Fingerprint beim Import** — wirst gewarnt, kannst trotzdem importieren wenn du sicher bist (z.B. neuer Stab)
+
+**Browser-Hinweis:** Firefox unterstützt den „Lokales Verzeichnis"-Typ nicht, weil Mozilla die File-System-Access-API ablehnt. HTTP-Sources funktionieren in jedem Browser. Wenn Firefox erkannt wird, blendet CRAM einen entsprechenden Hinweis-Banner im Sync-Sources-Tab ein.
+
 ## Drucken
 
 CRAM hat drei Druckvorlagen für den Papieraushang, und alle drei funktionieren mit A4, A3 oder Letter in Hoch- und Querformat.

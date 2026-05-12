@@ -8,7 +8,7 @@
      Hinweis: 'frame-ancestors' funktioniert nur als HTTP-Header, nicht im
      Meta-Tag. Wer CRAM hinter einem Server betreibt, sollte zusätzlich
      'X-Frame-Options: DENY' oder 'frame-ancestors none' als Header setzen. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' blob: data:; manifest-src 'self' blob:; media-src 'self' blob: data:; base-uri 'none'; form-action 'none';" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' blob: data: https: http://localhost:* http://127.0.0.1:*; manifest-src 'self' blob:; media-src 'self' blob: data:; base-uri 'none'; form-action 'none';" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="color-scheme" content="dark light" />
 <title>Crisis Role Availability Manager</title>
@@ -319,12 +319,64 @@ button:focus-visible,
 /* ---- Status banner ---- */
 .status-banner {
   display: flex;
-  gap: var(--space-5);
+  gap: var(--space-3);
   justify-content: center;
   align-items: center;
   font-family: var(--font-mono);
   font-size: 12px;
   letter-spacing: 0.02em;
+}
+.status-metrics {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+}
+
+/* ---- Sync-Indikator im Header (V1.2) ----
+   System-Status (Sync) links der Stab-Status-Pills, optisch durch
+   einen vertikalen Trenner abgesetzt. Vier sichtbare Zustände:
+   synced / syncing / out-of-sync / error. 'disabled' ist hidden. */
+.sync-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+  cursor: default;
+  user-select: none;
+}
+.sync-indicator[hidden] { display: none; }
+.sync-indicator-icon {
+  display: inline-block;
+  font-weight: 700;
+  font-size: 13px;
+  width: 14px;
+  text-align: center;
+  line-height: 1;
+}
+.sync-indicator-label {
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+}
+.sync-indicator[data-state="synced"]      { color: var(--status-ok); border-color: var(--status-ok-border); }
+.sync-indicator[data-state="syncing"]     { color: var(--status-warn); border-color: var(--status-warn-border); }
+.sync-indicator[data-state="syncing"] .sync-indicator-icon { animation: spin 1.2s linear infinite; }
+.sync-indicator[data-state="out-of-sync"] { color: var(--status-warn); border-color: var(--status-warn-border); }
+.sync-indicator[data-state="error"]       { color: var(--status-critical); border-color: var(--status-critical-border); }
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.sync-indicator + .status-metrics {
+  border-left: 1px solid var(--border-subtle);
+  padding-left: var(--space-5);
 }
 
 .status-metric {
@@ -2012,12 +2064,15 @@ button:focus-visible,
   border-radius: var(--radius-sm);
 }
 
-/* ---- Sync-Kanal-Picker (Code vs QR) ---- */
+/* ---- Sync-Kanal-Picker (Code vs QR vs Online) ---- */
 .sync-channel-picker {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
   margin-bottom: 12px;
+}
+@media (max-width: 600px) {
+  .sync-channel-picker { grid-template-columns: 1fr; }
 }
 .sync-channel-btn {
   display: flex;
@@ -2259,6 +2314,324 @@ button:focus-visible,
 .settings-about-value a:hover {
   text-decoration: underline;
 }
+
+/* ---- Settings-Tabs (V1.2) ---- */
+.settings-tabs {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 12px;
+}
+.settings-tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 8px 16px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+  transition: color 0.15s, border-color 0.15s;
+}
+.settings-tab:hover { color: var(--text-primary); }
+.settings-tab[data-active="true"] {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* ---- Sync-Sources Liste (V1.2) ---- */
+.sync-no-sources {
+  padding: 16px;
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 13px;
+  text-align: center;
+}
+.sync-source-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sync-source-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+.sync-source-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sync-source-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.sync-source-meta {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sync-source-type-badge {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 6px;
+  border-radius: 2px;
+  background: var(--bg-base);
+  color: var(--text-secondary);
+}
+.sync-source-actions {
+  display: flex;
+  gap: 6px;
+}
+.sync-source-actions button {
+  padding: 4px 8px;
+  font-size: 12px;
+  border: 1px solid var(--border-subtle);
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: inherit;
+}
+.sync-source-actions button:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+.sync-source-actions button.danger:hover { color: var(--status-err); border-color: var(--status-err); }
+
+/* Form für Add/Edit HTTP-Source */
+.sync-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  margin-bottom: 12px;
+}
+.sync-form-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+.sync-form-row .form-field { flex: 1; }
+.sync-form-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+.sync-form-divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 4px 0;
+}
+.sync-add-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.sync-add-buttons button[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.sync-fs-dir-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+.sync-fs-dir-display {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 4px 8px;
+  background: var(--bg-base);
+  border: 1px solid var(--border-subtle);
+  border-radius: 2px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- Bundle Share/Import (V1.2 Phase 3.3) ---- */
+.bundle-warning {
+  padding: 10px 12px;
+  background: var(--status-critical-bg, rgba(255,0,0,0.05));
+  border-left: 3px solid var(--status-critical);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--text-primary);
+}
+.bundle-warning strong { display: block; margin-bottom: 4px; font-size: 13px; }
+.bundle-text {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  resize: vertical;
+}
+.bundle-share-actions,
+.bundle-import-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.bundle-import-err {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: var(--status-critical-bg, rgba(255,0,0,0.05));
+  border-left: 3px solid var(--status-critical);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+.bundle-preview {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+}
+.bundle-preview-row { margin-bottom: 4px; }
+.bundle-preview-row strong { color: var(--text-secondary); margin-right: 4px; }
+.bundle-preview-row code { font-size: 11px; }
+.bundle-preview-hint {
+  margin-top: 4px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-style: italic;
+}
+.bundle-preview-fp {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.bundle-fp-tag {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 6px;
+  border-radius: 2px;
+  background: var(--bg-base);
+}
+.bundle-preview-fp[data-match="true"] .bundle-fp-tag {
+  color: var(--status-ok);
+  border: 1px solid var(--status-ok-border);
+}
+.bundle-preview-fp[data-match="false"] .bundle-fp-tag {
+  color: var(--status-critical);
+  border: 1px solid var(--status-critical-border);
+}
+.bundle-fp-warn {
+  margin-top: 8px;
+  color: var(--status-critical);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* ---- Browser-Support-Banner (V1.2 Phase 3.4) ---- */
+.browser-support-banner {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--status-warn);
+  background: var(--status-warn-bg, rgba(255,180,0,0.05));
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--text-primary);
+}
+.browser-support-banner strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+.browser-banner-lead { color: var(--text-secondary); }
+.browser-banner-list {
+  margin: 6px 0 4px 0;
+  padding-left: 18px;
+}
+.browser-banner-list li { margin-bottom: 2px; }
+.browser-banner-foot {
+  margin-top: 4px;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+/* ---- Sync-Modal Online-Tab (V1.2) ---- */
+.sync-online-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+.sync-online-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+@media (max-width: 600px) {
+  .sync-online-row { flex-direction: column; align-items: stretch; }
+}
+.sync-online-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sync-online-row-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sync-online-last {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.sync-online-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.sync-online-actions button {
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  border-radius: var(--radius-sm);
+}
+.sync-online-error {
+  margin: 8px 0;
+  padding: 8px 12px;
+  border-left: 3px solid var(--status-err);
+  background: var(--status-err-bg, rgba(255,0,0,0.05));
+  color: var(--text-primary);
+  font-size: 12px;
+  border-radius: var(--radius-sm);
+}
+
 .qr-preview-title {
   font-weight: 600;
   font-size: 15px;
@@ -3027,7 +3400,8 @@ button:focus-visible,
     </div>
 
     <div class="status-banner" id="status-banner">
-      <!-- populated by JS -->
+      <div class="sync-indicator" id="sync-indicator" hidden></div>
+      <div class="status-metrics" id="status-metrics"></div>
     </div>
 
     <div class="header-actions">
@@ -3244,6 +3618,13 @@ const Storage = (function() {
   function set(key, value) {
     try {
       localStorage.setItem(key, JSON.stringify(value));
+      // V1.2: Writes auf Config oder Runtime markieren den Sync-State als
+      // 'dirty' (= ungepushte Änderungen). Sync ist evtl. noch nicht
+      // ausgewertet, wenn dieses Modul zum ersten Mal lädt — daher typeof-Guard.
+      if ((key === KEY_CONFIG || key === KEY_RUNTIME) &&
+          typeof Sync !== 'undefined' && Sync.markDirty) {
+        Sync.markDirty();
+      }
       return true;
     } catch (e) {
       console.error('Storage write failed for', key, e);
@@ -3284,6 +3665,900 @@ const Storage = (function() {
     loadPrefs: () => get(KEY_PREFS, { theme: 'dark', activeTab: 'active', language: 'de', viewSize: 'm', showCascade: false }),
     savePrefs: (prefs) => set(KEY_PREFS, prefs),
   };
+})();
+
+/* =========================================================================
+   SYNC CRYPTO (V1.2)
+   PBKDF2-HMAC-SHA256 (250 000 Iterationen) leitet aus einer User-Passphrase
+   plus 16-Byte-Salt einen AES-256-GCM-Schlüssel ab. WebCrypto-Only, keine
+   externen Libraries. Salt liegt unverschlüsselt im Envelope und in der
+   Source-Config (Salt ist nicht geheim). IV ist pro Write neu (12 Bytes).
+
+   Schlüssel-Lebensdauer: nur im RAM (CryptoKey-Objekt im Sync-Modul-Cache),
+   beim Tab-Close weg. Beim nächsten Start muss der User die Passphrase
+   erneut eingeben → siehe promptForPassphrase().
+
+   Detail-Spec: docs/specs/v1.2-manual-sync.md §5 (Encryption).
+   ========================================================================= */
+const SyncCrypto = (function() {
+  const ITERATIONS = 250000;
+  const SALT_LEN = 16;
+  const IV_LEN = 12;
+  const enc = new TextEncoder();
+  const dec = new TextDecoder();
+
+  function bytesToBase64(bytes) {
+    let bin = '';
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin);
+  }
+
+  function base64ToBytes(b64) {
+    const bin = atob(b64);
+    const arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    return arr;
+  }
+
+  function randomBytes(n) {
+    const a = new Uint8Array(n);
+    crypto.getRandomValues(a);
+    return a;
+  }
+
+  function randomSaltB64() { return bytesToBase64(randomBytes(SALT_LEN)); }
+  function randomIvB64()   { return bytesToBase64(randomBytes(IV_LEN)); }
+
+  async function deriveKey(passphrase, saltB64) {
+    if (!passphrase) throw new Error('Passphrase required');
+    if (!saltB64) throw new Error('Salt required');
+    const keyMaterial = await crypto.subtle.importKey(
+      'raw',
+      enc.encode(passphrase),
+      { name: 'PBKDF2' },
+      false,
+      ['deriveKey']
+    );
+    return crypto.subtle.deriveKey(
+      { name: 'PBKDF2', salt: base64ToBytes(saltB64), iterations: ITERATIONS, hash: 'SHA-256' },
+      keyMaterial,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt', 'decrypt']
+    );
+  }
+
+  async function encryptJSON(key, plaintextObj) {
+    const ivBytes = randomBytes(IV_LEN);
+    const data = enc.encode(JSON.stringify(plaintextObj));
+    const cipherBuf = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv: ivBytes },
+      key,
+      data
+    );
+    return {
+      iv: bytesToBase64(ivBytes),
+      ciphertext: bytesToBase64(new Uint8Array(cipherBuf)),
+    };
+  }
+
+  async function decryptJSON(key, ivB64, ciphertextB64) {
+    const plain = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv: base64ToBytes(ivB64) },
+      key,
+      base64ToBytes(ciphertextB64)
+    );
+    return JSON.parse(dec.decode(plain));
+  }
+
+  return {
+    ITERATIONS, SALT_LEN, IV_LEN,
+    bytesToBase64, base64ToBytes,
+    randomSaltB64, randomIvB64,
+    deriveKey, encryptJSON, decryptJSON,
+  };
+})();
+
+/* =========================================================================
+   SYNC LAYER (V1.2 — manual)
+   Sync-Source-Abstraktion: einheitliche Schnittstelle für Backend-Typen
+   (HTTP, FileSystem, ...). State unter cram.sync.v1. Version-Counter wird
+   beim Push inkrementiert; lastSyncedVersion markiert den letzten
+   erfolgreichen Push, dirty signalisiert lokale Änderungen seit Push.
+
+   Backend-Implementierungen (S1, S5, ...) registrieren sich via
+   Sync.registerBackend(type, factory). Sync.createSourceClient(source)
+   liefert ein Client-Objekt mit asynchronen read()/write()/probe().
+
+   Detail-Spec: docs/specs/v1.2-manual-sync.md
+   ========================================================================= */
+const Sync = (function() {
+  const KEY = 'cram.sync.v1';
+  const SCHEMA_VERSION = 1;
+
+  const DEFAULT_STATE = {
+    schemaVersion: SCHEMA_VERSION,
+    lastSyncedVersion: 0,
+    lastSyncedAt: null,
+    lastSyncedSourceId: null,
+    dirty: false,
+    lastError: null,
+    sources: [],
+  };
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (!raw) return Object.assign({}, DEFAULT_STATE);
+      return Object.assign({}, DEFAULT_STATE, JSON.parse(raw));
+    } catch (e) {
+      console.warn('Sync state read failed, using default:', e);
+      return Object.assign({}, DEFAULT_STATE);
+    }
+  }
+
+  function save(state) {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(state));
+      return true;
+    } catch (e) {
+      console.error('Sync state write failed:', e);
+      return false;
+    }
+  }
+
+  // In-Memory: ist gerade eine Sync-Operation im Gange? Wird beim Pull/Push
+  // gesetzt, getrennt vom dirty-flag in localStorage. Optional callback
+  // benachrichtigt die UI (Awareness-Indikator) bei Änderung.
+  let _syncing = false;
+  let _suppressDirty = false;
+  let _onChange = null;
+
+  // Key-Cache: pro Source-ID ein abgeleiteter CryptoKey. Niemals persistiert,
+  // beim Tab-Close weg. Wird durch setKeyForSource() befüllt (typisch nach
+  // einer Passphrase-Eingabe).
+  const _keyCache = new Map();
+  // Passphrase-Cache: parallel zum Key-Cache. Brauchen wir, damit ein Bundle
+  // die ursprüngliche Passphrase einschließen kann (der Empfänger leitet seinen
+  // eigenen CryptoKey daraus ab). Wenn nicht gecached, prompted die UI vor dem
+  // Bundle-Export erneut.
+  const _passphraseCache = new Map();
+
+  // Custom error: erlaubt der UI, gezielt auf "Passphrase fehlt" zu reagieren
+  // und einen Prompt einzublenden, ohne den allgemeinen Error-Pfad zu stören.
+  class PassphraseRequiredError extends Error {
+    constructor(sourceId, sourceLabel) {
+      super('Passphrase required for source ' + sourceId);
+      this.name = 'PassphraseRequiredError';
+      this.sourceId = sourceId;
+      this.sourceLabel = sourceLabel;
+    }
+  }
+
+  function isSyncing() { return _syncing; }
+
+  function onChange(fn) { _onChange = (typeof fn === 'function') ? fn : null; }
+
+  function _emitChange() {
+    if (typeof _onChange === 'function') {
+      try { _onChange(); } catch (e) { /* swallow UI errors */ }
+    }
+  }
+
+  function _setSyncing(v) {
+    if (_syncing === v) return;
+    _syncing = v;
+    _emitChange();
+  }
+
+  function markDirty() {
+    if (_suppressDirty) return;
+    const state = load();
+    if (!state.dirty) {
+      state.dirty = true;
+      save(state);
+      _emitChange();
+    }
+  }
+
+  function isDirty() {
+    return !!load().dirty;
+  }
+
+  function getStatus() {
+    const state = load();
+    if (!state.sources || state.sources.length === 0) return 'disabled';
+    if (state.lastError) return 'error';
+    if (state.dirty) return 'out-of-sync';
+    return 'synced';
+  }
+
+  /* ---- Source CRUD ---- */
+
+  function listSources() {
+    return load().sources || [];
+  }
+
+  function getSource(id) {
+    return listSources().find(s => s.id === id) || null;
+  }
+
+  function addSource(input) {
+    if (!input || !input.type) throw new Error('Source must have a type');
+    const state = load();
+    const source = {
+      id: uid('src'),
+      type: input.type,
+      label: input.label || 'Unnamed source',
+      config: input.config || {},
+      encryption: Object.assign({ enabled: true }, input.encryption || {}),
+      createdAt: new Date().toISOString(),
+    };
+    state.sources.push(source);
+    save(state);
+    _emitChange();
+    return source;
+  }
+
+  function updateSource(id, patch) {
+    const state = load();
+    const idx = state.sources.findIndex(s => s.id === id);
+    if (idx < 0) return null;
+    state.sources[idx] = Object.assign({}, state.sources[idx], patch);
+    save(state);
+    _emitChange();
+    return state.sources[idx];
+  }
+
+  function removeSource(id) {
+    const state = load();
+    state.sources = state.sources.filter(s => s.id !== id);
+    save(state);
+    _emitChange();
+  }
+
+  /* ---- Backend factory registry ---- */
+
+  const backends = {};
+
+  function registerBackend(type, factory) {
+    backends[type] = factory;
+  }
+
+  function listBackendTypes() {
+    return Object.keys(backends);
+  }
+
+  function createSourceClient(source) {
+    const factory = backends[source.type];
+    if (!factory) {
+      throw new Error('No backend registered for source type: ' + source.type);
+    }
+    return factory(source);
+  }
+
+  /* ---- Key-Cache + Encryption helpers ---- */
+
+  function isEncryptionEnabled(source) {
+    return !!(source && source.encryption && source.encryption.enabled);
+  }
+  function hasKeyForSource(id) { return _keyCache.has(id); }
+  function setKeyForSource(id, cryptoKey) { _keyCache.set(id, cryptoKey); }
+  function clearKeyForSource(id) { _keyCache.delete(id); _passphraseCache.delete(id); }
+  function clearAllKeys() { _keyCache.clear(); _passphraseCache.clear(); }
+  function setPassphraseForSource(id, passphrase) { _passphraseCache.set(id, passphrase); }
+  function getPassphraseForSource(id) { return _passphraseCache.get(id) || null; }
+  function hasPassphraseForSource(id) { return _passphraseCache.has(id); }
+  function needsPassphrase(source) {
+    return isEncryptionEnabled(source) && !_keyCache.has(source.id);
+  }
+
+  /* ---- Payload helpers ----
+     buildEnvelope() / applyEnvelope() bleiben für Tests + Code-Pfade ohne
+     Encryption erhalten. Die Push/Pull-Funktionen nutzen die *ForSource-
+     Varianten, die Encryption automatisch handhaben. */
+
+  function _innerPayload() {
+    return {
+      format: 'cram-export',
+      formatVersion: EXPORT_FORMAT_VERSION,
+      appVersion: APP_VERSION,
+      exportedAt: new Date().toISOString(),
+      config: State.config,
+      runtime: State.runtime,
+    };
+  }
+
+  function buildEnvelope() {
+    const state = load();
+    return {
+      format: 'cram-sync-v1',
+      version: (state.lastSyncedVersion || 0) + 1,
+      timestamp: Date.now(),
+      fingerprint: computeConfigHash(State.config),
+      encrypted: false,
+      payload: _innerPayload(),
+    };
+  }
+
+  async function buildEnvelopeForSource(source) {
+    const state = load();
+    const envelope = {
+      format: 'cram-sync-v1',
+      version: (state.lastSyncedVersion || 0) + 1,
+      timestamp: Date.now(),
+      fingerprint: computeConfigHash(State.config),
+      encrypted: false,
+    };
+
+    if (!isEncryptionEnabled(source)) {
+      envelope.payload = _innerPayload();
+      return envelope;
+    }
+
+    const key = _keyCache.get(source.id);
+    if (!key) throw new PassphraseRequiredError(source.id, source.label);
+
+    // Salt muss in source.encryption.salt liegen — bei Quell-Erstellung über
+    // die Settings-Form wird er generiert. Falls aus älterer Source ohne Salt
+    // (Migration), wird beim ersten Empfang vom Server der Server-Salt
+    // übernommen — siehe applyEnvelopeForSource.
+    const saltB64 = (source.encryption && source.encryption.salt) || '';
+    if (!saltB64) {
+      throw new Error('Source has encryption enabled but no salt — please re-enter passphrase');
+    }
+    const { iv, ciphertext } = await SyncCrypto.encryptJSON(key, _innerPayload());
+    envelope.encrypted = true;
+    envelope.salt = saltB64;
+    envelope.iv = iv;
+    envelope.ciphertext = ciphertext;
+    return envelope;
+  }
+
+  function applyEnvelope(envelope) {
+    if (!envelope || envelope.format !== 'cram-sync-v1') {
+      throw new Error('Invalid envelope format');
+    }
+    if (envelope.encrypted) {
+      throw new Error('applyEnvelope cannot decrypt — use applyEnvelopeForSource');
+    }
+    const inner = envelope.payload;
+    if (!inner || inner.format !== 'cram-export') {
+      throw new Error('Invalid inner payload format');
+    }
+    const localFp = computeConfigHash(State.config);
+    if (envelope.fingerprint && envelope.fingerprint !== localFp) {
+      throw new Error('Fingerprint mismatch (local ' + localFp + ', remote ' + envelope.fingerprint + ')');
+    }
+    State.config = inner.config;
+    State.runtime = inner.runtime || { unavailable: {}, manualAssignments: {} };
+    Storage.saveConfig(State.config);
+    Storage.saveRuntime(State.runtime);
+  }
+
+  async function applyEnvelopeForSource(envelope, source) {
+    if (!envelope || envelope.format !== 'cram-sync-v1') {
+      throw new Error('Invalid envelope format');
+    }
+
+    let inner;
+    if (envelope.encrypted) {
+      if (!source || !isEncryptionEnabled(source)) {
+        throw new Error('Received encrypted envelope but source has no encryption configured');
+      }
+      // Salt-Bootstrap: wenn dieser Source noch kein Salt hat, übernimm den
+      // aus dem Server-Envelope (mehrere User, gleiche Passphrase, gleicher Salt).
+      if (source.encryption && !source.encryption.salt && envelope.salt) {
+        updateSource(source.id, {
+          encryption: Object.assign({}, source.encryption, { salt: envelope.salt }),
+        });
+        // Cached key war ggf. mit altem (leerem) Salt abgeleitet — nicht
+        // wahrscheinlich, aber zur Sicherheit: invalidieren, der Caller
+        // muss die Passphrase erneut prompten.
+        if (!_keyCache.has(source.id)) {
+          throw new PassphraseRequiredError(source.id, source.label);
+        }
+      }
+      const key = _keyCache.get(source.id);
+      if (!key) throw new PassphraseRequiredError(source.id, source.label);
+      try {
+        inner = await SyncCrypto.decryptJSON(key, envelope.iv, envelope.ciphertext);
+      } catch (e) {
+        throw new Error('Decryption failed — wrong passphrase?');
+      }
+    } else {
+      inner = envelope.payload;
+    }
+
+    if (!inner || inner.format !== 'cram-export') {
+      throw new Error('Invalid inner payload format');
+    }
+    const localFp = computeConfigHash(State.config);
+    if (envelope.fingerprint && envelope.fingerprint !== localFp) {
+      throw new Error('Fingerprint mismatch (local ' + localFp + ', remote ' + envelope.fingerprint + ')');
+    }
+    State.config = inner.config;
+    State.runtime = inner.runtime || { unavailable: {}, manualAssignments: {} };
+    Storage.saveConfig(State.config);
+    Storage.saveRuntime(State.runtime);
+  }
+
+  /* ---- Manual sync actions ---- */
+
+  async function pull(sourceId) {
+    const source = getSource(sourceId);
+    if (!source) throw new Error('Source not found: ' + sourceId);
+    _setSyncing(true);
+    try {
+      const client = createSourceClient(source);
+      const envelope = await client.read();
+      if (envelope === null) return null;
+      // Während applyEnvelope wird Storage.saveConfig/saveRuntime
+      // aufgerufen — wir wollen den dirty-flag dabei NICHT setzen,
+      // weil der Stand vom Server ja gerade synchron ist.
+      _suppressDirty = true;
+      try { await applyEnvelopeForSource(envelope, source); }
+      finally { _suppressDirty = false; }
+      const state = load();
+      state.lastSyncedVersion = envelope.version;
+      state.lastSyncedAt = Date.now();
+      state.lastSyncedSourceId = sourceId;
+      state.dirty = false;
+      state.lastError = null;
+      save(state);
+      return envelope;
+    } catch (e) {
+      if (e && e.name === 'PassphraseRequiredError') {
+        // Passphrase-Fehler nicht als lastError persistieren — die UI
+        // promptet stattdessen und wiederholt die Aktion.
+        throw e;
+      }
+      const state = load();
+      state.lastError = String(e.message || e);
+      save(state);
+      throw e;
+    } finally {
+      _setSyncing(false);
+      _emitChange();
+    }
+  }
+
+  async function push(sourceId) {
+    const source = getSource(sourceId);
+    if (!source) throw new Error('Source not found: ' + sourceId);
+    _setSyncing(true);
+    try {
+      const client = createSourceClient(source);
+      const envelope = await buildEnvelopeForSource(source);
+      await client.write(envelope);
+      const state = load();
+      state.lastSyncedVersion = envelope.version;
+      state.lastSyncedAt = Date.now();
+      state.lastSyncedSourceId = sourceId;
+      state.dirty = false;
+      state.lastError = null;
+      save(state);
+      return envelope;
+    } catch (e) {
+      if (e && e.name === 'PassphraseRequiredError') {
+        throw e;
+      }
+      const state = load();
+      state.lastError = String(e.message || e);
+      save(state);
+      throw e;
+    } finally {
+      _setSyncing(false);
+      _emitChange();
+    }
+  }
+
+  return {
+    load, save,
+    markDirty, isDirty, isSyncing, getStatus, onChange,
+    listSources, getSource, addSource, updateSource, removeSource,
+    registerBackend, listBackendTypes, createSourceClient,
+    buildEnvelope, applyEnvelope,
+    buildEnvelopeForSource, applyEnvelopeForSource,
+    isEncryptionEnabled, hasKeyForSource, setKeyForSource,
+    clearKeyForSource, clearAllKeys, needsPassphrase,
+    setPassphraseForSource, getPassphraseForSource, hasPassphraseForSource,
+    PassphraseRequiredError,
+    pull, push,
+  };
+})();
+
+/* =========================================================================
+   SYNC BACKEND S1 — HTTP PUT/GET
+   Backend für selbst-gehostete HTTPS-Endpoints (nginx mit dav_methods,
+   Caddy + webdav, MinIO, SharePoint-WebDAV, Synology NAS).
+
+   source.config schema:
+     {
+       url:        'https://corp.example.com/cram/state.json',  // required
+       authType:   'none' | 'basic' | 'bearer',                  // default 'none'
+       authUser:   '...' (basic only),
+       authPass:   '...' (basic only),
+       authToken:  '...' (bearer only)
+     }
+
+   Server requirements: GET, HEAD, PUT, OPTIONS support; CORS headers
+   permitting CRAM origin and Authorization, Content-Type headers.
+   See docs/specs/v1.2-manual-sync.md for nginx/Caddy reference setups.
+   For local development, scripts/dev-sync-backend.py provides a minimal
+   stdlib-only Python server on http://127.0.0.1:8765/cram/state.json.
+   ========================================================================= */
+(function() {
+  function buildAuthHeader(cfg) {
+    if (cfg.authType === 'basic' && cfg.authUser) {
+      return { 'Authorization': 'Basic ' + btoa(cfg.authUser + ':' + (cfg.authPass || '')) };
+    }
+    if (cfg.authType === 'bearer' && cfg.authToken) {
+      return { 'Authorization': 'Bearer ' + cfg.authToken };
+    }
+    return {};
+  }
+
+  function createHttpClient(source) {
+    const cfg = source.config || {};
+    if (!cfg.url) throw new Error('HTTP source requires config.url');
+
+    return {
+      async read() {
+        const res = await fetch(cfg.url, {
+          method: 'GET',
+          headers: buildAuthHeader(cfg),
+          cache: 'no-store',
+        });
+        if (res.status === 404) return null;
+        if (!res.ok) {
+          throw new Error('GET ' + cfg.url + ' failed: ' + res.status + ' ' + res.statusText);
+        }
+        const text = await res.text();
+        if (!text) return null;
+        return JSON.parse(text);
+      },
+
+      async write(envelope) {
+        const headers = Object.assign(
+          { 'Content-Type': 'application/json' },
+          buildAuthHeader(cfg)
+        );
+        const res = await fetch(cfg.url, {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify(envelope),
+        });
+        if (!res.ok) {
+          throw new Error('PUT ' + cfg.url + ' failed: ' + res.status + ' ' + res.statusText);
+        }
+      },
+
+      async probe() {
+        try {
+          const res = await fetch(cfg.url, {
+            method: 'HEAD',
+            headers: buildAuthHeader(cfg),
+            cache: 'no-store',
+          });
+          return {
+            reachable: res.ok || res.status === 404,
+            status: res.status,
+            lastModified: res.headers.get('Last-Modified'),
+            etag: res.headers.get('ETag'),
+          };
+        } catch (e) {
+          return { reachable: false, error: String(e.message || e) };
+        }
+      },
+    };
+  }
+
+  Sync.registerBackend('http', createHttpClient);
+})();
+
+/* =========================================================================
+   SYNC FILE STORE (V1.2)
+   Persistenter Schlüssel-Wert-Store für FileSystemDirectoryHandle-Objekte.
+   localStorage kann diese Objekte nicht serialisieren — IndexedDB hingegen
+   kann sie nativ via structured clone speichern. Ein winziger Wrapper
+   reicht: ein Object-Store, key=sourceId, value=DirectoryHandle.
+   ========================================================================= */
+const SyncFileStore = (function() {
+  const DB_NAME = 'cram-sync-handles';
+  const DB_VERSION = 1;
+  const STORE_NAME = 'handles';
+
+  function open() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onupgradeneeded = () => {
+        if (!req.result.objectStoreNames.contains(STORE_NAME)) {
+          req.result.createObjectStore(STORE_NAME);
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async function getHandle(sourceId) {
+    const db = await open();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const req = tx.objectStore(STORE_NAME).get(sourceId);
+      req.onsuccess = () => { db.close(); resolve(req.result || null); };
+      req.onerror = () => { db.close(); reject(req.error); };
+    });
+  }
+
+  async function setHandle(sourceId, handle) {
+    const db = await open();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      tx.objectStore(STORE_NAME).put(handle, sourceId);
+      tx.oncomplete = () => { db.close(); resolve(); };
+      tx.onerror = () => { db.close(); reject(tx.error); };
+    });
+  }
+
+  async function removeHandle(sourceId) {
+    const db = await open();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      tx.objectStore(STORE_NAME).delete(sourceId);
+      tx.oncomplete = () => { db.close(); resolve(); };
+      tx.onerror = () => { db.close(); reject(tx.error); };
+    });
+  }
+
+  return { getHandle, setHandle, removeHandle };
+})();
+
+/* =========================================================================
+   SYNC BACKEND S5 — File System Access API
+   Backend für lokale Verzeichnisse (typisch ein OneDrive-/Dropbox-/Drive-
+   Sync-Folder, ein NAS-Mount, oder einfach ein Ordner auf der Platte). Der
+   Desktop-Sync-Agent des Cloud-Anbieters macht die eigentliche Verteilung
+   zwischen Geräten — CRAM schreibt nur die Datei in den lokalen Ordner.
+
+   source.config schema:
+     { fileName: 'cram-sync.json',  // optional, default oben
+       dirName:  '<Display-Name>'   // nur Anzeige in der UI }
+   Der DirectoryHandle selbst liegt in SyncFileStore (IndexedDB).
+
+   Browser-Support: Chromium ✓, Safari teilweise (Permission per Session
+   neu zu erteilen), Firefox ✗. Wer S5 nicht nutzen kann, sieht eine
+   Browser-Warnung (Phase 3.4).
+   ========================================================================= */
+(function() {
+  function isSupported() {
+    return typeof window !== 'undefined'
+        && typeof window.showDirectoryPicker === 'function';
+  }
+
+  async function ensurePermission(handle, mode) {
+    if (!handle.queryPermission || !handle.requestPermission) return true;
+    const current = await handle.queryPermission({ mode });
+    if (current === 'granted') return true;
+    const requested = await handle.requestPermission({ mode });
+    return requested === 'granted';
+  }
+
+  function createFileSystemClient(source) {
+    const cfg = source.config || {};
+    const fileName = cfg.fileName || 'cram-sync.json';
+
+    async function getDirHandle() {
+      const handle = await SyncFileStore.getHandle(source.id);
+      if (!handle) throw new Error('No directory handle for source — please reconfigure');
+      const ok = await ensurePermission(handle, 'readwrite');
+      if (!ok) throw new Error('Permission denied for directory access');
+      return handle;
+    }
+
+    return {
+      async read() {
+        const dirHandle = await getDirHandle();
+        let fileHandle;
+        try {
+          fileHandle = await dirHandle.getFileHandle(fileName, { create: false });
+        } catch (e) {
+          if (e.name === 'NotFoundError') return null;
+          throw e;
+        }
+        const file = await fileHandle.getFile();
+        const text = await file.text();
+        if (!text) return null;
+        return JSON.parse(text);
+      },
+
+      async write(envelope) {
+        const dirHandle = await getDirHandle();
+        const fileHandle = await dirHandle.getFileHandle(fileName, { create: true });
+        const writable = await fileHandle.createWritable();
+        await writable.write(JSON.stringify(envelope));
+        await writable.close();
+      },
+
+      async probe() {
+        try {
+          const dirHandle = await getDirHandle();
+          const fileHandle = await dirHandle.getFileHandle(fileName, { create: false });
+          const file = await fileHandle.getFile();
+          return {
+            reachable: true,
+            lastModified: new Date(file.lastModified).toUTCString(),
+            size: file.size,
+          };
+        } catch (e) {
+          if (e.name === 'NotFoundError') return { reachable: true, missing: true };
+          return { reachable: false, error: String(e.message || e) };
+        }
+      },
+
+      // exposed so the UI can check support before showing the option
+      isSupported,
+    };
+  }
+
+  // Tools (z.B. die Settings-Form) brauchen einen Support-Check, ohne erst
+  // einen Source zu instantiieren — daher exportiert als Property:
+  createFileSystemClient.isSupported = isSupported;
+
+  Sync.registerBackend('fileSystem', createFileSystemClient);
+})();
+
+/* =========================================================================
+   SYNC BUNDLE (V1.2)
+   Onboarding-Artefakt: ein selbstständiges JSON, das alles enthält, was
+   ein Empfänger braucht, um auf dieselbe Sync-Source zu zeigen.
+
+   Bundle-Schema:
+     {
+       format: 'cram-bundle-v1',
+       type:   'http' | 'fileSystem',
+       label:  '...',
+       config: { ... },                  // ohne dirName bei fileSystem
+       encryption: {
+         enabled: bool,
+         salt:    '...',                 // wenn enabled
+         passphrase: '...'               // wenn enabled — Empfänger leitet
+       },                                //   seinen eigenen Key daraus ab
+       configFingerprint: 'F4BC',
+       createdAt: '2026-...'
+     }
+
+   Wichtig: Bundle enthält Passphrase und Auth-Token im Klartext. Es ist
+   ein vertrauliches Artefakt — Distribution über sicheren Kanal nötig.
+   Die UI markiert das deutlich.
+   ========================================================================= */
+const SyncBundle = (function() {
+  const FORMAT = 'cram-bundle-v1';
+
+  function build(sourceId) {
+    const src = Sync.getSource(sourceId);
+    if (!src) throw new Error('Source not found: ' + sourceId);
+
+    const bundle = {
+      format: FORMAT,
+      type: src.type,
+      label: src.label,
+      config: Object.assign({}, src.config || {}),
+      encryption: { enabled: !!(src.encryption && src.encryption.enabled) },
+      configFingerprint: computeConfigHash(State.config),
+      createdAt: new Date().toISOString(),
+    };
+
+    // fileSystem: dirName ist gerätspezifisch → raus aus dem Bundle.
+    // Der Empfänger wählt seinen eigenen Ordner.
+    if (src.type === 'fileSystem') {
+      delete bundle.config.dirName;
+    }
+
+    if (bundle.encryption.enabled) {
+      bundle.encryption.salt = (src.encryption || {}).salt || '';
+      const passphrase = Sync.getPassphraseForSource(sourceId);
+      if (!passphrase) {
+        const e = new Error('Passphrase not cached — please re-enter to share');
+        e.name = 'BundlePassphraseRequiredError';
+        e.sourceId = sourceId;
+        e.sourceLabel = src.label;
+        throw e;
+      }
+      bundle.encryption.passphrase = passphrase;
+    }
+
+    return bundle;
+  }
+
+  function serialize(bundle) {
+    return JSON.stringify(bundle, null, 2);
+  }
+
+  function parse(text) {
+    let obj;
+    try { obj = JSON.parse(text); }
+    catch (e) { throw new Error('Bundle JSON is not valid: ' + e.message); }
+    if (!obj || obj.format !== FORMAT) {
+      throw new Error('Not a valid CRAM sync bundle (format mismatch)');
+    }
+    if (!obj.type || !obj.label || !obj.config) {
+      throw new Error('Bundle is missing required fields (type, label, config)');
+    }
+    if (obj.type !== 'http' && obj.type !== 'fileSystem') {
+      throw new Error('Unknown bundle source type: ' + obj.type);
+    }
+    if (obj.encryption && obj.encryption.enabled) {
+      if (!obj.encryption.passphrase || !obj.encryption.salt) {
+        throw new Error('Encrypted bundle missing passphrase or salt');
+      }
+    }
+    return obj;
+  }
+
+  // Wendet ein parsed Bundle an. Bei fileSystem wird der User aufgefordert,
+  // einen lokalen Ordner zu wählen (Rückgabe null bei Cancel). Liefert die
+  // neu angelegte Source oder null.
+  async function apply(bundle) {
+    const fingerprintLocal = computeConfigHash(State.config);
+    // Fingerprint-Mismatch wird vom Aufrufer (UI) abgefragt — hier nur ein
+    // Hinweis als Property auf der gelieferten Source, falls relevant.
+
+    let dirHandle = null;
+    if (bundle.type === 'fileSystem') {
+      if (typeof window.showDirectoryPicker !== 'function') {
+        throw new Error('Browser does not support file system access — use a Chromium-based browser to import file-system bundles.');
+      }
+      try {
+        dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+      } catch (e) {
+        if (e && e.name === 'AbortError') return null;
+        throw e;
+      }
+    }
+
+    const enc = bundle.encryption || {};
+    const encryptionForSrc = enc.enabled
+      ? { enabled: true, salt: enc.salt }
+      : { enabled: false };
+
+    const cfgClone = Object.assign({}, bundle.config);
+    if (bundle.type === 'fileSystem' && dirHandle) {
+      cfgClone.dirName = dirHandle.name;
+    }
+
+    const savedSource = Sync.addSource({
+      type: bundle.type,
+      label: bundle.label,
+      config: cfgClone,
+      encryption: encryptionForSrc,
+    });
+
+    if (bundle.type === 'fileSystem' && dirHandle) {
+      await SyncFileStore.setHandle(savedSource.id, dirHandle);
+    }
+
+    if (enc.enabled) {
+      try {
+        const key = await SyncCrypto.deriveKey(enc.passphrase, enc.salt);
+        Sync.setKeyForSource(savedSource.id, key);
+        Sync.setPassphraseForSource(savedSource.id, enc.passphrase);
+      } catch (e) {
+        // Source bleibt drin, aber ohne Key — User kann beim nächsten Sync
+        // erneut die Passphrase eingeben.
+        console.warn('Bundle key derivation failed:', e);
+      }
+    }
+
+    return { source: savedSource, fingerprintMatches: bundle.configFingerprint === fingerprintLocal };
+  }
+
+  function getFingerprintLocal() {
+    return computeConfigHash(State.config);
+  }
+
+  return { FORMAT, build, serialize, parse, apply, getFingerprintLocal };
 })();
 
 /* =========================================================================
@@ -3514,6 +4789,22 @@ const TRANSLATIONS = {
     'sync.mode_qr': '📷 QR-Transfer (Kamera)',
     'sync.mode_code_hint': 'Kurzer Code für Status-Abgleich per Telefon/Chat — erfordert identische Grundkonfiguration auf beiden Seiten.',
     'sync.mode_qr_hint': 'QR-Code für Konfiguration und/oder Status — für initiale Verteilung oder bei Config-Unterschieden.',
+    'sync.mode_online': '🌐 Online (Server)',
+    'sync.mode_online_hint': 'HTTP(S)-Backend für asynchronen Abgleich mehrerer Geräte. Erfordert konfigurierte Sync-Source in den Einstellungen.',
+    'sync.online_intro': 'Manueller Pull/Push gegen konfigurierte Sync-Sources. Im Krisenfall jederzeit verfügbar; V2 wird das automatisieren.',
+    'sync.online_no_sources': 'Keine Sync-Sources konfiguriert. Lege zuerst eine in den Einstellungen an.',
+    'sync.online_open_settings': 'Sync-Source einrichten',
+    'sync.online_pull': 'Vom Server holen',
+    'sync.online_push': 'Zum Server schicken',
+    'sync.online_last_sync': 'Zuletzt synchronisiert',
+    'sync.online_last_error': 'Letzter Fehler',
+    'sync.online_pulling': 'Hole von {label}…',
+    'sync.online_pushing': 'Schicke an {label}…',
+    'sync.online_pulled': 'Stand v{version} geladen.',
+    'sync.online_pushed': 'Stand v{version} geschickt.',
+    'sync.online_empty': 'Source ist leer (noch nichts hochgeladen).',
+    'sync.online_pull_failed': 'Pull fehlgeschlagen: {msg}',
+    'sync.online_push_failed': 'Push fehlgeschlagen: {msg}',
     'sync.tab_send': '↗ Senden',
     'sync.tab_receive': '↙ Empfangen',
     'qr.send_title': 'QR-Transfer senden',
@@ -3619,6 +4910,15 @@ const TRANSLATIONS = {
     'header.cascade_tooltip': 'Aktive Vertretungen anzeigen',
     'toast.cascade_on': 'Vertretungslinien aktiviert',
     'toast.cascade_off': 'Vertretungslinien deaktiviert',
+    'header.sync_status_synced': 'Synchron',
+    'header.sync_status_syncing': 'Sync…',
+    'header.sync_status_out_of_sync': 'Änderungen',
+    'header.sync_status_error': 'Sync-Fehler',
+    'header.sync_tooltip_synced': 'Synchron mit {label} · v{version} · {when}',
+    'header.sync_tooltip_synced_never': 'Sync-Source konfiguriert, aber noch kein Push/Pull erfolgt.',
+    'header.sync_tooltip_syncing': 'Sync läuft…',
+    'header.sync_tooltip_out_of_sync': 'Lokale Änderungen warten auf Push. Letzter Stand: {label} · v{version} · {when}',
+    'header.sync_tooltip_error': 'Sync-Fehler: {msg}',
     'header.data': 'Daten',
     'header.data_tooltip': 'Import / Export',
     'header.print': 'Drucken',
@@ -3637,6 +4937,116 @@ const TRANSLATIONS = {
         'settings.about_version': 'Version',
     'settings.about_project': 'Projekt',
     'settings.about_license': 'Lizenz',
+    'settings.tab_general': 'Allgemein',
+    'settings.tab_sync': 'Sync-Sources',
+    'settings.tab_about': 'Info',
+    'settings.sync_intro': 'Sync-Sources sind Endpunkte, gegen die manuell synchronisiert werden kann. V1.2 unterstützt HTTP(S)-Backends; weitere Backend-Typen folgen.',
+    'settings.sync_no_sources': 'Keine Sync-Sources konfiguriert.',
+    'settings.sync_add_http': 'Neue HTTP-Source',
+    'settings.sync_form_add_title': 'Neue HTTP-Source anlegen',
+    'settings.sync_form_edit_title': 'HTTP-Source bearbeiten',
+    'settings.sync_field_label': 'Bezeichnung',
+    'settings.sync_field_label_placeholder': 'z.B. Hauptserver intern',
+    'settings.sync_field_url': 'URL',
+    'settings.sync_field_url_placeholder': 'https://server.intern/cram/state.json',
+    'settings.sync_field_url_hint': 'Vollständige HTTPS-URL des state.json-Endpunkts. Lokales http://127.0.0.1:* nur für Entwicklung.',
+    'settings.sync_field_auth_type': 'Authentifizierung',
+    'settings.sync_auth_none': 'Keine',
+    'settings.sync_auth_basic': 'Basic-Auth',
+    'settings.sync_auth_bearer': 'Bearer-Token',
+    'settings.sync_field_user': 'Benutzer',
+    'settings.sync_field_pass': 'Passwort',
+    'settings.sync_field_token': 'Token',
+    'settings.sync_btn_save_new': 'Source anlegen',
+    'settings.sync_btn_save_edit': 'Änderungen speichern',
+    'settings.sync_btn_cancel': 'Abbrechen',
+    'settings.sync_btn_edit': 'Bearbeiten',
+    'settings.sync_btn_delete': 'Löschen',
+    'settings.sync_delete_confirm': 'Source "{label}" wirklich löschen?',
+    'settings.sync_type_http': 'HTTP',
+    'settings.sync_type_fileSystem': 'Datei',
+    'settings.sync_add_fs': 'Lokales Verzeichnis',
+    'settings.sync_add_fs_unsupported': 'Dein Browser unterstützt die File-System-Access-API nicht (Firefox, ältere Safari). Nutze stattdessen eine HTTP-Source oder einen Chromium-basierten Browser.',
+    'settings.sync_form_add_title_fs': 'Lokales Verzeichnis hinzufügen',
+    'settings.sync_form_edit_title_fs': 'Lokales Verzeichnis bearbeiten',
+    'settings.sync_field_label_placeholder_fs': 'z.B. OneDrive — Krisenstab',
+    'settings.sync_field_directory': 'Verzeichnis',
+    'settings.sync_field_directory_hint': 'Typisch: ein OneDrive-/Dropbox-/Drive-Sync-Ordner oder ein Network-Mount. Der Cloud-Sync-Client deines Anbieters verteilt die Datei zwischen Geräten.',
+    'settings.sync_btn_pick_dir': 'Verzeichnis wählen…',
+    'settings.sync_btn_pick_dir_change': 'Anderes Verzeichnis wählen…',
+    'settings.sync_fs_no_dir': '(noch nichts gewählt)',
+    'settings.sync_field_filename': 'Dateiname',
+    'settings.sync_field_filename_hint': 'Datei innerhalb des gewählten Verzeichnisses, in der CRAM den State ablegt.',
+    'settings.sync_fs_err_no_dir': 'Bitte zuerst ein Verzeichnis wählen.',
+    'settings.sync_fs_err_bad_filename': 'Dateiname muss mit .json enden und darf nur a–z, A–Z, 0–9, _, -, . enthalten.',
+    'settings.sync_fs_err_handle_save': 'Verzeichnis-Zugriff konnte nicht persistiert werden: {msg}',
+    'settings.sync_fs_pick_failed': 'Auswahl fehlgeschlagen: {msg}',
+    'settings.sync_enc_hint_fs': 'Empfohlen, weil die Datei im Cloud-Sync-Ordner für Cloud-Anbieter lesbar wäre. Mit Verschlüsselung sehen sie nur Chiffrat.',
+    'settings.sync_err_url_required': 'URL ist erforderlich.',
+    'settings.sync_err_url_invalid': 'URL muss mit http(s):// beginnen.',
+    'settings.sync_err_user_required': 'Benutzername ist bei Basic-Auth erforderlich.',
+    'settings.sync_err_token_required': 'Token ist bei Bearer-Auth erforderlich.',
+    'toast.sync_source_added': 'Sync-Source angelegt.',
+    'toast.sync_source_updated': 'Sync-Source aktualisiert.',
+    'toast.sync_source_deleted': 'Sync-Source gelöscht.',
+    'settings.sync_enc_enabled': 'Ende-zu-Ende-Verschlüsselung aktivieren (empfohlen)',
+    'settings.sync_enc_hint': 'AES-256-GCM mit Passphrase + PBKDF2 (250 000 Iterationen). Daten auf dem Server bleiben unleserlich ohne Passphrase.',
+    'settings.sync_passphrase': 'Passphrase',
+    'settings.sync_passphrase_optional': 'Neue Passphrase (leer = bestehende behalten)',
+    'settings.sync_passphrase_placeholder': 'Mindestens 8 Zeichen',
+    'settings.sync_passphrase_hint': 'Wird nicht persistiert. Nach Schließen des Browsers musst du sie erneut eingeben.',
+    'settings.sync_passphrase_confirm': 'Passphrase wiederholen',
+    'settings.sync_err_passphrase_required': 'Passphrase ist erforderlich, wenn Verschlüsselung aktiv ist.',
+    'settings.sync_err_passphrase_mismatch': 'Passphrasen stimmen nicht überein.',
+    'settings.sync_err_passphrase_short': 'Passphrase muss mindestens 8 Zeichen lang sein.',
+    'settings.sync_err_key_derive': 'Schlüsselableitung fehlgeschlagen: {msg}',
+    'passphrase.modal_title': 'Passphrase erforderlich',
+    'passphrase.modal_intro': 'Die Sync-Source "{label}" ist verschlüsselt. Bitte Passphrase eingeben, um fortzufahren.',
+    'passphrase.modal_field': 'Passphrase',
+    'passphrase.modal_hint': 'Wird nur im Arbeitsspeicher gehalten — beim Tab-Schließen geht sie wieder verloren.',
+    'btn.ok': 'OK',
+    'settings.sync_btn_share': 'Teilen',
+    'settings.sync_import_bundle': 'Bundle importieren',
+    'bundle.share_title': 'Sync-Source teilen: {label}',
+    'bundle.share_warn_title': 'Vertrauliches Artefakt',
+    'bundle.share_warn_body': 'Dieses Bundle enthält Passphrase, Salt und Anmeldedaten im Klartext. Niemals über unverschlüsselte Kanäle teilen (kein offenes Chat, kein offener Mail-Anhang). Empfohlen: Signal/Threema, Passwort-Manager, oder persönliche Übergabe.',
+    'bundle.share_field': 'Bundle als JSON',
+    'bundle.share_copy': 'In Zwischenablage kopieren',
+    'bundle.share_download': 'Als JSON-Datei herunterladen',
+    'bundle.share_copied': 'In Zwischenablage kopiert.',
+    'bundle.share_copy_manual': 'Bitte manuell markieren und kopieren (Strg/Cmd+C).',
+    'bundle.share_downloaded': 'Bundle als Datei heruntergeladen.',
+    'bundle.share_build_failed': 'Bundle-Erstellung fehlgeschlagen: {msg}',
+    'bundle.import_title': 'Sync-Bundle importieren',
+    'bundle.import_intro': 'Füge das JSON eines geteilten Bundles ein oder lade es aus einer Datei. CRAM zeigt eine Vorschau, bevor die Source angelegt wird.',
+    'bundle.import_field': 'Bundle-JSON',
+    'bundle.import_placeholder': '{"format":"cram-bundle-v1",...}',
+    'bundle.import_from_file': '⇧ Aus Datei laden',
+    'bundle.import_parse': 'Vorschau',
+    'bundle.import_apply': 'Übernehmen',
+    'bundle.preview_type': 'Typ',
+    'bundle.preview_label': 'Bezeichnung',
+    'bundle.preview_filename': 'Dateiname',
+    'bundle.preview_fingerprint': 'Config-Fingerprint',
+    'bundle.preview_fp_match': 'passt',
+    'bundle.preview_fp_mismatch': 'WEICHT AB',
+    'bundle.preview_fp_warn': 'Achtung: Der Stab-Fingerprint im Bundle stimmt nicht mit deiner lokalen Konfiguration überein. Du würdest gegen einen anderen Stab synchronisieren.',
+    'bundle.preview_encrypted': 'Ende-zu-Ende-Verschlüsselung aktiv',
+    'bundle.preview_unencrypted': 'Bundle ohne Verschlüsselung — Server sähe Klartext',
+    'bundle.preview_fs_hint': 'Beim Übernehmen wirst du gebeten, ein lokales Verzeichnis zu wählen (das Bundle enthält keinen Pfad).',
+    'bundle.import_err_empty': 'Bitte JSON einfügen oder Datei laden.',
+    'bundle.import_err_no_bundle': 'Erst Vorschau erzeugen.',
+    'bundle.import_err_file_read': 'Datei konnte nicht gelesen werden: {msg}',
+    'bundle.import_err_apply': 'Import fehlgeschlagen: {msg}',
+    'bundle.import_confirm_fp_mismatch': 'Der Fingerprint des Bundles passt nicht zur lokalen Konfiguration. Wirklich importieren?',
+    'bundle.import_success': 'Source "{label}" importiert.',
+    'browser.banner_title': 'Browser-Hinweis',
+    'browser.lead_firefox': 'Firefox unterstützt einige der hier verwendeten APIs nicht. Das ist kein Bug — Firefox hat sich gegen diese Standards entschieden.',
+    'browser.lead_safari': 'Deine Safari-Version hat eingeschränkten Support für einige Funktionen unten.',
+    'browser.lead_generic': 'Dein Browser unterstützt nicht alle Funktionen — siehe Liste:',
+    'browser.limit_fs': 'Sync-Source-Typ „Lokales Verzeichnis" ist nicht verfügbar (kein File-System-Access-API). HTTP-Sources funktionieren weiterhin.',
+    'browser.limit_qr': 'QR-Scan ist nicht verfügbar (kein BarcodeDetector). Bundle-Import per JSON-Datei oder Paste funktioniert.',
+    'browser.banner_workaround': 'Empfehlung für volles Feature-Set: Edge, Chrome oder Safari (Desktop).',
     'toast.settings_saved': 'Einstellungen gespeichert',
     'print.header_title_default': 'Krisenstab — Rollen und Vertretungen',
     'print.title': 'Druckansicht',
@@ -3842,6 +5252,22 @@ const TRANSLATIONS = {
     'sync.mode_qr': '📷 QR transfer (camera)',
     'sync.mode_code_hint': 'Short code for status exchange via phone/chat — requires identical base configuration on both sides.',
     'sync.mode_qr_hint': 'QR code for configuration and/or status — for initial distribution or config mismatch.',
+    'sync.mode_online': '🌐 Online (server)',
+    'sync.mode_online_hint': 'HTTP(S) backend for asynchronous multi-device sync. Requires a sync source configured in settings.',
+    'sync.online_intro': 'Manual pull/push against configured sync sources. Available any time; V2 will automate this.',
+    'sync.online_no_sources': 'No sync sources configured. Add one in settings first.',
+    'sync.online_open_settings': 'Configure sync source',
+    'sync.online_pull': 'Pull from server',
+    'sync.online_push': 'Push to server',
+    'sync.online_last_sync': 'Last synced',
+    'sync.online_last_error': 'Last error',
+    'sync.online_pulling': 'Pulling from {label}…',
+    'sync.online_pushing': 'Pushing to {label}…',
+    'sync.online_pulled': 'Loaded version v{version}.',
+    'sync.online_pushed': 'Pushed version v{version}.',
+    'sync.online_empty': 'Source is empty (nothing uploaded yet).',
+    'sync.online_pull_failed': 'Pull failed: {msg}',
+    'sync.online_push_failed': 'Push failed: {msg}',
     'sync.tab_send': '↗ Send',
     'sync.tab_receive': '↙ Receive',
     'qr.send_title': 'Send QR transfer',
@@ -3947,6 +5373,15 @@ const TRANSLATIONS = {
     'header.cascade_tooltip': 'Show active substitutions',
     'toast.cascade_on': 'Substitution lines enabled',
     'toast.cascade_off': 'Substitution lines disabled',
+    'header.sync_status_synced': 'Synced',
+    'header.sync_status_syncing': 'Syncing…',
+    'header.sync_status_out_of_sync': 'Changes',
+    'header.sync_status_error': 'Sync error',
+    'header.sync_tooltip_synced': 'Synced with {label} · v{version} · {when}',
+    'header.sync_tooltip_synced_never': 'Sync source configured, but no push/pull has happened yet.',
+    'header.sync_tooltip_syncing': 'Syncing…',
+    'header.sync_tooltip_out_of_sync': 'Local changes pending push. Last state: {label} · v{version} · {when}',
+    'header.sync_tooltip_error': 'Sync error: {msg}',
     'header.data': 'Data',
     'header.data_tooltip': 'Import / Export',
     'header.print': 'Print',
@@ -3965,6 +5400,116 @@ const TRANSLATIONS = {
         'settings.about_version': 'Version',
     'settings.about_project': 'Project',
     'settings.about_license': 'License',
+    'settings.tab_general': 'General',
+    'settings.tab_sync': 'Sync sources',
+    'settings.tab_about': 'About',
+    'settings.sync_intro': 'Sync sources are endpoints you can manually synchronise against. V1.2 supports HTTP(S) backends; more backend types follow.',
+    'settings.sync_no_sources': 'No sync sources configured.',
+    'settings.sync_add_http': 'New HTTP source',
+    'settings.sync_form_add_title': 'Add a new HTTP source',
+    'settings.sync_form_edit_title': 'Edit HTTP source',
+    'settings.sync_field_label': 'Label',
+    'settings.sync_field_label_placeholder': 'e.g. Primary internal server',
+    'settings.sync_field_url': 'URL',
+    'settings.sync_field_url_placeholder': 'https://server.internal/cram/state.json',
+    'settings.sync_field_url_hint': 'Full HTTPS URL of the state.json endpoint. Plain http://127.0.0.1:* allowed for development only.',
+    'settings.sync_field_auth_type': 'Authentication',
+    'settings.sync_auth_none': 'None',
+    'settings.sync_auth_basic': 'Basic auth',
+    'settings.sync_auth_bearer': 'Bearer token',
+    'settings.sync_field_user': 'User',
+    'settings.sync_field_pass': 'Password',
+    'settings.sync_field_token': 'Token',
+    'settings.sync_btn_save_new': 'Add source',
+    'settings.sync_btn_save_edit': 'Save changes',
+    'settings.sync_btn_cancel': 'Cancel',
+    'settings.sync_btn_edit': 'Edit',
+    'settings.sync_btn_delete': 'Delete',
+    'settings.sync_delete_confirm': 'Really delete source "{label}"?',
+    'settings.sync_type_http': 'HTTP',
+    'settings.sync_type_fileSystem': 'File',
+    'settings.sync_add_fs': 'Local directory',
+    'settings.sync_add_fs_unsupported': 'Your browser does not support the File System Access API (Firefox, older Safari). Use an HTTP source instead, or a Chromium-based browser.',
+    'settings.sync_form_add_title_fs': 'Add a local directory',
+    'settings.sync_form_edit_title_fs': 'Edit local directory',
+    'settings.sync_field_label_placeholder_fs': 'e.g. OneDrive — crisis team',
+    'settings.sync_field_directory': 'Directory',
+    'settings.sync_field_directory_hint': 'Typically a OneDrive / Dropbox / Drive sync folder or a network mount. Your cloud provider’s desktop client distributes the file across devices.',
+    'settings.sync_btn_pick_dir': 'Choose directory…',
+    'settings.sync_btn_pick_dir_change': 'Choose a different directory…',
+    'settings.sync_fs_no_dir': '(nothing chosen yet)',
+    'settings.sync_field_filename': 'Filename',
+    'settings.sync_field_filename_hint': 'File inside the chosen directory where CRAM stores its state.',
+    'settings.sync_fs_err_no_dir': 'Please choose a directory first.',
+    'settings.sync_fs_err_bad_filename': 'Filename must end with .json and contain only a-z, A-Z, 0-9, _, -, .',
+    'settings.sync_fs_err_handle_save': 'Failed to persist directory access: {msg}',
+    'settings.sync_fs_pick_failed': 'Selection failed: {msg}',
+    'settings.sync_enc_hint_fs': 'Recommended, because files in a cloud-sync folder are readable by the cloud provider. With encryption they only see ciphertext.',
+    'settings.sync_err_url_required': 'URL is required.',
+    'settings.sync_err_url_invalid': 'URL must start with http(s)://.',
+    'settings.sync_err_user_required': 'Username is required for basic auth.',
+    'settings.sync_err_token_required': 'Token is required for bearer auth.',
+    'toast.sync_source_added': 'Sync source added.',
+    'toast.sync_source_updated': 'Sync source updated.',
+    'toast.sync_source_deleted': 'Sync source deleted.',
+    'settings.sync_enc_enabled': 'Enable end-to-end encryption (recommended)',
+    'settings.sync_enc_hint': 'AES-256-GCM with passphrase + PBKDF2 (250 000 iterations). Data on the server stays unreadable without the passphrase.',
+    'settings.sync_passphrase': 'Passphrase',
+    'settings.sync_passphrase_optional': 'New passphrase (leave empty to keep current)',
+    'settings.sync_passphrase_placeholder': 'At least 8 characters',
+    'settings.sync_passphrase_hint': 'Not persisted. You will need to re-enter it after closing the browser.',
+    'settings.sync_passphrase_confirm': 'Confirm passphrase',
+    'settings.sync_err_passphrase_required': 'Passphrase is required when encryption is enabled.',
+    'settings.sync_err_passphrase_mismatch': 'Passphrases do not match.',
+    'settings.sync_err_passphrase_short': 'Passphrase must be at least 8 characters.',
+    'settings.sync_err_key_derive': 'Key derivation failed: {msg}',
+    'passphrase.modal_title': 'Passphrase required',
+    'passphrase.modal_intro': 'The sync source "{label}" is encrypted. Please enter the passphrase to continue.',
+    'passphrase.modal_field': 'Passphrase',
+    'passphrase.modal_hint': 'Held in memory only — discarded when the tab closes.',
+    'btn.ok': 'OK',
+    'settings.sync_btn_share': 'Share',
+    'settings.sync_import_bundle': 'Import bundle',
+    'bundle.share_title': 'Share sync source: {label}',
+    'bundle.share_warn_title': 'Confidential artefact',
+    'bundle.share_warn_body': 'This bundle contains the passphrase, salt, and credentials in plaintext. Never share it over unencrypted channels (plain chat, plain email attachment). Recommended: Signal/Threema, password manager, or in-person handover.',
+    'bundle.share_field': 'Bundle as JSON',
+    'bundle.share_copy': 'Copy to clipboard',
+    'bundle.share_download': 'Download as JSON file',
+    'bundle.share_copied': 'Copied to clipboard.',
+    'bundle.share_copy_manual': 'Please select and copy manually (Ctrl/Cmd+C).',
+    'bundle.share_downloaded': 'Bundle downloaded as a file.',
+    'bundle.share_build_failed': 'Bundle build failed: {msg}',
+    'bundle.import_title': 'Import sync bundle',
+    'bundle.import_intro': 'Paste the JSON of a shared bundle or load it from a file. CRAM shows a preview before creating the source.',
+    'bundle.import_field': 'Bundle JSON',
+    'bundle.import_placeholder': '{"format":"cram-bundle-v1",...}',
+    'bundle.import_from_file': '⇧ Load from file',
+    'bundle.import_parse': 'Preview',
+    'bundle.import_apply': 'Apply',
+    'bundle.preview_type': 'Type',
+    'bundle.preview_label': 'Label',
+    'bundle.preview_filename': 'Filename',
+    'bundle.preview_fingerprint': 'Config fingerprint',
+    'bundle.preview_fp_match': 'matches',
+    'bundle.preview_fp_mismatch': 'DIFFERS',
+    'bundle.preview_fp_warn': 'Warning: the bundle’s team fingerprint does not match your local configuration. You would sync against a different team.',
+    'bundle.preview_encrypted': 'End-to-end encryption active',
+    'bundle.preview_unencrypted': 'Bundle without encryption — server would see plaintext',
+    'bundle.preview_fs_hint': 'When applying you will be prompted to choose a local directory (the bundle does not carry a path).',
+    'bundle.import_err_empty': 'Paste JSON or load a file first.',
+    'bundle.import_err_no_bundle': 'Generate the preview first.',
+    'bundle.import_err_file_read': 'Could not read file: {msg}',
+    'bundle.import_err_apply': 'Import failed: {msg}',
+    'bundle.import_confirm_fp_mismatch': 'The bundle fingerprint does not match the local configuration. Import anyway?',
+    'bundle.import_success': 'Source "{label}" imported.',
+    'browser.banner_title': 'Browser note',
+    'browser.lead_firefox': 'Firefox does not implement some of the APIs used below. This is by Mozilla’s choice, not a bug.',
+    'browser.lead_safari': 'Your Safari version has limited support for some features below.',
+    'browser.lead_generic': 'Your browser does not implement all features below:',
+    'browser.limit_fs': 'Sync source type "Local directory" is unavailable (no File System Access API). HTTP sources still work.',
+    'browser.limit_qr': 'QR scanning is unavailable (no BarcodeDetector). Bundle import via JSON file or paste works.',
+    'browser.banner_workaround': 'For full feature support: Edge, Chrome, or desktop Safari.',
     'toast.settings_saved': 'Settings saved',
     'print.header_title_default': 'Crisis Staff — Roles and Substitutes',
     'print.title': 'Print view',
@@ -4169,6 +5714,22 @@ const TRANSLATIONS = {
     'sync.mode_qr': '📷 Transfer. QR (cámara)',
     'sync.mode_code_hint': 'Código corto para intercambio de estado por teléfono/chat — requiere configuración base idéntica en ambos lados.',
     'sync.mode_qr_hint': 'Código QR para configuración y/o estado — para distribución inicial o cuando las configuraciones difieren.',
+    'sync.mode_online': '🌐 En línea (servidor)',
+    'sync.mode_online_hint': 'Backend HTTP(S) para sincronización asíncrona entre dispositivos. Requiere una fuente configurada en ajustes.',
+    'sync.online_intro': 'Pull/push manual contra las fuentes configuradas. Siempre disponible; V2 lo automatiza.',
+    'sync.online_no_sources': 'Sin fuentes configuradas. Añade una en ajustes primero.',
+    'sync.online_open_settings': 'Configurar fuente',
+    'sync.online_pull': 'Traer del servidor',
+    'sync.online_push': 'Enviar al servidor',
+    'sync.online_last_sync': 'Última sincronización',
+    'sync.online_last_error': 'Último error',
+    'sync.online_pulling': 'Trayendo de {label}…',
+    'sync.online_pushing': 'Enviando a {label}…',
+    'sync.online_pulled': 'Versión v{version} cargada.',
+    'sync.online_pushed': 'Versión v{version} enviada.',
+    'sync.online_empty': 'Fuente vacía (aún sin subida).',
+    'sync.online_pull_failed': 'Pull falló: {msg}',
+    'sync.online_push_failed': 'Push falló: {msg}',
     'sync.tab_send': '↗ Enviar',
     'sync.tab_receive': '↙ Recibir',
     'qr.send_title': 'Enviar transferencia QR',
@@ -4274,6 +5835,15 @@ const TRANSLATIONS = {
     'header.cascade_tooltip': 'Mostrar sustituciones activas',
     'toast.cascade_on': 'Líneas de sustitución activadas',
     'toast.cascade_off': 'Líneas de sustitución desactivadas',
+    'header.sync_status_synced': 'Sincronizado',
+    'header.sync_status_syncing': 'Sync…',
+    'header.sync_status_out_of_sync': 'Cambios',
+    'header.sync_status_error': 'Error de sync',
+    'header.sync_tooltip_synced': 'Sincronizado con {label} · v{version} · {when}',
+    'header.sync_tooltip_synced_never': 'Fuente configurada, aún sin push/pull.',
+    'header.sync_tooltip_syncing': 'Sincronizando…',
+    'header.sync_tooltip_out_of_sync': 'Cambios locales pendientes de push. Último estado: {label} · v{version} · {when}',
+    'header.sync_tooltip_error': 'Error de sync: {msg}',
     'header.data': 'Datos',
     'header.data_tooltip': 'Importar / Exportar',
     'header.print': 'Imprimir',
@@ -4292,6 +5862,116 @@ const TRANSLATIONS = {
         'settings.about_version': 'Versión',
     'settings.about_project': 'Proyecto',
     'settings.about_license': 'Licencia',
+    'settings.tab_general': 'General',
+    'settings.tab_sync': 'Fuentes de sync.',
+    'settings.tab_about': 'Acerca de',
+    'settings.sync_intro': 'Las fuentes de sincronización son endpoints contra los que puede sincronizar manualmente. V1.2 admite backends HTTP(S); seguirán más tipos.',
+    'settings.sync_no_sources': 'Ninguna fuente configurada.',
+    'settings.sync_add_http': 'Nueva fuente HTTP',
+    'settings.sync_form_add_title': 'Crear nueva fuente HTTP',
+    'settings.sync_form_edit_title': 'Editar fuente HTTP',
+    'settings.sync_field_label': 'Etiqueta',
+    'settings.sync_field_label_placeholder': 'p. ej. Servidor principal interno',
+    'settings.sync_field_url': 'URL',
+    'settings.sync_field_url_placeholder': 'https://servidor.interno/cram/state.json',
+    'settings.sync_field_url_hint': 'URL HTTPS completa del endpoint state.json. http://127.0.0.1:* solo para desarrollo.',
+    'settings.sync_field_auth_type': 'Autenticación',
+    'settings.sync_auth_none': 'Ninguna',
+    'settings.sync_auth_basic': 'Auth básica',
+    'settings.sync_auth_bearer': 'Token Bearer',
+    'settings.sync_field_user': 'Usuario',
+    'settings.sync_field_pass': 'Contraseña',
+    'settings.sync_field_token': 'Token',
+    'settings.sync_btn_save_new': 'Crear fuente',
+    'settings.sync_btn_save_edit': 'Guardar cambios',
+    'settings.sync_btn_cancel': 'Cancelar',
+    'settings.sync_btn_edit': 'Editar',
+    'settings.sync_btn_delete': 'Eliminar',
+    'settings.sync_delete_confirm': '¿Eliminar realmente la fuente "{label}"?',
+    'settings.sync_type_http': 'HTTP',
+    'settings.sync_type_fileSystem': 'Archivo',
+    'settings.sync_add_fs': 'Carpeta local',
+    'settings.sync_add_fs_unsupported': 'Tu navegador no admite File System Access API (Firefox, Safari antiguo). Usa una fuente HTTP o un navegador basado en Chromium.',
+    'settings.sync_form_add_title_fs': 'Añadir carpeta local',
+    'settings.sync_form_edit_title_fs': 'Editar carpeta local',
+    'settings.sync_field_label_placeholder_fs': 'p. ej. OneDrive — comité',
+    'settings.sync_field_directory': 'Carpeta',
+    'settings.sync_field_directory_hint': 'Típicamente una carpeta de sync OneDrive/Dropbox/Drive o un montaje de red. El cliente de escritorio del proveedor distribuye el archivo.',
+    'settings.sync_btn_pick_dir': 'Elegir carpeta…',
+    'settings.sync_btn_pick_dir_change': 'Elegir otra carpeta…',
+    'settings.sync_fs_no_dir': '(aún sin elegir)',
+    'settings.sync_field_filename': 'Nombre de archivo',
+    'settings.sync_field_filename_hint': 'Archivo dentro de la carpeta donde CRAM guarda el estado.',
+    'settings.sync_fs_err_no_dir': 'Elige primero una carpeta.',
+    'settings.sync_fs_err_bad_filename': 'El nombre debe terminar en .json y solo puede contener a-z, A-Z, 0-9, _, -, .',
+    'settings.sync_fs_err_handle_save': 'No se pudo persistir el acceso a la carpeta: {msg}',
+    'settings.sync_fs_pick_failed': 'Selección fallida: {msg}',
+    'settings.sync_enc_hint_fs': 'Recomendado: los archivos en una carpeta sync cloud son legibles por el proveedor. Con cifrado solo ven texto cifrado.',
+    'settings.sync_err_url_required': 'La URL es obligatoria.',
+    'settings.sync_err_url_invalid': 'La URL debe empezar con http(s)://.',
+    'settings.sync_err_user_required': 'Usuario obligatorio para Auth básica.',
+    'settings.sync_err_token_required': 'Token obligatorio para Bearer.',
+    'toast.sync_source_added': 'Fuente añadida.',
+    'toast.sync_source_updated': 'Fuente actualizada.',
+    'toast.sync_source_deleted': 'Fuente eliminada.',
+    'settings.sync_enc_enabled': 'Activar cifrado de extremo a extremo (recomendado)',
+    'settings.sync_enc_hint': 'AES-256-GCM con frase + PBKDF2 (250 000 iteraciones). Los datos en el servidor permanecen ilegibles sin la frase.',
+    'settings.sync_passphrase': 'Frase',
+    'settings.sync_passphrase_optional': 'Nueva frase (vacío = mantener actual)',
+    'settings.sync_passphrase_placeholder': 'Mínimo 8 caracteres',
+    'settings.sync_passphrase_hint': 'No se guarda. Deberás introducirla otra vez tras cerrar el navegador.',
+    'settings.sync_passphrase_confirm': 'Confirmar frase',
+    'settings.sync_err_passphrase_required': 'La frase es obligatoria si el cifrado está activo.',
+    'settings.sync_err_passphrase_mismatch': 'Las frases no coinciden.',
+    'settings.sync_err_passphrase_short': 'La frase debe tener al menos 8 caracteres.',
+    'settings.sync_err_key_derive': 'Derivación de clave falló: {msg}',
+    'passphrase.modal_title': 'Frase requerida',
+    'passphrase.modal_intro': 'La fuente "{label}" está cifrada. Introduce la frase para continuar.',
+    'passphrase.modal_field': 'Frase',
+    'passphrase.modal_hint': 'Solo en memoria — se borra al cerrar la pestaña.',
+    'btn.ok': 'OK',
+    'settings.sync_btn_share': 'Compartir',
+    'settings.sync_import_bundle': 'Importar bundle',
+    'bundle.share_title': 'Compartir fuente: {label}',
+    'bundle.share_warn_title': 'Artefacto confidencial',
+    'bundle.share_warn_body': 'Este bundle contiene la frase, el salt y las credenciales en texto plano. Nunca lo compartas por canales sin cifrar (chat abierto, correo sin cifrar). Recomendado: Signal/Threema, gestor de contraseñas o entrega personal.',
+    'bundle.share_field': 'Bundle como JSON',
+    'bundle.share_copy': 'Copiar al portapapeles',
+    'bundle.share_download': 'Descargar como archivo JSON',
+    'bundle.share_copied': 'Copiado al portapapeles.',
+    'bundle.share_copy_manual': 'Marca y copia manualmente (Ctrl/Cmd+C).',
+    'bundle.share_downloaded': 'Bundle descargado como archivo.',
+    'bundle.share_build_failed': 'Generación del bundle fallida: {msg}',
+    'bundle.import_title': 'Importar bundle de sync',
+    'bundle.import_intro': 'Pega el JSON de un bundle compartido o cárgalo desde archivo. CRAM muestra una vista previa antes de crear la fuente.',
+    'bundle.import_field': 'JSON del bundle',
+    'bundle.import_placeholder': '{"format":"cram-bundle-v1",...}',
+    'bundle.import_from_file': '⇧ Cargar desde archivo',
+    'bundle.import_parse': 'Vista previa',
+    'bundle.import_apply': 'Aplicar',
+    'bundle.preview_type': 'Tipo',
+    'bundle.preview_label': 'Etiqueta',
+    'bundle.preview_filename': 'Nombre de archivo',
+    'bundle.preview_fingerprint': 'Huella de config',
+    'bundle.preview_fp_match': 'coincide',
+    'bundle.preview_fp_mismatch': 'DIFIERE',
+    'bundle.preview_fp_warn': 'Aviso: la huella del bundle no coincide con tu configuración local. Sincronizarías con otro equipo.',
+    'bundle.preview_encrypted': 'Cifrado de extremo a extremo activo',
+    'bundle.preview_unencrypted': 'Bundle sin cifrar — el servidor vería texto plano',
+    'bundle.preview_fs_hint': 'Al aplicar se te pedirá elegir una carpeta local (el bundle no incluye ruta).',
+    'bundle.import_err_empty': 'Pega JSON o carga un archivo primero.',
+    'bundle.import_err_no_bundle': 'Genera primero la vista previa.',
+    'bundle.import_err_file_read': 'No se pudo leer el archivo: {msg}',
+    'bundle.import_err_apply': 'Importación fallida: {msg}',
+    'bundle.import_confirm_fp_mismatch': 'La huella del bundle no coincide con la configuración local. ¿Importar de todos modos?',
+    'bundle.import_success': 'Fuente "{label}" importada.',
+    'browser.banner_title': 'Aviso del navegador',
+    'browser.lead_firefox': 'Firefox no implementa algunas APIs usadas abajo. Es por decisión de Mozilla, no un bug.',
+    'browser.lead_safari': 'Tu versión de Safari tiene soporte limitado para algunas funciones de abajo.',
+    'browser.lead_generic': 'Tu navegador no implementa todas las funciones de abajo:',
+    'browser.limit_fs': 'El tipo "Carpeta local" no está disponible (no hay File System Access API). Las fuentes HTTP siguen funcionando.',
+    'browser.limit_qr': 'Escaneo QR no disponible (sin BarcodeDetector). El import de bundle por archivo o pegado funciona.',
+    'browser.banner_workaround': 'Para soporte completo: Edge, Chrome o Safari de escritorio.',
     'toast.settings_saved': 'Configuración guardada',
     'print.header_title_default': 'Comité de crisis — Roles y suplentes',
     'print.title': 'Vista de impresión',
@@ -4497,6 +6177,22 @@ const TRANSLATIONS = {
     'sync.mode_qr': '📷 Transfert QR (caméra)',
     'sync.mode_code_hint': 'Code court pour échange de statut par téléphone/message — nécessite une configuration de base identique des deux côtés.',
     'sync.mode_qr_hint': 'QR code pour configuration et/ou statut — pour distribution initiale ou en cas de configurations différentes.',
+    'sync.mode_online': '🌐 En ligne (serveur)',
+    'sync.mode_online_hint': 'Backend HTTP(S) pour sync asynchrone multi-appareils. Nécessite une source configurée dans les paramètres.',
+    'sync.online_intro': 'Pull/push manuel sur les sources configurées. Toujours disponible; la V2 automatisera.',
+    'sync.online_no_sources': 'Aucune source configurée. Ajoutez-en une dans les paramètres.',
+    'sync.online_open_settings': 'Configurer une source',
+    'sync.online_pull': 'Récupérer du serveur',
+    'sync.online_push': 'Envoyer au serveur',
+    'sync.online_last_sync': 'Dernière sync.',
+    'sync.online_last_error': 'Dernière erreur',
+    'sync.online_pulling': 'Récupération depuis {label}…',
+    'sync.online_pushing': 'Envoi vers {label}…',
+    'sync.online_pulled': 'Version v{version} chargée.',
+    'sync.online_pushed': 'Version v{version} envoyée.',
+    'sync.online_empty': 'Source vide (rien encore envoyé).',
+    'sync.online_pull_failed': 'Pull échoué : {msg}',
+    'sync.online_push_failed': 'Push échoué : {msg}',
     'sync.tab_send': '↗ Envoyer',
     'sync.tab_receive': '↙ Recevoir',
     'qr.send_title': 'Envoyer transfert QR',
@@ -4602,6 +6298,15 @@ const TRANSLATIONS = {
     'header.cascade_tooltip': 'Afficher les suppléances actives',
     'toast.cascade_on': 'Lignes de suppléance activées',
     'toast.cascade_off': 'Lignes de suppléance désactivées',
+    'header.sync_status_synced': 'Synchro',
+    'header.sync_status_syncing': 'Sync…',
+    'header.sync_status_out_of_sync': 'Modifs',
+    'header.sync_status_error': 'Erreur sync',
+    'header.sync_tooltip_synced': 'Synchronisé avec {label} · v{version} · {when}',
+    'header.sync_tooltip_synced_never': 'Source configurée, mais aucun push/pull encore.',
+    'header.sync_tooltip_syncing': 'Synchronisation…',
+    'header.sync_tooltip_out_of_sync': 'Modifications locales en attente. Dernier état : {label} · v{version} · {when}',
+    'header.sync_tooltip_error': 'Erreur sync : {msg}',
     'header.data': 'Données',
     'header.data_tooltip': 'Importer / Exporter',
     'header.print': 'Imprimer',
@@ -4620,6 +6325,116 @@ const TRANSLATIONS = {
         'settings.about_version': 'Version',
     'settings.about_project': 'Projet',
     'settings.about_license': 'Licence',
+    'settings.tab_general': 'Général',
+    'settings.tab_sync': 'Sources de sync.',
+    'settings.tab_about': 'À propos',
+    'settings.sync_intro': 'Les sources de synchronisation sont des points d’accès contre lesquels vous pouvez synchroniser manuellement. La V1.2 prend en charge les backends HTTP(S); d’autres types suivront.',
+    'settings.sync_no_sources': 'Aucune source configurée.',
+    'settings.sync_add_http': 'Nouvelle source HTTP',
+    'settings.sync_form_add_title': 'Ajouter une source HTTP',
+    'settings.sync_form_edit_title': 'Modifier la source HTTP',
+    'settings.sync_field_label': 'Libellé',
+    'settings.sync_field_label_placeholder': 'p. ex. Serveur principal interne',
+    'settings.sync_field_url': 'URL',
+    'settings.sync_field_url_placeholder': 'https://serveur.interne/cram/state.json',
+    'settings.sync_field_url_hint': 'URL HTTPS complète du point d’accès state.json. http://127.0.0.1:* uniquement pour le développement.',
+    'settings.sync_field_auth_type': 'Authentification',
+    'settings.sync_auth_none': 'Aucune',
+    'settings.sync_auth_basic': 'Auth basique',
+    'settings.sync_auth_bearer': 'Token Bearer',
+    'settings.sync_field_user': 'Utilisateur',
+    'settings.sync_field_pass': 'Mot de passe',
+    'settings.sync_field_token': 'Token',
+    'settings.sync_btn_save_new': 'Créer la source',
+    'settings.sync_btn_save_edit': 'Enregistrer',
+    'settings.sync_btn_cancel': 'Annuler',
+    'settings.sync_btn_edit': 'Modifier',
+    'settings.sync_btn_delete': 'Supprimer',
+    'settings.sync_delete_confirm': 'Supprimer la source « {label} » ?',
+    'settings.sync_type_http': 'HTTP',
+    'settings.sync_type_fileSystem': 'Fichier',
+    'settings.sync_add_fs': 'Dossier local',
+    'settings.sync_add_fs_unsupported': 'Votre navigateur ne prend pas en charge File System Access API (Firefox, ancien Safari). Utilisez une source HTTP ou un navigateur Chromium.',
+    'settings.sync_form_add_title_fs': 'Ajouter un dossier local',
+    'settings.sync_form_edit_title_fs': 'Modifier le dossier local',
+    'settings.sync_field_label_placeholder_fs': 'p. ex. OneDrive — cellule de crise',
+    'settings.sync_field_directory': 'Dossier',
+    'settings.sync_field_directory_hint': 'Typiquement un dossier sync OneDrive / Dropbox / Drive ou un montage réseau. Le client de bureau de votre fournisseur cloud distribue le fichier.',
+    'settings.sync_btn_pick_dir': 'Choisir le dossier…',
+    'settings.sync_btn_pick_dir_change': 'Choisir un autre dossier…',
+    'settings.sync_fs_no_dir': '(rien choisi)',
+    'settings.sync_field_filename': 'Nom de fichier',
+    'settings.sync_field_filename_hint': 'Fichier dans le dossier où CRAM enregistre son état.',
+    'settings.sync_fs_err_no_dir': 'Choisissez d’abord un dossier.',
+    'settings.sync_fs_err_bad_filename': 'Le nom doit se terminer par .json et ne contenir que a-z, A-Z, 0-9, _, -, .',
+    'settings.sync_fs_err_handle_save': 'Échec de la persistance d’accès au dossier : {msg}',
+    'settings.sync_fs_pick_failed': 'Sélection échouée : {msg}',
+    'settings.sync_enc_hint_fs': 'Recommandé : les fichiers dans un dossier sync cloud sont lisibles par le fournisseur. Avec chiffrement, il ne voit que du texte chiffré.',
+    'settings.sync_err_url_required': 'URL obligatoire.',
+    'settings.sync_err_url_invalid': 'URL doit commencer par http(s)://.',
+    'settings.sync_err_user_required': 'Utilisateur obligatoire pour Auth basique.',
+    'settings.sync_err_token_required': 'Token obligatoire pour Bearer.',
+    'toast.sync_source_added': 'Source ajoutée.',
+    'toast.sync_source_updated': 'Source mise à jour.',
+    'toast.sync_source_deleted': 'Source supprimée.',
+    'settings.sync_enc_enabled': 'Activer le chiffrement de bout en bout (recommandé)',
+    'settings.sync_enc_hint': 'AES-256-GCM avec phrase + PBKDF2 (250 000 itérations). Les données sur le serveur restent illisibles sans la phrase.',
+    'settings.sync_passphrase': 'Phrase',
+    'settings.sync_passphrase_optional': 'Nouvelle phrase (vide = conserver actuelle)',
+    'settings.sync_passphrase_placeholder': 'Au moins 8 caractères',
+    'settings.sync_passphrase_hint': 'Non persistée. Il faudra la ressaisir à la prochaine ouverture du navigateur.',
+    'settings.sync_passphrase_confirm': 'Confirmer la phrase',
+    'settings.sync_err_passphrase_required': 'La phrase est obligatoire si le chiffrement est activé.',
+    'settings.sync_err_passphrase_mismatch': 'Les phrases ne correspondent pas.',
+    'settings.sync_err_passphrase_short': 'La phrase doit comporter au moins 8 caractères.',
+    'settings.sync_err_key_derive': 'Dérivation de clé échouée : {msg}',
+    'passphrase.modal_title': 'Phrase requise',
+    'passphrase.modal_intro': 'La source « {label} » est chiffrée. Saisissez la phrase pour continuer.',
+    'passphrase.modal_field': 'Phrase',
+    'passphrase.modal_hint': 'En mémoire uniquement — perdue à la fermeture de l’onglet.',
+    'btn.ok': 'OK',
+    'settings.sync_btn_share': 'Partager',
+    'settings.sync_import_bundle': 'Importer un bundle',
+    'bundle.share_title': 'Partager la source : {label}',
+    'bundle.share_warn_title': 'Artefact confidentiel',
+    'bundle.share_warn_body': 'Ce bundle contient la phrase, le salt et les identifiants en clair. Ne le partagez jamais sur des canaux non chiffrés (chat ouvert, pièce jointe e-mail non chiffrée). Recommandé : Signal/Threema, gestionnaire de mots de passe, ou remise en main propre.',
+    'bundle.share_field': 'Bundle en JSON',
+    'bundle.share_copy': 'Copier dans le presse-papiers',
+    'bundle.share_download': 'Télécharger en JSON',
+    'bundle.share_copied': 'Copié dans le presse-papiers.',
+    'bundle.share_copy_manual': 'Sélectionnez et copiez manuellement (Ctrl/Cmd+C).',
+    'bundle.share_downloaded': 'Bundle téléchargé sous forme de fichier.',
+    'bundle.share_build_failed': 'Échec de la création du bundle : {msg}',
+    'bundle.import_title': 'Importer un bundle de sync',
+    'bundle.import_intro': 'Collez le JSON d’un bundle partagé ou chargez-le depuis un fichier. CRAM affiche un aperçu avant de créer la source.',
+    'bundle.import_field': 'JSON du bundle',
+    'bundle.import_placeholder': '{"format":"cram-bundle-v1",...}',
+    'bundle.import_from_file': '⇧ Charger depuis un fichier',
+    'bundle.import_parse': 'Aperçu',
+    'bundle.import_apply': 'Appliquer',
+    'bundle.preview_type': 'Type',
+    'bundle.preview_label': 'Libellé',
+    'bundle.preview_filename': 'Nom de fichier',
+    'bundle.preview_fingerprint': 'Empreinte config',
+    'bundle.preview_fp_match': 'correspond',
+    'bundle.preview_fp_mismatch': 'DIFFÈRE',
+    'bundle.preview_fp_warn': 'Attention : l’empreinte du bundle ne correspond pas à votre configuration locale. Vous synchroniseriez avec une autre cellule.',
+    'bundle.preview_encrypted': 'Chiffrement de bout en bout actif',
+    'bundle.preview_unencrypted': 'Bundle sans chiffrement — le serveur verrait du texte en clair',
+    'bundle.preview_fs_hint': 'Au moment d’appliquer, vous serez invité à choisir un dossier local (le bundle ne contient pas de chemin).',
+    'bundle.import_err_empty': 'Collez le JSON ou chargez un fichier d’abord.',
+    'bundle.import_err_no_bundle': 'Générez d’abord l’aperçu.',
+    'bundle.import_err_file_read': 'Impossible de lire le fichier : {msg}',
+    'bundle.import_err_apply': 'Échec de l’import : {msg}',
+    'bundle.import_confirm_fp_mismatch': 'L’empreinte du bundle ne correspond pas à la configuration locale. Importer quand même ?',
+    'bundle.import_success': 'Source « {label} » importée.',
+    'browser.banner_title': 'Note navigateur',
+    'browser.lead_firefox': 'Firefox n’implémente pas certaines API utilisées ci-dessous. C’est un choix de Mozilla, pas un bug.',
+    'browser.lead_safari': 'Votre version de Safari a un support limité pour certaines fonctionnalités ci-dessous.',
+    'browser.lead_generic': 'Votre navigateur n’implémente pas toutes les fonctionnalités ci-dessous :',
+    'browser.limit_fs': 'Le type « Dossier local » n’est pas disponible (pas de File System Access API). Les sources HTTP fonctionnent.',
+    'browser.limit_qr': 'Lecture QR indisponible (pas de BarcodeDetector). L’import de bundle par fichier ou collage fonctionne.',
+    'browser.banner_workaround': 'Pour le support complet : Edge, Chrome, ou Safari desktop.',
     'toast.settings_saved': 'Paramètres enregistrés',
     'print.header_title_default': 'Cellule de crise — Rôles et suppléants',
     'print.title': 'Aperçu d\u2019impression',
@@ -4825,6 +6640,22 @@ const TRANSLATIONS = {
     'sync.mode_qr': '📷 QR 传输（相机）',
     'sync.mode_code_hint': '用于通过电话/聊天交换状态的短代码——需要双方基础配置完全相同。',
     'sync.mode_qr_hint': '用于配置和/或状态的二维码——适用于初始分发或配置不同时。',
+    'sync.mode_online': '🌐 在线（服务器）',
+    'sync.mode_online_hint': '用于多设备异步同步的 HTTP(S) 后端。需要在设置中配置同步源。',
+    'sync.online_intro': '对已配置同步源的手动拉取/推送。随时可用；V2 将自动化。',
+    'sync.online_no_sources': '尚未配置同步源。请先在设置中添加。',
+    'sync.online_open_settings': '配置同步源',
+    'sync.online_pull': '从服务器拉取',
+    'sync.online_push': '推送到服务器',
+    'sync.online_last_sync': '上次同步',
+    'sync.online_last_error': '上次错误',
+    'sync.online_pulling': '正在从 {label} 拉取…',
+    'sync.online_pushing': '正在推送到 {label}…',
+    'sync.online_pulled': '已加载版本 v{version}。',
+    'sync.online_pushed': '已推送版本 v{version}。',
+    'sync.online_empty': '源为空（尚未上传任何内容）。',
+    'sync.online_pull_failed': '拉取失败：{msg}',
+    'sync.online_push_failed': '推送失败：{msg}',
     'sync.tab_send': '↗ 发送',
     'sync.tab_receive': '↙ 接收',
     'qr.send_title': '发送 QR 传输',
@@ -4930,6 +6761,15 @@ const TRANSLATIONS = {
     'header.cascade_tooltip': '显示当前替补关系',
     'toast.cascade_on': '已启用替补连线',
     'toast.cascade_off': '已关闭替补连线',
+    'header.sync_status_synced': '已同步',
+    'header.sync_status_syncing': '同步中…',
+    'header.sync_status_out_of_sync': '有变更',
+    'header.sync_status_error': '同步错误',
+    'header.sync_tooltip_synced': '与 {label} 同步 · v{version} · {when}',
+    'header.sync_tooltip_synced_never': '已配置同步源，但尚未推送/拉取。',
+    'header.sync_tooltip_syncing': '同步中…',
+    'header.sync_tooltip_out_of_sync': '本地变更待推送。上次状态：{label} · v{version} · {when}',
+    'header.sync_tooltip_error': '同步错误：{msg}',
     'header.data': '数据',
     'header.data_tooltip': '导入 / 导出',
     'header.print': '打印',
@@ -4948,6 +6788,116 @@ const TRANSLATIONS = {
         'settings.about_version': '版本',
     'settings.about_project': '项目',
     'settings.about_license': '许可证',
+    'settings.tab_general': '常规',
+    'settings.tab_sync': '同步源',
+    'settings.tab_about': '关于',
+    'settings.sync_intro': '同步源是可以手动同步的端点。V1.2 支持 HTTP(S) 后端；后续会增加更多类型。',
+    'settings.sync_no_sources': '未配置同步源。',
+    'settings.sync_add_http': '新建 HTTP 源',
+    'settings.sync_form_add_title': '添加新的 HTTP 源',
+    'settings.sync_form_edit_title': '编辑 HTTP 源',
+    'settings.sync_field_label': '名称',
+    'settings.sync_field_label_placeholder': '例如 内部主服务器',
+    'settings.sync_field_url': 'URL',
+    'settings.sync_field_url_placeholder': 'https://server.internal/cram/state.json',
+    'settings.sync_field_url_hint': 'state.json 端点的完整 HTTPS URL。http://127.0.0.1:* 仅用于开发。',
+    'settings.sync_field_auth_type': '认证',
+    'settings.sync_auth_none': '无',
+    'settings.sync_auth_basic': '基本认证',
+    'settings.sync_auth_bearer': 'Bearer Token',
+    'settings.sync_field_user': '用户名',
+    'settings.sync_field_pass': '密码',
+    'settings.sync_field_token': 'Token',
+    'settings.sync_btn_save_new': '创建源',
+    'settings.sync_btn_save_edit': '保存修改',
+    'settings.sync_btn_cancel': '取消',
+    'settings.sync_btn_edit': '编辑',
+    'settings.sync_btn_delete': '删除',
+    'settings.sync_delete_confirm': '确实删除源 "{label}" 吗？',
+    'settings.sync_type_http': 'HTTP',
+    'settings.sync_type_fileSystem': '文件',
+    'settings.sync_add_fs': '本地目录',
+    'settings.sync_add_fs_unsupported': '你的浏览器不支持 File System Access API（Firefox、旧 Safari）。请使用 HTTP 源或 Chromium 浏览器。',
+    'settings.sync_form_add_title_fs': '添加本地目录',
+    'settings.sync_form_edit_title_fs': '编辑本地目录',
+    'settings.sync_field_label_placeholder_fs': '例如 OneDrive — 危机组',
+    'settings.sync_field_directory': '目录',
+    'settings.sync_field_directory_hint': '通常是 OneDrive / Dropbox / Drive 同步文件夹或网络挂载点。云厂商的桌面客户端会在设备间分发文件。',
+    'settings.sync_btn_pick_dir': '选择目录…',
+    'settings.sync_btn_pick_dir_change': '选择其他目录…',
+    'settings.sync_fs_no_dir': '（尚未选择）',
+    'settings.sync_field_filename': '文件名',
+    'settings.sync_field_filename_hint': 'CRAM 在所选目录内存储状态的文件。',
+    'settings.sync_fs_err_no_dir': '请先选择一个目录。',
+    'settings.sync_fs_err_bad_filename': '文件名必须以 .json 结尾，且只能包含 a-z, A-Z, 0-9, _, -, .。',
+    'settings.sync_fs_err_handle_save': '无法持久化目录访问：{msg}',
+    'settings.sync_fs_pick_failed': '选择失败：{msg}',
+    'settings.sync_enc_hint_fs': '推荐：云同步文件夹中的文件对云服务商可见。启用加密后他们只能看到密文。',
+    'settings.sync_err_url_required': 'URL 必填。',
+    'settings.sync_err_url_invalid': 'URL 必须以 http(s):// 开头。',
+    'settings.sync_err_user_required': '基本认证需要用户名。',
+    'settings.sync_err_token_required': 'Bearer 认证需要 Token。',
+    'toast.sync_source_added': '同步源已添加。',
+    'toast.sync_source_updated': '同步源已更新。',
+    'toast.sync_source_deleted': '同步源已删除。',
+    'settings.sync_enc_enabled': '启用端到端加密（推荐）',
+    'settings.sync_enc_hint': 'AES-256-GCM + 口令 + PBKDF2（250000 次迭代）。没有口令时，服务器上的数据无法读取。',
+    'settings.sync_passphrase': '口令',
+    'settings.sync_passphrase_optional': '新口令（留空 = 保持现有）',
+    'settings.sync_passphrase_placeholder': '至少 8 个字符',
+    'settings.sync_passphrase_hint': '不会持久化。关闭浏览器后需要重新输入。',
+    'settings.sync_passphrase_confirm': '确认口令',
+    'settings.sync_err_passphrase_required': '启用加密时必须设置口令。',
+    'settings.sync_err_passphrase_mismatch': '两次输入的口令不一致。',
+    'settings.sync_err_passphrase_short': '口令至少需要 8 个字符。',
+    'settings.sync_err_key_derive': '密钥派生失败：{msg}',
+    'passphrase.modal_title': '需要口令',
+    'passphrase.modal_intro': '同步源 "{label}" 已加密。请输入口令以继续。',
+    'passphrase.modal_field': '口令',
+    'passphrase.modal_hint': '仅保存在内存中——关闭标签页时丢失。',
+    'btn.ok': '确定',
+    'settings.sync_btn_share': '分享',
+    'settings.sync_import_bundle': '导入 Bundle',
+    'bundle.share_title': '分享同步源：{label}',
+    'bundle.share_warn_title': '机密文件',
+    'bundle.share_warn_body': '该 Bundle 包含口令、Salt 和凭据（明文）。不要通过未加密的渠道分享（普通聊天、未加密邮件附件）。推荐使用 Signal/Threema、密码管理器或当面交接。',
+    'bundle.share_field': 'Bundle JSON',
+    'bundle.share_copy': '复制到剪贴板',
+    'bundle.share_download': '下载为 JSON 文件',
+    'bundle.share_copied': '已复制到剪贴板。',
+    'bundle.share_copy_manual': '请手动选中并复制 (Ctrl/Cmd+C)。',
+    'bundle.share_downloaded': 'Bundle 已下载为文件。',
+    'bundle.share_build_failed': 'Bundle 构建失败：{msg}',
+    'bundle.import_title': '导入同步 Bundle',
+    'bundle.import_intro': '粘贴所收到 Bundle 的 JSON 或从文件加载。CRAM 会在创建同步源前显示预览。',
+    'bundle.import_field': 'Bundle JSON',
+    'bundle.import_placeholder': '{"format":"cram-bundle-v1",...}',
+    'bundle.import_from_file': '⇧ 从文件加载',
+    'bundle.import_parse': '预览',
+    'bundle.import_apply': '应用',
+    'bundle.preview_type': '类型',
+    'bundle.preview_label': '名称',
+    'bundle.preview_filename': '文件名',
+    'bundle.preview_fingerprint': '配置指纹',
+    'bundle.preview_fp_match': '匹配',
+    'bundle.preview_fp_mismatch': '不一致',
+    'bundle.preview_fp_warn': '警告：Bundle 中的团队指纹与本地配置不一致。这将与不同的团队同步。',
+    'bundle.preview_encrypted': '端到端加密已启用',
+    'bundle.preview_unencrypted': 'Bundle 未加密——服务器会看到明文',
+    'bundle.preview_fs_hint': '应用时会要求你选择本地目录（Bundle 不包含路径）。',
+    'bundle.import_err_empty': '请先粘贴 JSON 或加载文件。',
+    'bundle.import_err_no_bundle': '请先生成预览。',
+    'bundle.import_err_file_read': '无法读取文件：{msg}',
+    'bundle.import_err_apply': '导入失败：{msg}',
+    'bundle.import_confirm_fp_mismatch': 'Bundle 指纹与本地配置不一致。仍要导入吗？',
+    'bundle.import_success': '已导入同步源 "{label}"。',
+    'browser.banner_title': '浏览器提示',
+    'browser.lead_firefox': 'Firefox 未实现下方使用的某些 API。这是 Mozilla 的设计选择，不是 bug。',
+    'browser.lead_safari': '你的 Safari 版本对下方部分功能支持有限。',
+    'browser.lead_generic': '你的浏览器未实现下方全部功能：',
+    'browser.limit_fs': '同步源类型"本地目录"不可用（无 File System Access API）。HTTP 源仍可使用。',
+    'browser.limit_qr': 'QR 扫描不可用（无 BarcodeDetector）。通过文件或粘贴导入 Bundle 仍可用。',
+    'browser.banner_workaround': '若需完整功能：Edge、Chrome 或桌面版 Safari。',
     'toast.settings_saved': '设置已保存',
     'print.header_title_default': '危机小组 — 角色与替补',
     'print.title': '打印视图',
@@ -5359,6 +7309,7 @@ function uid(prefix) {
 function render() {
   State.occupancy = resolveOccupancy(State.config, State.runtime);
   renderStatusBanner();
+  renderSyncIndicator();
   renderOrgChart();
   renderSidePanel();
   renderCascadeLines();
@@ -5366,7 +7317,8 @@ function render() {
 
 /* ---- Status Banner ---- */
 function renderStatusBanner() {
-  const banner = document.getElementById('status-banner');
+  const banner = document.getElementById('status-metrics');
+  if (!banner) return;
   let totalRoles = 0;
   let primaryActive = 0;
   let substituteActive = 0;
@@ -5423,6 +7375,64 @@ function renderStatusBanner() {
   } else {
     mark.style.background = 'var(--status-ok)';
     mark.style.boxShadow = '0 0 8px var(--status-ok)';
+  }
+}
+
+/* ---- Sync-Awareness-Indikator (V1.2) ----
+   System-Status links der Stab-Status-Pills. Vier sichtbare Zustände:
+   synced / syncing / out-of-sync / error. 'disabled' = hidden.
+   Wird via Sync.onChange() bei jeder Sync-State-Mutation re-gerendert. */
+function renderSyncIndicator() {
+  const el = document.getElementById('sync-indicator');
+  if (!el) return;
+
+  const status = Sync.isSyncing() ? 'syncing' : Sync.getStatus();
+
+  if (status === 'disabled') {
+    el.hidden = true;
+    el.removeAttribute('data-state');
+    el.removeAttribute('title');
+    el.innerHTML = '';
+    return;
+  }
+
+  el.hidden = false;
+  el.setAttribute('data-state', status);
+
+  const state = Sync.load();
+  const tInfo = {};
+  if (state.lastSyncedSourceId) {
+    const src = Sync.getSource(state.lastSyncedSourceId);
+    if (src) tInfo.label = src.label;
+  }
+  tInfo.label = tInfo.label || '—';
+  tInfo.version = state.lastSyncedVersion || 0;
+  tInfo.when = state.lastSyncedAt ? formatRelativeTime(state.lastSyncedAt) : '—';
+  tInfo.msg = state.lastError || '';
+
+  let icon, labelKey, tooltipKey;
+  if (status === 'synced')          { icon = '✓'; labelKey = 'header.sync_status_synced';      tooltipKey = state.lastSyncedAt ? 'header.sync_tooltip_synced' : 'header.sync_tooltip_synced_never'; }
+  else if (status === 'syncing')    { icon = '↻'; labelKey = 'header.sync_status_syncing';     tooltipKey = 'header.sync_tooltip_syncing'; }
+  else if (status === 'out-of-sync'){ icon = '↑'; labelKey = 'header.sync_status_out_of_sync'; tooltipKey = 'header.sync_tooltip_out_of_sync'; }
+  else /* error */                  { icon = '✗'; labelKey = 'header.sync_status_error';       tooltipKey = 'header.sync_tooltip_error'; }
+
+  el.innerHTML =
+    '<span class="sync-indicator-icon">' + escapeHTML(icon) + '</span>' +
+    '<span class="sync-indicator-label">' + escapeHTML(t(labelKey)) + '</span>';
+  el.title = t(tooltipKey, tInfo);
+}
+
+function formatRelativeTime(timestamp) {
+  const diffMs = Date.now() - timestamp;
+  const absSec = Math.max(0, Math.round(diffMs / 1000));
+  try {
+    const rtf = new Intl.RelativeTimeFormat(State.language || 'de', { numeric: 'auto' });
+    if (absSec < 60)    return rtf.format(-absSec, 'second');
+    if (absSec < 3600)  return rtf.format(-Math.round(absSec / 60), 'minute');
+    if (absSec < 86400) return rtf.format(-Math.round(absSec / 3600), 'hour');
+    return rtf.format(-Math.round(absSec / 86400), 'day');
+  } catch (e) {
+    return absSec + 's';
   }
 }
 
@@ -6311,6 +8321,12 @@ const CLICK_HANDLERS = {
   // Sync-Kanal-Auswahl (Code-Sync vs QR-Transfer)
   'sync-mode-code':   () => { qrStopScanner(); State.syncChannel = 'code'; renderSyncModal(); },
   'sync-mode-qr':     () => { State.syncChannel = 'qr'; renderSyncModal(); },
+  'sync-mode-online': () => { qrStopScanner(); State.syncChannel = 'online'; renderSyncModal(); },
+  'sync-online-pull': (el) => syncOnlinePull(el.dataset.sourceId),
+  'sync-online-push': (el) => syncOnlinePush(el.dataset.sourceId),
+  'sync-online-goto-settings': () => syncOnlineGotoSettings(),
+  'passphrase-prompt-ok':      () => passphrasePromptOk(),
+  'passphrase-prompt-cancel':  () => passphrasePromptCancel(),
 
   // QR-Send-Workflow
   'qr-scope-select':      (el) => { State.qrSendState.scope = el.dataset.scope; renderSyncModal(); },
@@ -6339,8 +8355,25 @@ const CLICK_HANDLERS = {
   'print-start': () => startPrint(),
 
   // Allgemeine Einstellungen (nur im Edit-Modus sichtbar)
-  'open-settings': () => openSettingsModal(),
-  'settings-save': () => saveSettingsModal(),
+  'open-settings':          () => openSettingsModal(),
+  'settings-save':          () => saveSettingsModal(),
+  'settings-tab':           (el) => switchSettingsTab(el.dataset.tab),
+  'sync-add-http':          () => syncFormShowAddHttp(),
+  'sync-add-fs':            () => syncFormShowAddFs(),
+  'sync-edit-source':       (el) => syncFormShowEdit(el.dataset.sourceId),
+  'sync-share-source':      (el) => openSyncShareModal(el.dataset.sourceId),
+  'sync-delete-source':     (el) => syncDeleteSource(el.dataset.sourceId, el.dataset.label),
+  'sync-form-cancel':       () => syncFormCancel(),
+  'sync-form-save':         () => syncFormSave(),
+  'sync-form-pick-dir':     () => syncFormPickDirectory(),
+  'sync-import-bundle':     () => openSyncImportModal(),
+  'bundle-share-copy':      () => syncShareCopy(),
+  'bundle-share-download':  () => syncShareDownload(),
+  'bundle-share-close':     () => syncShareClose(),
+  'bundle-import-parse':    () => syncImportParse(),
+  'bundle-import-file':     () => syncImportFromFile(),
+  'bundle-import-apply':    () => syncImportApply(),
+  'bundle-import-close':    () => syncImportClose(),
 };
 
 function handleGlobalClick(e) {
@@ -7494,7 +9527,7 @@ function renderSyncModal() {
   const footer = document.getElementById('modal-footer');
   const channel = State.syncChannel || 'code';
 
-  // Kanal-Auswahl (Code vs QR) — immer oben
+  // Kanal-Auswahl (Code vs QR vs Online) — immer oben
   const channelPickerHTML = `
     <div class="sync-channel-picker">
       <button class="sync-channel-btn" data-action="sync-mode-code" ${channel === 'code' ? 'data-active="true"' : ''}>
@@ -7504,6 +9537,10 @@ function renderSyncModal() {
       <button class="sync-channel-btn" data-action="sync-mode-qr" ${channel === 'qr' ? 'data-active="true"' : ''}>
         <div class="sync-channel-label">${escapeHTML(t('sync.mode_qr'))}</div>
         <div class="sync-channel-hint">${escapeHTML(t('sync.mode_qr_hint'))}</div>
+      </button>
+      <button class="sync-channel-btn" data-action="sync-mode-online" ${channel === 'online' ? 'data-active="true"' : ''}>
+        <div class="sync-channel-label">${escapeHTML(t('sync.mode_online'))}</div>
+        <div class="sync-channel-hint">${escapeHTML(t('sync.mode_online_hint'))}</div>
       </button>
     </div>
   `;
@@ -7537,6 +9574,11 @@ function renderSyncModal() {
     } else {
       renderQrReceiveView(body, footer, channelPickerHTML + qrTabsHTML);
     }
+    return;
+  }
+
+  if (channel === 'online') {
+    renderSyncOnlineView(body, footer, channelPickerHTML);
     return;
   }
 
@@ -7618,6 +9660,216 @@ function renderSyncModal() {
       }
     });
     setTimeout(() => input.focus(), 50);
+  }
+}
+
+/* =========================================================================
+   ONLINE VIEW — Render-Logik für Online-Kanal (V1.2 manuell)
+   Listet alle konfigurierten Sync-Sources mit Pull-/Push-Buttons.
+   Sources werden im Settings-Modal (Tab 'Sync-Sources') verwaltet.
+   ========================================================================= */
+function renderSyncOnlineView(body, footer, headerHTML) {
+  const sources = Sync.listSources();
+  const syncState = Sync.load();
+
+  let listHTML;
+  if (sources.length === 0) {
+    listHTML = `
+      <div class="sync-no-sources" style="margin-top: 8px;">
+        ${escapeHTML(t('sync.online_no_sources'))}
+      </div>
+      <div style="margin-top: 10px; text-align: center;">
+        <button class="btn-secondary" data-action="sync-online-goto-settings">
+          ⚙ ${escapeHTML(t('sync.online_open_settings'))}
+        </button>
+      </div>
+    `;
+  } else {
+    listHTML = '<div class="sync-online-list">';
+    sources.forEach(s => {
+      const cfg = s.config || {};
+      const metaLine = (s.type === 'http') ? (cfg.url || '') : '';
+      const typeLabel = t('settings.sync_type_' + s.type) || s.type;
+      const isLastSource = syncState.lastSyncedSourceId === s.id && syncState.lastSyncedAt;
+      const lastSyncLine = isLastSource
+        ? `<div class="sync-online-last">${escapeHTML(t('sync.online_last_sync'))}: <code>v${syncState.lastSyncedVersion}</code> · ${escapeHTML(new Date(syncState.lastSyncedAt).toLocaleString())}</div>`
+        : '';
+      listHTML += `
+        <div class="sync-online-row">
+          <div class="sync-online-info">
+            <div class="sync-online-row-head">
+              <span class="sync-source-type-badge">${escapeHTML(typeLabel)}</span>
+              <span class="sync-source-label">${escapeHTML(s.label)}</span>
+            </div>
+            <div class="sync-source-meta">${escapeHTML(metaLine)}</div>
+            ${lastSyncLine}
+          </div>
+          <div class="sync-online-actions">
+            <button class="btn-secondary" data-action="sync-online-pull" data-source-id="${escapeHTML(s.id)}">↓ ${escapeHTML(t('sync.online_pull'))}</button>
+            <button class="btn-primary" data-action="sync-online-push" data-source-id="${escapeHTML(s.id)}">↑ ${escapeHTML(t('sync.online_push'))}</button>
+          </div>
+        </div>
+      `;
+    });
+    listHTML += '</div>';
+  }
+
+  const errorBanner = syncState.lastError
+    ? `<div class="sync-online-error"><strong>${escapeHTML(t('sync.online_last_error'))}:</strong> ${escapeHTML(syncState.lastError)}</div>`
+    : '';
+
+  body.innerHTML = `
+    ${headerHTML}
+    <div class="sync-explain">${escapeHTML(t('sync.online_intro'))}</div>
+    ${errorBanner}
+    ${listHTML}
+  `;
+  footer.innerHTML = `
+    <button class="btn-secondary" data-action="modal-close">${escapeHTML(t('btn.close'))}</button>
+  `;
+}
+
+async function syncOnlinePull(sourceId) {
+  const src = Sync.getSource(sourceId);
+  if (!src) return;
+  showToast(t('sync.online_pulling', { label: src.label }), 'info');
+  try {
+    const env = await withPassphraseRecovery(src, () => Sync.pull(sourceId));
+    if (env === null) {
+      showToast(t('sync.online_empty'), 'info');
+    } else {
+      showToast(t('sync.online_pulled', { version: env.version }), 'success');
+      // applyEnvelope hat State.config/runtime überschrieben — Hauptansicht neu rendern
+      render();
+    }
+  } catch (e) {
+    showToast(t('sync.online_pull_failed', { msg: String(e.message || e) }), 'error');
+  }
+  // Falls der Passphrase-Prompt offen war, ist das Sync-Modal weg → nur
+  // rendern, wenn der Backdrop noch sichtbar ist und das aktuelle Modal
+  // das Sync-Modal ist. Vereinfacht: wenn Backdrop hidden, lassen wir's.
+  const backdrop = document.getElementById('modal-backdrop');
+  if (backdrop && backdrop.style.display === 'flex') renderSyncModal();
+}
+
+async function syncOnlinePush(sourceId) {
+  const src = Sync.getSource(sourceId);
+  if (!src) return;
+  showToast(t('sync.online_pushing', { label: src.label }), 'info');
+  try {
+    const env = await withPassphraseRecovery(src, () => Sync.push(sourceId));
+    if (env !== null && env !== undefined) {
+      showToast(t('sync.online_pushed', { version: env.version }), 'success');
+    }
+  } catch (e) {
+    showToast(t('sync.online_push_failed', { msg: String(e.message || e) }), 'error');
+  }
+  const backdrop = document.getElementById('modal-backdrop');
+  if (backdrop && backdrop.style.display === 'flex') renderSyncModal();
+}
+
+function syncOnlineGotoSettings() {
+  closeModal();
+  openSettingsModal();
+  switchSettingsTab('sync');
+}
+
+/* ---- Passphrase-Prompt (V1.2 Encryption) ---------------------------------
+   Promise-basierter Mini-Modal. Wird aus syncOnlinePull/Push aufgerufen,
+   wenn Sync.push/pull eine PassphraseRequiredError wirft. Auflösung:
+     resolve(string)  → Passphrase eingegeben
+     resolve(null)    → abgebrochen
+   Der Aufrufer leitet daraufhin den CryptoKey ab und cached ihn via
+   Sync.setKeyForSource. */
+function promptPassphrase(source) {
+  return new Promise((resolve) => {
+    const title = document.getElementById('modal-title');
+    const body  = document.getElementById('modal-body');
+    const footer = document.getElementById('modal-footer');
+
+    title.textContent = t('passphrase.modal_title');
+    body.innerHTML = `
+      <div class="sync-explain">${escapeHTML(t('passphrase.modal_intro', { label: source.label }))}</div>
+      <div class="form-field" style="margin-top: 12px;">
+        <label class="form-label" for="passphrase-prompt-input">${escapeHTML(t('passphrase.modal_field'))}</label>
+        <input type="password" id="passphrase-prompt-input" class="form-input"
+               autocomplete="current-password" />
+        <div class="form-hint">${escapeHTML(t('passphrase.modal_hint'))}</div>
+      </div>
+    `;
+    footer.innerHTML = `
+      <button class="btn-secondary" data-action="passphrase-prompt-cancel">${escapeHTML(t('btn.cancel'))}</button>
+      <button class="btn-primary" data-action="passphrase-prompt-ok">${escapeHTML(t('btn.ok'))}</button>
+    `;
+    document.getElementById('modal-backdrop').style.display = 'flex';
+
+    const input = document.getElementById('passphrase-prompt-input');
+    setTimeout(() => input.focus(), 50);
+
+    // Ein-Shot-Listener — werden nach Resolve/Reject automatisch entfernt
+    function cleanup() {
+      passphrasePromptState.resolver = null;
+      closeModal();
+    }
+    passphrasePromptState.resolver = (val) => {
+      cleanup();
+      resolve(val);
+    };
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        passphrasePromptState.resolver && passphrasePromptState.resolver(input.value || '');
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        passphrasePromptState.resolver && passphrasePromptState.resolver(null);
+      }
+    });
+  });
+}
+
+// Globaler Zustand, damit die data-action-Handler den aktiven Promise-Resolver
+// erreichen können (Click-Dispatcher kennt keine Closures).
+const passphrasePromptState = { resolver: null };
+
+function passphrasePromptOk() {
+  const val = (document.getElementById('passphrase-prompt-input').value || '');
+  if (passphrasePromptState.resolver) passphrasePromptState.resolver(val);
+}
+
+function passphrasePromptCancel() {
+  if (passphrasePromptState.resolver) passphrasePromptState.resolver(null);
+}
+
+/* Helper: führt Pull oder Push aus, fängt PassphraseRequiredError und
+   wiederholt nach erfolgreicher Passphrase-Eingabe genau einmal. */
+async function withPassphraseRecovery(source, opFn) {
+  try {
+    return await opFn();
+  } catch (e) {
+    if (!e || e.name !== 'PassphraseRequiredError') throw e;
+    const passphrase = await promptPassphrase(source);
+    if (passphrase === null || passphrase === '') return null;  // cancelled
+    let saltB64 = source.encryption && source.encryption.salt;
+    if (!saltB64) {
+      // Source hat Encryption aktiv, aber noch kein Salt → vermutlich ein Pull
+      // bei dem der Server-Salt erst übernommen wird. Wir lesen den Salt aus
+      // dem Server-Probe oder generieren einen frischen (für ersten Push).
+      // Pragmatisch: frisches Salt, falls keiner — wird beim ersten Pull vom
+      // Server-Envelope überschrieben.
+      saltB64 = SyncCrypto.randomSaltB64();
+      Sync.updateSource(source.id, {
+        encryption: Object.assign({}, source.encryption || {}, { enabled: true, salt: saltB64 }),
+      });
+    }
+    try {
+      const key = await SyncCrypto.deriveKey(passphrase, saltB64);
+      Sync.setKeyForSource(source.id, key);
+      Sync.setPassphraseForSource(source.id, passphrase);
+    } catch (deriveErr) {
+      throw new Error(t('settings.sync_err_key_derive', { msg: String(deriveErr.message || deriveErr) }));
+    }
+    return await opFn();  // retry once
   }
 }
 
@@ -9477,18 +11729,108 @@ function buildPrintPersons() {
    Drucktitel. Werden in config.meta gespeichert und sind damit Teil
    der Config (Sync / Export enthält sie automatisch).
    ========================================================================= */
+/* Settings-Modal mit Tabs (V1.2):
+   - 'general': Organisationsname + Drucktitel
+   - 'sync':    Sync-Sources verwalten (CRUD)
+   - 'about':   Version, Projekt, Lizenz
+   Der module-state hält den aktiven Tab und ggf. die laufende Form-Aktion
+   im sync-Tab fest; jeder Render baut die UI neu auf. */
+let settingsState = {
+  activeTab: 'general',
+  editingSourceId: null,
+  formMode: null,         // 'add' | 'edit' | null
+  formSourceType: null,   // 'http' | 'fileSystem'
+};
+
 function openSettingsModal() {
+  settingsState = {
+    activeTab: 'general', editingSourceId: null, formMode: null, formSourceType: null,
+  };
+  renderSettingsModal();
+}
+
+function switchSettingsTab(tab) {
+  settingsState.activeTab = tab;
+  settingsState.editingSourceId = null;
+  settingsState.formMode = null;
+  settingsState.formSourceType = null;
+  delete settingsState._pendingDirHandle;
+  delete settingsState._pendingDirName;
+  renderSettingsModal();
+}
+
+function renderSettingsModal() {
   const title = document.getElementById('modal-title');
   const body  = document.getElementById('modal-body');
   const footer = document.getElementById('modal-footer');
 
   title.textContent = t('settings.title');
 
+  const tabs = [
+    { id: 'general', label: t('settings.tab_general') },
+    { id: 'sync',    label: t('settings.tab_sync') },
+    { id: 'about',   label: t('settings.tab_about') },
+  ];
+
+  const tabsHTML = `
+    <div class="settings-tabs" role="tablist">
+      ${tabs.map(tab => `
+        <button class="settings-tab" data-action="settings-tab" data-tab="${escapeHTML(tab.id)}"
+                data-active="${settingsState.activeTab === tab.id}">
+          ${escapeHTML(tab.label)}
+        </button>
+      `).join('')}
+    </div>
+  `;
+
+  let panelHTML;
+  if (settingsState.activeTab === 'general')      panelHTML = renderSettingsGeneral();
+  else if (settingsState.activeTab === 'sync')    panelHTML = renderSettingsSync();
+  else                                            panelHTML = renderSettingsAbout();
+
+  body.innerHTML = tabsHTML + '<div class="settings-panel">' + panelHTML + '</div>';
+
+  // Footer per Tab:
+  // - 'general' hat Save-Button (für Org-Name / Print-Title)
+  // - 'sync' und 'about' sind self-contained / read-only → nur Close
+  if (settingsState.activeTab === 'general') {
+    footer.innerHTML = `
+      <button class="btn-secondary" data-action="modal-cancel">${escapeHTML(t('btn.cancel'))}</button>
+      <button class="btn-primary" data-action="settings-save">${escapeHTML(t('settings.save'))}</button>
+    `;
+  } else {
+    footer.innerHTML = `
+      <button class="btn-secondary" data-action="modal-cancel">${escapeHTML(t('btn.close'))}</button>
+    `;
+  }
+
+  document.getElementById('modal-backdrop').style.display = 'flex';
+
+  // Auto-focus + Listener für Auth-Type-Select (change-Event ist nicht im
+  // CLICK_HANDLERS-Dispatcher abgedeckt)
+  if (settingsState.activeTab === 'general') {
+    setTimeout(() => {
+      const el = document.getElementById('settings-org-name');
+      if (el) el.focus();
+    }, 50);
+  } else if (settingsState.activeTab === 'sync' && settingsState.formMode) {
+    const authSel = document.getElementById('sync-form-auth');
+    if (authSel) authSel.addEventListener('change', syncFormAuthChanged);
+    const encChk = document.getElementById('sync-form-enc-enabled');
+    if (encChk) encChk.addEventListener('change', syncFormEncToggled);
+    setTimeout(() => {
+      const labelEl = document.getElementById('sync-form-label');
+      if (labelEl) labelEl.focus();
+    }, 50);
+  }
+}
+
+function renderSettingsGeneral() {
   const meta = State.config.meta || {};
   const orgName = meta.organizationName || '';
   const printTitle = meta.printTitle || '';
 
-  body.innerHTML = `
+  return `
     <div class="sync-explain">${escapeHTML(t('settings.intro'))}</div>
 
     <div class="form-field" style="margin-top: 14px;">
@@ -9508,8 +11850,290 @@ function openSettingsModal() {
              autocomplete="off" />
       <div class="form-hint">${escapeHTML(t('settings.field_print_title_hint'))}</div>
     </div>
+  `;
+}
 
-    <div class="settings-about">
+function getBrowserSupport() {
+  // Sammelt Feature-Detection-Ergebnisse für V1.2-relevante APIs.
+  // Wird vom Browser-Warnungs-Banner und von den Backend-Initialisierungen
+  // gleichermaßen genutzt.
+  const fs = typeof window.showDirectoryPicker === 'function';
+  const bd = typeof window.BarcodeDetector === 'function';
+  const wc = !!(window.crypto && window.crypto.subtle);
+  // Browser-Family für die Banner-Texte. Wir wollen NICHT spezifisch Firefox
+  // outen, sondern beschreiben das fehlende Feature — aber bei Firefox liefert
+  // userAgent das Hinweis-Token, was die Doku-Verweise zielgenauer macht.
+  const ua = navigator.userAgent || '';
+  const isFirefox = /Firefox/i.test(ua) && !/Seamonkey/i.test(ua);
+  const isSafari = /Safari/i.test(ua) && !/Chrome|Chromium|Edg/i.test(ua);
+  return { fileSystemAccess: fs, barcodeDetector: bd, webCrypto: wc, isFirefox, isSafari };
+}
+
+function renderBrowserSupportBanner() {
+  const sup = getBrowserSupport();
+  const limits = [];
+  if (!sup.fileSystemAccess) limits.push(t('browser.limit_fs'));
+  if (!sup.barcodeDetector) limits.push(t('browser.limit_qr'));
+  if (limits.length === 0) return '';
+
+  const lead = sup.isFirefox
+    ? t('browser.lead_firefox')
+    : (sup.isSafari ? t('browser.lead_safari') : t('browser.lead_generic'));
+
+  return `
+    <div class="browser-support-banner" role="status">
+      <strong>${escapeHTML(t('browser.banner_title'))}</strong>
+      <div class="browser-banner-lead">${escapeHTML(lead)}</div>
+      <ul class="browser-banner-list">
+        ${limits.map(l => `<li>${escapeHTML(l)}</li>`).join('')}
+      </ul>
+      <div class="browser-banner-foot">${escapeHTML(t('browser.banner_workaround'))}</div>
+    </div>
+  `;
+}
+
+function renderSettingsSync() {
+  const sources = Sync.listSources();
+  let html = `<div class="sync-explain">${escapeHTML(t('settings.sync_intro'))}</div>`;
+  html += renderBrowserSupportBanner();
+
+  if (settingsState.formMode) {
+    html += '<div style="margin-top: 12px;">' + renderSyncForm() + '</div>';
+  }
+
+  if (sources.length === 0) {
+    if (!settingsState.formMode) {
+      html += `<div class="sync-no-sources" style="margin-top: 12px;">${escapeHTML(t('settings.sync_no_sources'))}</div>`;
+    }
+  } else {
+    html += `<div class="sync-source-list" style="margin-top: 12px;">`;
+    sources.forEach(s => {
+      const cfg = s.config || {};
+      let metaLine;
+      if (s.type === 'http') {
+        metaLine = cfg.url || '';
+      } else if (s.type === 'fileSystem') {
+        metaLine = (cfg.dirName || '?') + '/' + (cfg.fileName || 'cram-sync.json');
+      } else {
+        metaLine = '';
+      }
+      const typeLabel = t('settings.sync_type_' + s.type) || s.type;
+      html += `
+        <div class="sync-source-row">
+          <span class="sync-source-type-badge">${escapeHTML(typeLabel)}</span>
+          <div class="sync-source-info">
+            <div class="sync-source-label">${escapeHTML(s.label)}</div>
+            <div class="sync-source-meta">${escapeHTML(metaLine)}</div>
+          </div>
+          <div class="sync-source-actions">
+            <button data-action="sync-share-source" data-source-id="${escapeHTML(s.id)}">${escapeHTML(t('settings.sync_btn_share'))}</button>
+            <button data-action="sync-edit-source" data-source-id="${escapeHTML(s.id)}">${escapeHTML(t('settings.sync_btn_edit'))}</button>
+            <button class="danger" data-action="sync-delete-source" data-source-id="${escapeHTML(s.id)}" data-label="${escapeHTML(s.label)}">${escapeHTML(t('settings.sync_btn_delete'))}</button>
+          </div>
+        </div>
+      `;
+    });
+    html += `</div>`;
+  }
+
+  if (!settingsState.formMode) {
+    const fsSupported = typeof window.showDirectoryPicker === 'function';
+    html += `
+      <div class="sync-add-buttons" style="margin-top: 12px;">
+        <button class="btn-secondary" data-action="sync-add-http">+ ${escapeHTML(t('settings.sync_add_http'))}</button>
+        <button class="btn-secondary" data-action="sync-add-fs" ${fsSupported ? '' : 'disabled title="' + escapeHTML(t('settings.sync_add_fs_unsupported')) + '"'}>+ ${escapeHTML(t('settings.sync_add_fs'))}</button>
+        <button class="btn-secondary" data-action="sync-import-bundle">⇩ ${escapeHTML(t('settings.sync_import_bundle'))}</button>
+      </div>
+    `;
+  }
+
+  return html;
+}
+
+function renderSyncForm() {
+  const isEdit = settingsState.formMode === 'edit';
+  const src = isEdit ? Sync.getSource(settingsState.editingSourceId) : null;
+  const sourceType = isEdit
+    ? (src ? src.type : 'http')
+    : (settingsState.formSourceType || 'http');
+
+  if (sourceType === 'fileSystem') return renderSyncFormFs(src);
+  return renderSyncFormHttp(src);
+}
+
+function renderSyncFormHttp(src) {
+  const isEdit = !!src;
+  const cfg = src ? (src.config || {}) : {};
+  const enc = src ? (src.encryption || {}) : { enabled: true };
+  const label = src ? src.label : '';
+  const url = cfg.url || '';
+  const authType = cfg.authType || 'none';
+  const encEnabled = enc.enabled !== false;  // default true
+  const hasExistingKey = isEdit && src && Sync.hasKeyForSource(src.id);
+  const titleKey = isEdit ? 'settings.sync_form_edit_title' : 'settings.sync_form_add_title';
+  const saveKey  = isEdit ? 'settings.sync_btn_save_edit'   : 'settings.sync_btn_save_new';
+
+  return `
+    <div class="sync-form">
+      <div style="font-weight: 600; font-size: 13px;">${escapeHTML(t(titleKey))}</div>
+
+      <div class="form-field">
+        <label class="form-label" for="sync-form-label">${escapeHTML(t('settings.sync_field_label'))}</label>
+        <input type="text" id="sync-form-label" class="form-input" value="${escapeHTML(label)}"
+               placeholder="${escapeHTML(t('settings.sync_field_label_placeholder'))}" autocomplete="off" />
+      </div>
+
+      <div class="form-field">
+        <label class="form-label" for="sync-form-url">${escapeHTML(t('settings.sync_field_url'))}</label>
+        <input type="text" id="sync-form-url" class="form-input" value="${escapeHTML(url)}"
+               placeholder="${escapeHTML(t('settings.sync_field_url_placeholder'))}"
+               autocomplete="off" spellcheck="false" />
+        <div class="form-hint">${escapeHTML(t('settings.sync_field_url_hint'))}</div>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label" for="sync-form-auth">${escapeHTML(t('settings.sync_field_auth_type'))}</label>
+        <select id="sync-form-auth" class="form-input">
+          <option value="none"${authType === 'none' ? ' selected' : ''}>${escapeHTML(t('settings.sync_auth_none'))}</option>
+          <option value="basic"${authType === 'basic' ? ' selected' : ''}>${escapeHTML(t('settings.sync_auth_basic'))}</option>
+          <option value="bearer"${authType === 'bearer' ? ' selected' : ''}>${escapeHTML(t('settings.sync_auth_bearer'))}</option>
+        </select>
+      </div>
+
+      <div id="sync-form-auth-basic" class="sync-form-row" style="display: ${authType === 'basic' ? 'flex' : 'none'};">
+        <div class="form-field">
+          <label class="form-label" for="sync-form-user">${escapeHTML(t('settings.sync_field_user'))}</label>
+          <input type="text" id="sync-form-user" class="form-input" value="${escapeHTML(cfg.authUser || '')}" autocomplete="off" />
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="sync-form-pass">${escapeHTML(t('settings.sync_field_pass'))}</label>
+          <input type="password" id="sync-form-pass" class="form-input" value="${escapeHTML(cfg.authPass || '')}" autocomplete="new-password" />
+        </div>
+      </div>
+
+      <div id="sync-form-auth-bearer" class="form-field" style="display: ${authType === 'bearer' ? 'block' : 'none'};">
+        <label class="form-label" for="sync-form-token">${escapeHTML(t('settings.sync_field_token'))}</label>
+        <input type="password" id="sync-form-token" class="form-input" value="${escapeHTML(cfg.authToken || '')}" autocomplete="new-password" />
+      </div>
+
+      <div class="sync-form-divider"></div>
+
+      <div class="form-field-check">
+        <label>
+          <input type="checkbox" id="sync-form-enc-enabled" ${encEnabled ? 'checked' : ''} />
+          <span>${escapeHTML(t('settings.sync_enc_enabled'))}</span>
+        </label>
+        <div class="form-hint">${escapeHTML(t('settings.sync_enc_hint'))}</div>
+      </div>
+
+      <div id="sync-form-enc-fields" style="display: ${encEnabled ? 'block' : 'none'};">
+        <div class="form-field">
+          <label class="form-label" for="sync-form-passphrase">
+            ${escapeHTML(t(isEdit && hasExistingKey ? 'settings.sync_passphrase_optional' : 'settings.sync_passphrase'))}
+          </label>
+          <input type="password" id="sync-form-passphrase" class="form-input"
+                 placeholder="${escapeHTML(t('settings.sync_passphrase_placeholder'))}"
+                 autocomplete="new-password" />
+          <div class="form-hint">${escapeHTML(t('settings.sync_passphrase_hint'))}</div>
+        </div>
+        ${isEdit ? '' : `
+          <div class="form-field">
+            <label class="form-label" for="sync-form-passphrase-confirm">${escapeHTML(t('settings.sync_passphrase_confirm'))}</label>
+            <input type="password" id="sync-form-passphrase-confirm" class="form-input"
+                   autocomplete="new-password" />
+          </div>
+        `}
+      </div>
+
+      <div class="sync-form-buttons">
+        <button class="btn-secondary" data-action="sync-form-cancel">${escapeHTML(t('settings.sync_btn_cancel'))}</button>
+        <button class="btn-primary" data-action="sync-form-save">${escapeHTML(t(saveKey))}</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderSyncFormFs(src) {
+  const isEdit = !!src;
+  const cfg = src ? (src.config || {}) : {};
+  const enc = src ? (src.encryption || {}) : { enabled: true };
+  const label = src ? src.label : '';
+  const fileName = cfg.fileName || 'cram-sync.json';
+  const dirName = settingsState._pendingDirName || cfg.dirName || '';
+  const hasDir = isEdit ? !!cfg.dirName : !!settingsState._pendingDirHandle;
+  const encEnabled = enc.enabled !== false;
+  const hasExistingKey = isEdit && src && Sync.hasKeyForSource(src.id);
+  const titleKey = isEdit ? 'settings.sync_form_edit_title_fs' : 'settings.sync_form_add_title_fs';
+  const saveKey  = isEdit ? 'settings.sync_btn_save_edit'      : 'settings.sync_btn_save_new';
+
+  return `
+    <div class="sync-form">
+      <div style="font-weight: 600; font-size: 13px;">${escapeHTML(t(titleKey))}</div>
+
+      <div class="form-field">
+        <label class="form-label" for="sync-form-label">${escapeHTML(t('settings.sync_field_label'))}</label>
+        <input type="text" id="sync-form-label" class="form-input" value="${escapeHTML(label)}"
+               placeholder="${escapeHTML(t('settings.sync_field_label_placeholder_fs'))}" autocomplete="off" />
+      </div>
+
+      <div class="form-field">
+        <label class="form-label">${escapeHTML(t('settings.sync_field_directory'))}</label>
+        <div class="sync-fs-dir-row">
+          <button class="btn-secondary" data-action="sync-form-pick-dir">${escapeHTML(t(hasDir ? 'settings.sync_btn_pick_dir_change' : 'settings.sync_btn_pick_dir'))}</button>
+          <span id="sync-form-fs-dir-display" class="sync-fs-dir-display">${escapeHTML(dirName || t('settings.sync_fs_no_dir'))}</span>
+        </div>
+        <div class="form-hint">${escapeHTML(t('settings.sync_field_directory_hint'))}</div>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label" for="sync-form-filename">${escapeHTML(t('settings.sync_field_filename'))}</label>
+        <input type="text" id="sync-form-filename" class="form-input"
+               value="${escapeHTML(fileName)}"
+               placeholder="cram-sync.json"
+               autocomplete="off" spellcheck="false" />
+        <div class="form-hint">${escapeHTML(t('settings.sync_field_filename_hint'))}</div>
+      </div>
+
+      <div class="sync-form-divider"></div>
+
+      <div class="form-field-check">
+        <label>
+          <input type="checkbox" id="sync-form-enc-enabled" ${encEnabled ? 'checked' : ''} />
+          <span>${escapeHTML(t('settings.sync_enc_enabled'))}</span>
+        </label>
+        <div class="form-hint">${escapeHTML(t('settings.sync_enc_hint_fs'))}</div>
+      </div>
+
+      <div id="sync-form-enc-fields" style="display: ${encEnabled ? 'block' : 'none'};">
+        <div class="form-field">
+          <label class="form-label" for="sync-form-passphrase">
+            ${escapeHTML(t(isEdit && hasExistingKey ? 'settings.sync_passphrase_optional' : 'settings.sync_passphrase'))}
+          </label>
+          <input type="password" id="sync-form-passphrase" class="form-input"
+                 placeholder="${escapeHTML(t('settings.sync_passphrase_placeholder'))}"
+                 autocomplete="new-password" />
+          <div class="form-hint">${escapeHTML(t('settings.sync_passphrase_hint'))}</div>
+        </div>
+        ${isEdit ? '' : `
+          <div class="form-field">
+            <label class="form-label" for="sync-form-passphrase-confirm">${escapeHTML(t('settings.sync_passphrase_confirm'))}</label>
+            <input type="password" id="sync-form-passphrase-confirm" class="form-input"
+                   autocomplete="new-password" />
+          </div>
+        `}
+      </div>
+
+      <div class="sync-form-buttons">
+        <button class="btn-secondary" data-action="sync-form-cancel">${escapeHTML(t('settings.sync_btn_cancel'))}</button>
+        <button class="btn-primary" data-action="sync-form-save">${escapeHTML(t(saveKey))}</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderSettingsAbout() {
+  return `
+    <div class="settings-about" style="margin-top: 4px;">
       <div class="settings-about-row">
         <span class="settings-about-label">${escapeHTML(t('settings.about_version'))}</span>
         <span class="settings-about-value"><code>${escapeHTML(APP_VERSION)}</code></span>
@@ -9526,16 +12150,15 @@ function openSettingsModal() {
       </div>
     </div>
   `;
-  footer.innerHTML = `
-    <button class="btn-secondary" data-action="modal-cancel">${escapeHTML(t('btn.cancel'))}</button>
-    <button class="btn-primary" data-action="settings-save">${escapeHTML(t('settings.save'))}</button>
-  `;
-
-  document.getElementById('modal-backdrop').style.display = 'flex';
-  setTimeout(() => document.getElementById('settings-org-name').focus(), 50);
 }
 
 function saveSettingsModal() {
+  // Save-Button existiert nur im General-Tab; sync-Tab speichert über
+  // sync-form-save, about-Tab ist read-only.
+  if (settingsState.activeTab !== 'general') {
+    closeModal();
+    return;
+  }
   const orgName = (document.getElementById('settings-org-name').value || '').trim();
   const printTitle = (document.getElementById('settings-print-title').value || '').trim();
 
@@ -9548,6 +12171,527 @@ function saveSettingsModal() {
   closeModal();
   saveConfigAndRerender();
   showToast(t('toast.settings_saved'), 'success');
+}
+
+/* ---- Sync-Sources Form/CRUD-Handler (V1.2) ---- */
+
+function syncFormShowAdd() {
+  // Backward-compat shim: alte Tests / Calls landen im HTTP-Add.
+  syncFormShowAddHttp();
+}
+
+function syncFormShowAddHttp() {
+  settingsState.formMode = 'add';
+  settingsState.editingSourceId = null;
+  settingsState.formSourceType = 'http';
+  delete settingsState._pendingDirHandle;
+  delete settingsState._pendingDirName;
+  renderSettingsModal();
+}
+
+function syncFormShowAddFs() {
+  if (typeof window.showDirectoryPicker !== 'function') {
+    showToast(t('settings.sync_add_fs_unsupported'), 'error');
+    return;
+  }
+  settingsState.formMode = 'add';
+  settingsState.editingSourceId = null;
+  settingsState.formSourceType = 'fileSystem';
+  delete settingsState._pendingDirHandle;
+  delete settingsState._pendingDirName;
+  renderSettingsModal();
+}
+
+function syncFormShowEdit(sourceId) {
+  const src = Sync.getSource(sourceId);
+  settingsState.formMode = 'edit';
+  settingsState.editingSourceId = sourceId;
+  settingsState.formSourceType = src ? src.type : 'http';
+  delete settingsState._pendingDirHandle;
+  delete settingsState._pendingDirName;
+  renderSettingsModal();
+}
+
+function syncFormCancel() {
+  settingsState.formMode = null;
+  settingsState.editingSourceId = null;
+  settingsState.formSourceType = null;
+  delete settingsState._pendingDirHandle;
+  delete settingsState._pendingDirName;
+  renderSettingsModal();
+}
+
+async function syncFormPickDirectory() {
+  if (typeof window.showDirectoryPicker !== 'function') {
+    showToast(t('settings.sync_add_fs_unsupported'), 'error');
+    return;
+  }
+  try {
+    const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
+    settingsState._pendingDirHandle = handle;
+    settingsState._pendingDirName = handle.name;
+    const display = document.getElementById('sync-form-fs-dir-display');
+    if (display) display.textContent = handle.name;
+  } catch (e) {
+    if (e && e.name !== 'AbortError') {
+      showToast(t('settings.sync_fs_pick_failed', { msg: String(e.message || e) }), 'error');
+    }
+  }
+}
+
+function syncFormAuthChanged() {
+  const auth = (document.getElementById('sync-form-auth').value || 'none');
+  const basicBlock = document.getElementById('sync-form-auth-basic');
+  const bearerBlock = document.getElementById('sync-form-auth-bearer');
+  if (basicBlock)  basicBlock.style.display  = (auth === 'basic')  ? 'flex'  : 'none';
+  if (bearerBlock) bearerBlock.style.display = (auth === 'bearer') ? 'block' : 'none';
+}
+
+function syncFormEncToggled() {
+  const enabled = document.getElementById('sync-form-enc-enabled').checked;
+  const block = document.getElementById('sync-form-enc-fields');
+  if (block) block.style.display = enabled ? 'block' : 'none';
+}
+
+async function syncFormSave() {
+  const label = (document.getElementById('sync-form-label').value || '').trim();
+  const isEdit = settingsState.formMode === 'edit' && settingsState.editingSourceId;
+  const existingSrc = isEdit ? Sync.getSource(settingsState.editingSourceId) : null;
+  const sourceType = isEdit
+    ? (existingSrc ? existingSrc.type : 'http')
+    : (settingsState.formSourceType || 'http');
+
+  // Pro Source-Typ unterschiedliche Config zusammensetzen
+  let config;
+  if (sourceType === 'fileSystem') {
+    const fileName = (document.getElementById('sync-form-filename').value || '').trim() || 'cram-sync.json';
+    let dirHandle = settingsState._pendingDirHandle || null;
+    let dirName;
+    if (dirHandle) {
+      dirName = dirHandle.name;
+    } else if (isEdit && existingSrc) {
+      dirName = (existingSrc.config || {}).dirName;
+    }
+    if (!isEdit && !dirHandle) {
+      showToast(t('settings.sync_fs_err_no_dir'), 'error');
+      return;
+    }
+    if (!/^[\w.\-]+\.json$/i.test(fileName)) {
+      showToast(t('settings.sync_fs_err_bad_filename'), 'error');
+      return;
+    }
+    config = { fileName, dirName: dirName || '' };
+  } else {
+    const url = (document.getElementById('sync-form-url').value || '').trim();
+    const authType = (document.getElementById('sync-form-auth').value || 'none');
+    if (!url) {
+      showToast(t('settings.sync_err_url_required'), 'error');
+      return;
+    }
+    if (!/^https?:\/\//i.test(url)) {
+      showToast(t('settings.sync_err_url_invalid'), 'error');
+      return;
+    }
+    config = { url };
+    if (authType === 'basic') {
+      const user = (document.getElementById('sync-form-user').value || '').trim();
+      const pass = (document.getElementById('sync-form-pass').value || '');
+      if (!user) {
+        showToast(t('settings.sync_err_user_required'), 'error');
+        return;
+      }
+      config.authType = 'basic';
+      config.authUser = user;
+      config.authPass = pass;
+    } else if (authType === 'bearer') {
+      const token = (document.getElementById('sync-form-token').value || '').trim();
+      if (!token) {
+        showToast(t('settings.sync_err_token_required'), 'error');
+        return;
+      }
+      config.authType = 'bearer';
+      config.authToken = token;
+    } else {
+      config.authType = 'none';
+    }
+  }
+
+  // Encryption setup (gemeinsam für beide Source-Typen)
+  const encEnabled = document.getElementById('sync-form-enc-enabled').checked;
+  const passphraseInput = document.getElementById('sync-form-passphrase');
+  const passphrase = passphraseInput ? (passphraseInput.value || '') : '';
+  const confirmInput = document.getElementById('sync-form-passphrase-confirm');
+  const confirmPassphrase = confirmInput ? (confirmInput.value || '') : '';
+
+  const existingEnc = existingSrc ? (existingSrc.encryption || {}) : {};
+  const hadKeyAlready = isEdit && Sync.hasKeyForSource(settingsState.editingSourceId);
+
+  let encryption;
+  if (!encEnabled) {
+    // Klartext-Modus
+    encryption = { enabled: false };
+    if (isEdit) Sync.clearKeyForSource(settingsState.editingSourceId);
+  } else if (isEdit && hadKeyAlready && !passphrase) {
+    // Edit ohne neue Passphrase → bestehender Salt+Key bleibt erhalten
+    encryption = Object.assign({}, existingEnc, { enabled: true });
+  } else {
+    // Neue Source ODER Edit mit neuer Passphrase → Passphrase pflicht
+    if (!passphrase) {
+      showToast(t('settings.sync_err_passphrase_required'), 'error');
+      return;
+    }
+    if (!isEdit && passphrase !== confirmPassphrase) {
+      showToast(t('settings.sync_err_passphrase_mismatch'), 'error');
+      return;
+    }
+    if (passphrase.length < 8) {
+      showToast(t('settings.sync_err_passphrase_short'), 'error');
+      return;
+    }
+    // Salt: bei neuer Passphrase oder neuer Source → frisch generieren.
+    // (Bei neuer Passphrase darf der alte Salt nicht recycled werden, sonst
+    // wäre die alte Server-Datei unlesbar mit dem neuen Schlüssel und der
+    // User würde nicht merken, dass es zwei Schlüssel-Sätze gibt.)
+    const saltB64 = SyncCrypto.randomSaltB64();
+    try {
+      const cryptoKey = await SyncCrypto.deriveKey(passphrase, saltB64);
+      encryption = { enabled: true, salt: saltB64 };
+      // Key-Cache erst nach erfolgreichem Save setzen — Source-ID brauchen wir
+      // dafür, daher unten nach add/update.
+      settingsState._pendingKey = cryptoKey;
+      settingsState._pendingPassphrase = passphrase;
+    } catch (e) {
+      showToast(t('settings.sync_err_key_derive', { msg: String(e.message || e) }), 'error');
+      return;
+    }
+  }
+
+  const fallbackLabel = t(sourceType === 'fileSystem'
+    ? 'settings.sync_field_label_placeholder_fs'
+    : 'settings.sync_field_label_placeholder');
+  let savedSource;
+  if (isEdit) {
+    savedSource = Sync.updateSource(settingsState.editingSourceId, {
+      label: label || fallbackLabel,
+      config,
+      encryption,
+    });
+    showToast(t('toast.sync_source_updated'), 'success');
+  } else {
+    savedSource = Sync.addSource({
+      type: sourceType,
+      label: label || fallbackLabel,
+      config,
+      encryption,
+    });
+    showToast(t('toast.sync_source_added'), 'success');
+  }
+
+  // Cached key + passphrase nach erfolgreichem Save anlegen (falls gesetzt)
+  if (settingsState._pendingKey && savedSource) {
+    Sync.setKeyForSource(savedSource.id, settingsState._pendingKey);
+    delete settingsState._pendingKey;
+  }
+  if (settingsState._pendingPassphrase && savedSource) {
+    Sync.setPassphraseForSource(savedSource.id, settingsState._pendingPassphrase);
+    delete settingsState._pendingPassphrase;
+  }
+
+  // Directory-Handle in IndexedDB persistieren (nur fileSystem)
+  if (sourceType === 'fileSystem' && settingsState._pendingDirHandle && savedSource) {
+    try {
+      await SyncFileStore.setHandle(savedSource.id, settingsState._pendingDirHandle);
+    } catch (e) {
+      showToast(t('settings.sync_fs_err_handle_save', { msg: String(e.message || e) }), 'error');
+    }
+  }
+
+  settingsState.formMode = null;
+  settingsState.editingSourceId = null;
+  settingsState.formSourceType = null;
+  delete settingsState._pendingDirHandle;
+  delete settingsState._pendingDirName;
+  renderSettingsModal();
+}
+
+async function syncDeleteSource(sourceId, label) {
+  const msg = t('settings.sync_delete_confirm', { label: label || '' });
+  if (!window.confirm(msg)) return;
+  const src = Sync.getSource(sourceId);
+  Sync.removeSource(sourceId);
+  // Bei fileSystem: zusätzlich den DirectoryHandle aus IndexedDB entfernen.
+  if (src && src.type === 'fileSystem') {
+    try { await SyncFileStore.removeHandle(sourceId); } catch (e) { /* ignore */ }
+  }
+  showToast(t('toast.sync_source_deleted'), 'success');
+  renderSettingsModal();
+}
+
+/* =========================================================================
+   SYNC-BUNDLE SHARE / IMPORT FLOWS (V1.2 Phase 3.3)
+   Beide Flows nutzen das gleiche Modal-Backdrop, ersetzen kurzzeitig den
+   Settings-Modal-Inhalt, und kehren nach Close zum Settings → Sync-Tab
+   zurück.
+   ========================================================================= */
+
+let bundleShareState = { sourceId: null, bundle: null, json: null };
+
+async function openSyncShareModal(sourceId) {
+  bundleShareState = { sourceId, bundle: null, json: null };
+  const src = Sync.getSource(sourceId);
+  if (!src) { showToast('Source not found', 'error'); return; }
+
+  // Wenn Verschlüsselung aktiv und Passphrase nicht im Cache → prompten
+  if (Sync.isEncryptionEnabled(src) && !Sync.hasPassphraseForSource(sourceId)) {
+    const passphrase = await promptPassphrase(src);
+    if (!passphrase) { renderSettingsModal(); return; }
+    // Verify by deriving and comparing — wir vergleichen Keys nicht direkt,
+    // sondern speichern beide ein und vertrauen, dass die Passphrase richtig
+    // war. Falls falsch, würde der Empfänger ein Decryption-Failure sehen.
+    try {
+      const saltB64 = (src.encryption || {}).salt;
+      const key = await SyncCrypto.deriveKey(passphrase, saltB64);
+      Sync.setKeyForSource(sourceId, key);
+      Sync.setPassphraseForSource(sourceId, passphrase);
+    } catch (e) {
+      showToast(t('settings.sync_err_key_derive', { msg: String(e.message || e) }), 'error');
+      return;
+    }
+  }
+
+  try {
+    bundleShareState.bundle = SyncBundle.build(sourceId);
+    bundleShareState.json = SyncBundle.serialize(bundleShareState.bundle);
+  } catch (e) {
+    showToast(t('bundle.share_build_failed', { msg: String(e.message || e) }), 'error');
+    renderSettingsModal();
+    return;
+  }
+
+  renderSyncShareModal();
+}
+
+function renderSyncShareModal() {
+  const src = Sync.getSource(bundleShareState.sourceId);
+  const title = document.getElementById('modal-title');
+  const body  = document.getElementById('modal-body');
+  const footer = document.getElementById('modal-footer');
+
+  title.textContent = t('bundle.share_title', { label: (src && src.label) || '?' });
+  body.innerHTML = `
+    <div class="bundle-warning">
+      <strong>⚠ ${escapeHTML(t('bundle.share_warn_title'))}</strong>
+      <div>${escapeHTML(t('bundle.share_warn_body'))}</div>
+    </div>
+    <div class="form-field" style="margin-top: 12px;">
+      <label class="form-label" for="bundle-share-text">${escapeHTML(t('bundle.share_field'))}</label>
+      <textarea id="bundle-share-text" class="form-input bundle-text" rows="10" readonly>${escapeHTML(bundleShareState.json)}</textarea>
+    </div>
+    <div class="bundle-share-actions">
+      <button class="btn-secondary" data-action="bundle-share-copy">⎘ ${escapeHTML(t('bundle.share_copy'))}</button>
+      <button class="btn-secondary" data-action="bundle-share-download">⇩ ${escapeHTML(t('bundle.share_download'))}</button>
+    </div>
+  `;
+  footer.innerHTML = `
+    <button class="btn-secondary" data-action="bundle-share-close">${escapeHTML(t('btn.close'))}</button>
+  `;
+  document.getElementById('modal-backdrop').style.display = 'flex';
+}
+
+async function syncShareCopy() {
+  const txt = document.getElementById('bundle-share-text');
+  if (!txt) return;
+  try {
+    await navigator.clipboard.writeText(txt.value);
+    showToast(t('bundle.share_copied'), 'success');
+  } catch (e) {
+    // Fallback: select + manual copy
+    txt.focus();
+    txt.select();
+    showToast(t('bundle.share_copy_manual'), 'info');
+  }
+}
+
+function syncShareDownload() {
+  const json = bundleShareState.json;
+  if (!json) return;
+  const src = Sync.getSource(bundleShareState.sourceId);
+  const safeLabel = (src && src.label ? src.label : 'source').replace(/[^\w.-]+/g, '_');
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `cram-bundle-${safeLabel}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+  showToast(t('bundle.share_downloaded'), 'success');
+}
+
+function syncShareClose() {
+  bundleShareState = { sourceId: null, bundle: null, json: null };
+  // Zurück zum Settings-Modal, Sync-Tab
+  closeModal();
+  setTimeout(() => { openSettingsModal(); switchSettingsTab('sync'); }, 0);
+}
+
+/* ---- Import flow ---- */
+
+let bundleImportState = { rawText: '', bundle: null, parseError: null };
+
+function openSyncImportModal() {
+  bundleImportState = { rawText: '', bundle: null, parseError: null };
+  renderSyncImportModal();
+}
+
+function renderSyncImportModal() {
+  const title = document.getElementById('modal-title');
+  const body  = document.getElementById('modal-body');
+  const footer = document.getElementById('modal-footer');
+
+  title.textContent = t('bundle.import_title');
+
+  const b = bundleImportState.bundle;
+  const fingerprintLocal = SyncBundle.getFingerprintLocal();
+  const fpMatch = b && b.configFingerprint === fingerprintLocal;
+
+  let preview = '';
+  if (b) {
+    const fpLine = b.configFingerprint
+      ? `<div class="bundle-preview-fp" data-match="${fpMatch}">
+           <span>${escapeHTML(t('bundle.preview_fingerprint'))}: <code>${escapeHTML(b.configFingerprint)}</code>
+             vs. lokal <code>${escapeHTML(fingerprintLocal)}</code></span>
+           <span class="bundle-fp-tag">${escapeHTML(fpMatch ? t('bundle.preview_fp_match') : t('bundle.preview_fp_mismatch'))}</span>
+         </div>`
+      : '';
+    let detail = '';
+    if (b.type === 'http') {
+      detail = `<div class="bundle-preview-row"><strong>URL:</strong> <code>${escapeHTML((b.config || {}).url || '')}</code></div>`;
+    } else if (b.type === 'fileSystem') {
+      detail = `<div class="bundle-preview-row"><strong>${escapeHTML(t('bundle.preview_filename'))}:</strong> <code>${escapeHTML((b.config || {}).fileName || 'cram-sync.json')}</code></div>
+                <div class="bundle-preview-hint">${escapeHTML(t('bundle.preview_fs_hint'))}</div>`;
+    }
+    const encLine = b.encryption && b.encryption.enabled
+      ? `<div class="bundle-preview-row">🔒 ${escapeHTML(t('bundle.preview_encrypted'))}</div>`
+      : `<div class="bundle-preview-row">⚠ ${escapeHTML(t('bundle.preview_unencrypted'))}</div>`;
+    preview = `
+      <div class="bundle-preview">
+        <div class="bundle-preview-row"><strong>${escapeHTML(t('bundle.preview_type'))}:</strong> ${escapeHTML(b.type)}</div>
+        <div class="bundle-preview-row"><strong>${escapeHTML(t('bundle.preview_label'))}:</strong> ${escapeHTML(b.label)}</div>
+        ${detail}
+        ${encLine}
+        ${fpLine}
+        ${!fpMatch && b.configFingerprint ? `<div class="bundle-fp-warn">${escapeHTML(t('bundle.preview_fp_warn'))}</div>` : ''}
+      </div>
+    `;
+  }
+
+  const errBlock = bundleImportState.parseError
+    ? `<div class="bundle-import-err">${escapeHTML(bundleImportState.parseError)}</div>`
+    : '';
+
+  body.innerHTML = `
+    <div class="sync-explain">${escapeHTML(t('bundle.import_intro'))}</div>
+    <div class="form-field" style="margin-top: 12px;">
+      <label class="form-label" for="bundle-import-text">${escapeHTML(t('bundle.import_field'))}</label>
+      <textarea id="bundle-import-text" class="form-input bundle-text" rows="8"
+                placeholder="${escapeHTML(t('bundle.import_placeholder'))}">${escapeHTML(bundleImportState.rawText)}</textarea>
+    </div>
+    <div class="bundle-import-actions">
+      <button class="btn-secondary" data-action="bundle-import-file">${escapeHTML(t('bundle.import_from_file'))}</button>
+      <button class="btn-secondary" data-action="bundle-import-parse">${escapeHTML(t('bundle.import_parse'))}</button>
+    </div>
+    ${errBlock}
+    ${preview}
+  `;
+  footer.innerHTML = `
+    <button class="btn-secondary" data-action="bundle-import-close">${escapeHTML(t('btn.cancel'))}</button>
+    <button class="btn-primary" data-action="bundle-import-apply" ${b ? '' : 'disabled'}>${escapeHTML(t('bundle.import_apply'))}</button>
+  `;
+  document.getElementById('modal-backdrop').style.display = 'flex';
+
+  // Live-Parse beim Tippen (debounced über change-Event)
+  const ta = document.getElementById('bundle-import-text');
+  if (ta) {
+    ta.addEventListener('input', () => { bundleImportState.rawText = ta.value; });
+  }
+}
+
+function syncImportParse() {
+  const txt = document.getElementById('bundle-import-text');
+  if (!txt) return;
+  const raw = txt.value.trim();
+  bundleImportState.rawText = raw;
+  if (!raw) {
+    bundleImportState.bundle = null;
+    bundleImportState.parseError = t('bundle.import_err_empty');
+    renderSyncImportModal();
+    return;
+  }
+  try {
+    bundleImportState.bundle = SyncBundle.parse(raw);
+    bundleImportState.parseError = null;
+  } catch (e) {
+    bundleImportState.bundle = null;
+    bundleImportState.parseError = String(e.message || e);
+  }
+  renderSyncImportModal();
+}
+
+function syncImportFromFile() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json,application/json';
+  input.addEventListener('change', async () => {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      bundleImportState.rawText = text;
+      // Auto-parse after loading
+      try {
+        bundleImportState.bundle = SyncBundle.parse(text);
+        bundleImportState.parseError = null;
+      } catch (e) {
+        bundleImportState.bundle = null;
+        bundleImportState.parseError = String(e.message || e);
+      }
+      renderSyncImportModal();
+    } catch (e) {
+      showToast(t('bundle.import_err_file_read', { msg: String(e.message || e) }), 'error');
+    }
+  });
+  input.click();
+}
+
+async function syncImportApply() {
+  if (!bundleImportState.bundle) {
+    showToast(t('bundle.import_err_no_bundle'), 'error');
+    return;
+  }
+  const fpLocal = SyncBundle.getFingerprintLocal();
+  if (bundleImportState.bundle.configFingerprint &&
+      bundleImportState.bundle.configFingerprint !== fpLocal) {
+    if (!window.confirm(t('bundle.import_confirm_fp_mismatch'))) return;
+  }
+  try {
+    const result = await SyncBundle.apply(bundleImportState.bundle);
+    if (result === null) {
+      // user cancelled the directory picker (fileSystem)
+      return;
+    }
+    showToast(t('bundle.import_success', { label: result.source.label }), 'success');
+    syncImportClose();
+  } catch (e) {
+    showToast(t('bundle.import_err_apply', { msg: String(e.message || e) }), 'error');
+  }
+}
+
+function syncImportClose() {
+  bundleImportState = { rawText: '', bundle: null, parseError: null };
+  closeModal();
+  setTimeout(() => { openSettingsModal(); switchSettingsTab('sync'); }, 0);
 }
 
 /* =========================================================================
@@ -9730,6 +12874,10 @@ function init() {
   setupTabs();
   setupKeyboard();
   setupPWA();
+
+  // Sync-Awareness-Indikator: bei jeder Sync-State-Mutation neu rendern
+  Sync.onChange(() => renderSyncIndicator());
+
   render();
 }
 

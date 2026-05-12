@@ -43,3 +43,6 @@ tmp/
 # OS keychains and temp files
 *.pid
 *.seed
+
+# Dev sync backend (V1.2 testing) — runtime state only, never committed
+scripts/dev-sync-state.json
