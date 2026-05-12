@@ -158,6 +158,7 @@ This separation matters because the two types of data have different transfer ch
 | Sync code | Status only | Yes | Phone call, chat, radio |
 | QR transfer | Configuration, status, or both | Yes | Same room, no network |
 | JSON export / import | Configuration, status, or both | Yes | E-mail, file share, archive |
+| Online (V1.2+) | Configuration + status, encrypted | No | Distributed team, regular reconciliation |
 
 ### Sync code
 
@@ -182,6 +183,19 @@ A conventional JSON file with the full configuration and optionally the current 
 - Seeding a fresh CRAM instance on a new device
 
 ![Export dialog showing counts for levels, roles, people, absent and manual assignments](docs/screenshots/06-backup-restore.png)
+
+### Online sync (V1.2+)
+
+For ongoing reconciliation across a distributed team. Unlike the channels above, online sync does not require live contact between sender and receiver — everyone pushes their state to a shared endpoint and pulls the combined state from there. In V1.2 both actions are manual (two buttons); V2.0 will automate this.
+
+Two backend types are supported:
+
+- **HTTP endpoint** — a self-hosted location (nginx with `dav_methods`, Caddy + WebDAV plugin, SharePoint WebDAV, MinIO, Synology NAS). Server-side setup snippets in [`docs/server-setup.md`](docs/server-setup.md).
+- **Local directory** — typically a folder synchronised by OneDrive / Dropbox / Google Drive. CRAM writes the file; the vendor's desktop client handles distribution. No new server required.
+
+End-to-end encryption is enabled by default (AES-256-GCM with PBKDF2). The passphrase is never persisted — recipients re-enter it after a browser restart. Sources can be onboarded onto other devices by sharing a **sync bundle**: a JSON object that carries URL or filename, auth data, salt, and passphrase. Distribute the bundle over a secure channel (Signal, password manager, in-person) — never in plain email or chat.
+
+For end-user step-by-step instructions, see [docs/handbook-en.md](docs/handbook-en.md#online-sync-since-v12).
 
 ## Print / PDF
 
@@ -250,8 +264,13 @@ This does mean there is no cloud sync, no cross-device login, no backup unless y
 | PWA installation | ✓ | ✓ | partial |
 | Camera over `file://` | ✓ | ✓ | ✓ |
 | Camera on mobile over `file://` | — | — | — (needs HTTPS) |
+| **Online sync — HTTP backend (V1.2+)** | ✓ | ✓ | ✓ |
+| **Online sync — Local directory (V1.2+)** | ✓ | partial (re-permission per session) | — (no File System Access API) |
+| **End-to-end encryption (V1.2+)** | ✓ | ✓ | ✓ |
 
-Firefox users can still use every feature except the QR scanner. For mobile camera access, the tool needs to be served over HTTPS, localhost, or loaded from `file://` with appropriate permissions.
+Firefox users can still use every feature except QR scanning and the Local-directory sync source. HTTP-based online sync works in every browser. When a feature is unavailable, CRAM shows an explanatory banner in the Sync sources tab.
+
+For mobile camera access, the tool needs to be served over HTTPS, localhost, or loaded from `file://` with appropriate permissions.
 
 ## Known limitations
 

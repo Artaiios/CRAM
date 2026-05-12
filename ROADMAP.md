@@ -1,6 +1,6 @@
 # CRAM — Roadmap
 
-Stand: 8. Mai 2026, nach Brainstorming-Konvergenz für V1.2/V2.0.
+Stand: 12. Mai 2026 — V1.0 released, V1.2 fertig implementiert (Branch `v1-2-manual-sync`), Release-Tag steht noch aus.
 
 Lebende Liste. Prioritäten verschieben sich durch Praxis-Feedback. Liegt im Repo, damit Mitbenutzer nachvollziehen können, woran wir denken.
 
@@ -66,7 +66,7 @@ Praxistest mit rc1.2/rc1.3 hat keine Bugs oder strukturellen Probleme aufgezeigt
 
 ---
 
-## V1.2 — Manueller Online-Sync mit Awareness
+## V1.2 — Manueller Online-Sync mit Awareness ✓ implementiert
 
 **Ziel:** Sync-Source-Architektur etablieren, ohne Auto-Magie. User behält volle Kontrolle. Proof-of-Concept und Vertrauensaufbau für V2.
 

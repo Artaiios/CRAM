@@ -192,6 +192,59 @@ For **archival, email distribution, or version control**. The configuration (and
 3. Review preview (number of levels, roles, people)
 4. Click "Import" — existing data is overwritten
 
+### Online sync (since V1.2)
+
+For **regular status reconciliation across a distributed team** over the network. Unlike Code / QR / file, online sync does **not** require live contact between sender and receiver — everyone pushes their state to a shared endpoint and pulls the latest combined state from there.
+
+In V1.2 both actions are **manual** (two buttons in the Sync modal). V2.0 will automate this.
+
+**Two backend types are supported:**
+
+- **HTTP server** — a self-hosted endpoint (nginx with `dav_methods`, Caddy + the WebDAV plugin, SharePoint WebDAV, MinIO, Synology NAS). The server hosts a single file `state.json`. Setup guidance in [`docs/server-setup.md`](server-setup.md).
+- **Local directory** — typically a folder that OneDrive / Dropbox / Google Drive synchronises between devices. CRAM writes the file into the folder; the vendor's desktop sync client handles distribution. No server to run.
+
+**Add a sync source:**
+
+1. Enter edit mode (✎ in the header)
+2. Click ⚙ **Settings** in the edit banner
+3. Switch to the **Sync sources** tab
+4. Pick:
+   - **+ New HTTP source** — label (free-form, e.g. "Primary internal server"), endpoint URL, authentication (None / Basic / Bearer)
+   - **+ Local directory** — label, then "Choose directory…"; the browser asks for a folder; optionally adjust the filename (default `cram-sync.json`)
+5. **Encryption** is enabled by default (end-to-end, AES-256-GCM with PBKDF2 from your passphrase). Enter a passphrase and confirm it. **Save it in a password manager** — CRAM only keeps it in memory and discards it whenever the tab closes.
+6. Save.
+
+Once the source is configured, a small **sync indicator** appears left of the status pills in the header showing the current state: ✓ Synced, ↑ Changes (unpushed local edits), ↻ Syncing, ✗ Error.
+
+**Manual synchronisation:**
+
+1. Open ⇄ **Sync** in the header
+2. Pick the **🌐 Online (server)** channel
+3. Each configured source shows two buttons:
+   - **↓ Pull from server** — fetches the server state and overwrites your local one
+   - **↑ Push to server** — sends your local state and overwrites the server state
+4. For encrypted sources, CRAM prompts for the passphrase when needed (for example after a tab restart). The passphrase is never persisted.
+
+**Share a source with the team — sync bundle:**
+
+To let colleagues sync against the same source, you export a **sync bundle**: a JSON object with everything needed to bootstrap (URL or filename, auth data, salt, passphrase).
+
+1. In **Settings → Sync sources**, click "Share" on the relevant source
+2. The modal shows the bundle JSON with a clear warning: **the bundle is confidential** — it contains the passphrase and credentials in plaintext
+3. Distribute over a secure channel: Signal/Threema, a password-manager entry, hand-delivery. **Never send via plain email or chat.**
+4. The colleague opens CRAM, Settings → Sync sources → **⇩ Import bundle**, pastes the JSON or loads it from the file
+5. CRAM shows a preview with source type, URL/filename, encryption status, and a fingerprint comparison. If the fingerprints don't match, you'd sync against different team configurations — CRAM warns explicitly.
+6. "Apply" — for local-directory bundles, CRAM now asks for the local folder (the recipient picks their own path).
+
+**Things that can go wrong with online sync:**
+
+- **Server unreachable** — VPN off, wrong URL: the indicator goes red ✗ with the error text; local data stays as-is
+- **Wrong passphrase** — pull decryption fails: "Decryption failed — wrong passphrase?". You can re-enter via the prompt
+- **Accidentally sharing an unencrypted bundle** — the form requires opting OUT of encryption explicitly; default is always Encryption=ON
+- **Wrong fingerprint on import** — you'll see a warning and can still proceed if you're sure (e.g. a brand-new team)
+
+**Browser note:** Firefox does not support the "Local directory" type because Mozilla rejects the File System Access API. HTTP sources work in every browser. When Firefox is detected, CRAM shows a hint banner in the Sync sources tab.
+
 ## Printing
 
 CRAM has three print templates for paper copies, and all three work with A4, A3 or Letter in portrait or landscape.
