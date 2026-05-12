@@ -2431,6 +2431,11 @@ button:focus-visible,
   justify-content: flex-end;
   margin-top: 4px;
 }
+.sync-form-divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 4px 0;
+}
 
 /* ---- Sync-Modal Online-Tab (V1.2) ---- */
 .sync-online-list {
@@ -3525,6 +3530,98 @@ const Storage = (function() {
 })();
 
 /* =========================================================================
+   SYNC CRYPTO (V1.2)
+   PBKDF2-HMAC-SHA256 (250 000 Iterationen) leitet aus einer User-Passphrase
+   plus 16-Byte-Salt einen AES-256-GCM-Schlüssel ab. WebCrypto-Only, keine
+   externen Libraries. Salt liegt unverschlüsselt im Envelope und in der
+   Source-Config (Salt ist nicht geheim). IV ist pro Write neu (12 Bytes).
+
+   Schlüssel-Lebensdauer: nur im RAM (CryptoKey-Objekt im Sync-Modul-Cache),
+   beim Tab-Close weg. Beim nächsten Start muss der User die Passphrase
+   erneut eingeben → siehe promptForPassphrase().
+
+   Detail-Spec: docs/specs/v1.2-manual-sync.md §5 (Encryption).
+   ========================================================================= */
+const SyncCrypto = (function() {
+  const ITERATIONS = 250000;
+  const SALT_LEN = 16;
+  const IV_LEN = 12;
+  const enc = new TextEncoder();
+  const dec = new TextDecoder();
+
+  function bytesToBase64(bytes) {
+    let bin = '';
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin);
+  }
+
+  function base64ToBytes(b64) {
+    const bin = atob(b64);
+    const arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    return arr;
+  }
+
+  function randomBytes(n) {
+    const a = new Uint8Array(n);
+    crypto.getRandomValues(a);
+    return a;
+  }
+
+  function randomSaltB64() { return bytesToBase64(randomBytes(SALT_LEN)); }
+  function randomIvB64()   { return bytesToBase64(randomBytes(IV_LEN)); }
+
+  async function deriveKey(passphrase, saltB64) {
+    if (!passphrase) throw new Error('Passphrase required');
+    if (!saltB64) throw new Error('Salt required');
+    const keyMaterial = await crypto.subtle.importKey(
+      'raw',
+      enc.encode(passphrase),
+      { name: 'PBKDF2' },
+      false,
+      ['deriveKey']
+    );
+    return crypto.subtle.deriveKey(
+      { name: 'PBKDF2', salt: base64ToBytes(saltB64), iterations: ITERATIONS, hash: 'SHA-256' },
+      keyMaterial,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt', 'decrypt']
+    );
+  }
+
+  async function encryptJSON(key, plaintextObj) {
+    const ivBytes = randomBytes(IV_LEN);
+    const data = enc.encode(JSON.stringify(plaintextObj));
+    const cipherBuf = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv: ivBytes },
+      key,
+      data
+    );
+    return {
+      iv: bytesToBase64(ivBytes),
+      ciphertext: bytesToBase64(new Uint8Array(cipherBuf)),
+    };
+  }
+
+  async function decryptJSON(key, ivB64, ciphertextB64) {
+    const plain = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv: base64ToBytes(ivB64) },
+      key,
+      base64ToBytes(ciphertextB64)
+    );
+    return JSON.parse(dec.decode(plain));
+  }
+
+  return {
+    ITERATIONS, SALT_LEN, IV_LEN,
+    bytesToBase64, base64ToBytes,
+    randomSaltB64, randomIvB64,
+    deriveKey, encryptJSON, decryptJSON,
+  };
+})();
+
+/* =========================================================================
    SYNC LAYER (V1.2 — manual)
    Sync-Source-Abstraktion: einheitliche Schnittstelle für Backend-Typen
    (HTTP, FileSystem, ...). State unter cram.sync.v1. Version-Counter wird
@@ -3578,6 +3675,22 @@ const Sync = (function() {
   let _syncing = false;
   let _suppressDirty = false;
   let _onChange = null;
+
+  // Key-Cache: pro Source-ID ein abgeleiteter CryptoKey. Niemals persistiert,
+  // beim Tab-Close weg. Wird durch setKeyForSource() befüllt (typisch nach
+  // einer Passphrase-Eingabe).
+  const _keyCache = new Map();
+
+  // Custom error: erlaubt der UI, gezielt auf "Passphrase fehlt" zu reagieren
+  // und einen Prompt einzublenden, ohne den allgemeinen Error-Pfad zu stören.
+  class PassphraseRequiredError extends Error {
+    constructor(sourceId, sourceLabel) {
+      super('Passphrase required for source ' + sourceId);
+      this.name = 'PassphraseRequiredError';
+      this.sourceId = sourceId;
+      this.sourceLabel = sourceLabel;
+    }
+  }
 
   function isSyncing() { return _syncing; }
 
@@ -3681,33 +3794,136 @@ const Sync = (function() {
     return factory(source);
   }
 
-  /* ---- Payload helpers ---- */
+  /* ---- Key-Cache + Encryption helpers ---- */
+
+  function isEncryptionEnabled(source) {
+    return !!(source && source.encryption && source.encryption.enabled);
+  }
+  function hasKeyForSource(id) { return _keyCache.has(id); }
+  function setKeyForSource(id, cryptoKey) { _keyCache.set(id, cryptoKey); }
+  function clearKeyForSource(id) { _keyCache.delete(id); }
+  function clearAllKeys() { _keyCache.clear(); }
+  function needsPassphrase(source) {
+    return isEncryptionEnabled(source) && !_keyCache.has(source.id);
+  }
+
+  /* ---- Payload helpers ----
+     buildEnvelope() / applyEnvelope() bleiben für Tests + Code-Pfade ohne
+     Encryption erhalten. Die Push/Pull-Funktionen nutzen die *ForSource-
+     Varianten, die Encryption automatisch handhaben. */
+
+  function _innerPayload() {
+    return {
+      format: 'cram-export',
+      formatVersion: EXPORT_FORMAT_VERSION,
+      appVersion: APP_VERSION,
+      exportedAt: new Date().toISOString(),
+      config: State.config,
+      runtime: State.runtime,
+    };
+  }
 
   function buildEnvelope() {
     const state = load();
-    const nextVersion = (state.lastSyncedVersion || 0) + 1;
     return {
       format: 'cram-sync-v1',
-      version: nextVersion,
+      version: (state.lastSyncedVersion || 0) + 1,
       timestamp: Date.now(),
       fingerprint: computeConfigHash(State.config),
       encrypted: false,
-      payload: {
-        format: 'cram-export',
-        formatVersion: EXPORT_FORMAT_VERSION,
-        appVersion: APP_VERSION,
-        exportedAt: new Date().toISOString(),
-        config: State.config,
-        runtime: State.runtime,
-      },
+      payload: _innerPayload(),
     };
+  }
+
+  async function buildEnvelopeForSource(source) {
+    const state = load();
+    const envelope = {
+      format: 'cram-sync-v1',
+      version: (state.lastSyncedVersion || 0) + 1,
+      timestamp: Date.now(),
+      fingerprint: computeConfigHash(State.config),
+      encrypted: false,
+    };
+
+    if (!isEncryptionEnabled(source)) {
+      envelope.payload = _innerPayload();
+      return envelope;
+    }
+
+    const key = _keyCache.get(source.id);
+    if (!key) throw new PassphraseRequiredError(source.id, source.label);
+
+    // Salt muss in source.encryption.salt liegen — bei Quell-Erstellung über
+    // die Settings-Form wird er generiert. Falls aus älterer Source ohne Salt
+    // (Migration), wird beim ersten Empfang vom Server der Server-Salt
+    // übernommen — siehe applyEnvelopeForSource.
+    const saltB64 = (source.encryption && source.encryption.salt) || '';
+    if (!saltB64) {
+      throw new Error('Source has encryption enabled but no salt — please re-enter passphrase');
+    }
+    const { iv, ciphertext } = await SyncCrypto.encryptJSON(key, _innerPayload());
+    envelope.encrypted = true;
+    envelope.salt = saltB64;
+    envelope.iv = iv;
+    envelope.ciphertext = ciphertext;
+    return envelope;
   }
 
   function applyEnvelope(envelope) {
     if (!envelope || envelope.format !== 'cram-sync-v1') {
       throw new Error('Invalid envelope format');
     }
+    if (envelope.encrypted) {
+      throw new Error('applyEnvelope cannot decrypt — use applyEnvelopeForSource');
+    }
     const inner = envelope.payload;
+    if (!inner || inner.format !== 'cram-export') {
+      throw new Error('Invalid inner payload format');
+    }
+    const localFp = computeConfigHash(State.config);
+    if (envelope.fingerprint && envelope.fingerprint !== localFp) {
+      throw new Error('Fingerprint mismatch (local ' + localFp + ', remote ' + envelope.fingerprint + ')');
+    }
+    State.config = inner.config;
+    State.runtime = inner.runtime || { unavailable: {}, manualAssignments: {} };
+    Storage.saveConfig(State.config);
+    Storage.saveRuntime(State.runtime);
+  }
+
+  async function applyEnvelopeForSource(envelope, source) {
+    if (!envelope || envelope.format !== 'cram-sync-v1') {
+      throw new Error('Invalid envelope format');
+    }
+
+    let inner;
+    if (envelope.encrypted) {
+      if (!source || !isEncryptionEnabled(source)) {
+        throw new Error('Received encrypted envelope but source has no encryption configured');
+      }
+      // Salt-Bootstrap: wenn dieser Source noch kein Salt hat, übernimm den
+      // aus dem Server-Envelope (mehrere User, gleiche Passphrase, gleicher Salt).
+      if (source.encryption && !source.encryption.salt && envelope.salt) {
+        updateSource(source.id, {
+          encryption: Object.assign({}, source.encryption, { salt: envelope.salt }),
+        });
+        // Cached key war ggf. mit altem (leerem) Salt abgeleitet — nicht
+        // wahrscheinlich, aber zur Sicherheit: invalidieren, der Caller
+        // muss die Passphrase erneut prompten.
+        if (!_keyCache.has(source.id)) {
+          throw new PassphraseRequiredError(source.id, source.label);
+        }
+      }
+      const key = _keyCache.get(source.id);
+      if (!key) throw new PassphraseRequiredError(source.id, source.label);
+      try {
+        inner = await SyncCrypto.decryptJSON(key, envelope.iv, envelope.ciphertext);
+      } catch (e) {
+        throw new Error('Decryption failed — wrong passphrase?');
+      }
+    } else {
+      inner = envelope.payload;
+    }
+
     if (!inner || inner.format !== 'cram-export') {
       throw new Error('Invalid inner payload format');
     }
@@ -3735,7 +3951,7 @@ const Sync = (function() {
       // aufgerufen — wir wollen den dirty-flag dabei NICHT setzen,
       // weil der Stand vom Server ja gerade synchron ist.
       _suppressDirty = true;
-      try { applyEnvelope(envelope); }
+      try { await applyEnvelopeForSource(envelope, source); }
       finally { _suppressDirty = false; }
       const state = load();
       state.lastSyncedVersion = envelope.version;
@@ -3746,6 +3962,11 @@ const Sync = (function() {
       save(state);
       return envelope;
     } catch (e) {
+      if (e && e.name === 'PassphraseRequiredError') {
+        // Passphrase-Fehler nicht als lastError persistieren — die UI
+        // promptet stattdessen und wiederholt die Aktion.
+        throw e;
+      }
       const state = load();
       state.lastError = String(e.message || e);
       save(state);
@@ -3762,7 +3983,7 @@ const Sync = (function() {
     _setSyncing(true);
     try {
       const client = createSourceClient(source);
-      const envelope = buildEnvelope();
+      const envelope = await buildEnvelopeForSource(source);
       await client.write(envelope);
       const state = load();
       state.lastSyncedVersion = envelope.version;
@@ -3773,6 +3994,9 @@ const Sync = (function() {
       save(state);
       return envelope;
     } catch (e) {
+      if (e && e.name === 'PassphraseRequiredError') {
+        throw e;
+      }
       const state = load();
       state.lastError = String(e.message || e);
       save(state);
@@ -3789,6 +4013,10 @@ const Sync = (function() {
     listSources, getSource, addSource, updateSource, removeSource,
     registerBackend, listBackendTypes, createSourceClient,
     buildEnvelope, applyEnvelope,
+    buildEnvelopeForSource, applyEnvelopeForSource,
+    isEncryptionEnabled, hasKeyForSource, setKeyForSource,
+    clearKeyForSource, clearAllKeys, needsPassphrase,
+    PassphraseRequiredError,
     pull, push,
   };
 })();
@@ -4292,6 +4520,22 @@ const TRANSLATIONS = {
     'toast.sync_source_added': 'Sync-Source angelegt.',
     'toast.sync_source_updated': 'Sync-Source aktualisiert.',
     'toast.sync_source_deleted': 'Sync-Source gelöscht.',
+    'settings.sync_enc_enabled': 'Ende-zu-Ende-Verschlüsselung aktivieren (empfohlen)',
+    'settings.sync_enc_hint': 'AES-256-GCM mit Passphrase + PBKDF2 (250 000 Iterationen). Daten auf dem Server bleiben unleserlich ohne Passphrase.',
+    'settings.sync_passphrase': 'Passphrase',
+    'settings.sync_passphrase_optional': 'Neue Passphrase (leer = bestehende behalten)',
+    'settings.sync_passphrase_placeholder': 'Mindestens 8 Zeichen',
+    'settings.sync_passphrase_hint': 'Wird nicht persistiert. Nach Schließen des Browsers musst du sie erneut eingeben.',
+    'settings.sync_passphrase_confirm': 'Passphrase wiederholen',
+    'settings.sync_err_passphrase_required': 'Passphrase ist erforderlich, wenn Verschlüsselung aktiv ist.',
+    'settings.sync_err_passphrase_mismatch': 'Passphrasen stimmen nicht überein.',
+    'settings.sync_err_passphrase_short': 'Passphrase muss mindestens 8 Zeichen lang sein.',
+    'settings.sync_err_key_derive': 'Schlüsselableitung fehlgeschlagen: {msg}',
+    'passphrase.modal_title': 'Passphrase erforderlich',
+    'passphrase.modal_intro': 'Die Sync-Source "{label}" ist verschlüsselt. Bitte Passphrase eingeben, um fortzufahren.',
+    'passphrase.modal_field': 'Passphrase',
+    'passphrase.modal_hint': 'Wird nur im Arbeitsspeicher gehalten — beim Tab-Schließen geht sie wieder verloren.',
+    'btn.ok': 'OK',
     'toast.settings_saved': 'Einstellungen gespeichert',
     'print.header_title_default': 'Krisenstab — Rollen und Vertretungen',
     'print.title': 'Druckansicht',
@@ -4679,6 +4923,22 @@ const TRANSLATIONS = {
     'toast.sync_source_added': 'Sync source added.',
     'toast.sync_source_updated': 'Sync source updated.',
     'toast.sync_source_deleted': 'Sync source deleted.',
+    'settings.sync_enc_enabled': 'Enable end-to-end encryption (recommended)',
+    'settings.sync_enc_hint': 'AES-256-GCM with passphrase + PBKDF2 (250 000 iterations). Data on the server stays unreadable without the passphrase.',
+    'settings.sync_passphrase': 'Passphrase',
+    'settings.sync_passphrase_optional': 'New passphrase (leave empty to keep current)',
+    'settings.sync_passphrase_placeholder': 'At least 8 characters',
+    'settings.sync_passphrase_hint': 'Not persisted. You will need to re-enter it after closing the browser.',
+    'settings.sync_passphrase_confirm': 'Confirm passphrase',
+    'settings.sync_err_passphrase_required': 'Passphrase is required when encryption is enabled.',
+    'settings.sync_err_passphrase_mismatch': 'Passphrases do not match.',
+    'settings.sync_err_passphrase_short': 'Passphrase must be at least 8 characters.',
+    'settings.sync_err_key_derive': 'Key derivation failed: {msg}',
+    'passphrase.modal_title': 'Passphrase required',
+    'passphrase.modal_intro': 'The sync source "{label}" is encrypted. Please enter the passphrase to continue.',
+    'passphrase.modal_field': 'Passphrase',
+    'passphrase.modal_hint': 'Held in memory only — discarded when the tab closes.',
+    'btn.ok': 'OK',
     'toast.settings_saved': 'Settings saved',
     'print.header_title_default': 'Crisis Staff — Roles and Substitutes',
     'print.title': 'Print view',
@@ -5065,6 +5325,22 @@ const TRANSLATIONS = {
     'toast.sync_source_added': 'Fuente añadida.',
     'toast.sync_source_updated': 'Fuente actualizada.',
     'toast.sync_source_deleted': 'Fuente eliminada.',
+    'settings.sync_enc_enabled': 'Activar cifrado de extremo a extremo (recomendado)',
+    'settings.sync_enc_hint': 'AES-256-GCM con frase + PBKDF2 (250 000 iteraciones). Los datos en el servidor permanecen ilegibles sin la frase.',
+    'settings.sync_passphrase': 'Frase',
+    'settings.sync_passphrase_optional': 'Nueva frase (vacío = mantener actual)',
+    'settings.sync_passphrase_placeholder': 'Mínimo 8 caracteres',
+    'settings.sync_passphrase_hint': 'No se guarda. Deberás introducirla otra vez tras cerrar el navegador.',
+    'settings.sync_passphrase_confirm': 'Confirmar frase',
+    'settings.sync_err_passphrase_required': 'La frase es obligatoria si el cifrado está activo.',
+    'settings.sync_err_passphrase_mismatch': 'Las frases no coinciden.',
+    'settings.sync_err_passphrase_short': 'La frase debe tener al menos 8 caracteres.',
+    'settings.sync_err_key_derive': 'Derivación de clave falló: {msg}',
+    'passphrase.modal_title': 'Frase requerida',
+    'passphrase.modal_intro': 'La fuente "{label}" está cifrada. Introduce la frase para continuar.',
+    'passphrase.modal_field': 'Frase',
+    'passphrase.modal_hint': 'Solo en memoria — se borra al cerrar la pestaña.',
+    'btn.ok': 'OK',
     'toast.settings_saved': 'Configuración guardada',
     'print.header_title_default': 'Comité de crisis — Roles y suplentes',
     'print.title': 'Vista de impresión',
@@ -5452,6 +5728,22 @@ const TRANSLATIONS = {
     'toast.sync_source_added': 'Source ajoutée.',
     'toast.sync_source_updated': 'Source mise à jour.',
     'toast.sync_source_deleted': 'Source supprimée.',
+    'settings.sync_enc_enabled': 'Activer le chiffrement de bout en bout (recommandé)',
+    'settings.sync_enc_hint': 'AES-256-GCM avec phrase + PBKDF2 (250 000 itérations). Les données sur le serveur restent illisibles sans la phrase.',
+    'settings.sync_passphrase': 'Phrase',
+    'settings.sync_passphrase_optional': 'Nouvelle phrase (vide = conserver actuelle)',
+    'settings.sync_passphrase_placeholder': 'Au moins 8 caractères',
+    'settings.sync_passphrase_hint': 'Non persistée. Il faudra la ressaisir à la prochaine ouverture du navigateur.',
+    'settings.sync_passphrase_confirm': 'Confirmer la phrase',
+    'settings.sync_err_passphrase_required': 'La phrase est obligatoire si le chiffrement est activé.',
+    'settings.sync_err_passphrase_mismatch': 'Les phrases ne correspondent pas.',
+    'settings.sync_err_passphrase_short': 'La phrase doit comporter au moins 8 caractères.',
+    'settings.sync_err_key_derive': 'Dérivation de clé échouée : {msg}',
+    'passphrase.modal_title': 'Phrase requise',
+    'passphrase.modal_intro': 'La source « {label} » est chiffrée. Saisissez la phrase pour continuer.',
+    'passphrase.modal_field': 'Phrase',
+    'passphrase.modal_hint': 'En mémoire uniquement — perdue à la fermeture de l’onglet.',
+    'btn.ok': 'OK',
     'toast.settings_saved': 'Paramètres enregistrés',
     'print.header_title_default': 'Cellule de crise — Rôles et suppléants',
     'print.title': 'Aperçu d\u2019impression',
@@ -5839,6 +6131,22 @@ const TRANSLATIONS = {
     'toast.sync_source_added': '同步源已添加。',
     'toast.sync_source_updated': '同步源已更新。',
     'toast.sync_source_deleted': '同步源已删除。',
+    'settings.sync_enc_enabled': '启用端到端加密（推荐）',
+    'settings.sync_enc_hint': 'AES-256-GCM + 口令 + PBKDF2（250000 次迭代）。没有口令时，服务器上的数据无法读取。',
+    'settings.sync_passphrase': '口令',
+    'settings.sync_passphrase_optional': '新口令（留空 = 保持现有）',
+    'settings.sync_passphrase_placeholder': '至少 8 个字符',
+    'settings.sync_passphrase_hint': '不会持久化。关闭浏览器后需要重新输入。',
+    'settings.sync_passphrase_confirm': '确认口令',
+    'settings.sync_err_passphrase_required': '启用加密时必须设置口令。',
+    'settings.sync_err_passphrase_mismatch': '两次输入的口令不一致。',
+    'settings.sync_err_passphrase_short': '口令至少需要 8 个字符。',
+    'settings.sync_err_key_derive': '密钥派生失败：{msg}',
+    'passphrase.modal_title': '需要口令',
+    'passphrase.modal_intro': '同步源 "{label}" 已加密。请输入口令以继续。',
+    'passphrase.modal_field': '口令',
+    'passphrase.modal_hint': '仅保存在内存中——关闭标签页时丢失。',
+    'btn.ok': '确定',
     'toast.settings_saved': '设置已保存',
     'print.header_title_default': '危机小组 — 角色与替补',
     'print.title': '打印视图',
@@ -7266,6 +7574,8 @@ const CLICK_HANDLERS = {
   'sync-online-pull': (el) => syncOnlinePull(el.dataset.sourceId),
   'sync-online-push': (el) => syncOnlinePush(el.dataset.sourceId),
   'sync-online-goto-settings': () => syncOnlineGotoSettings(),
+  'passphrase-prompt-ok':      () => passphrasePromptOk(),
+  'passphrase-prompt-cancel':  () => passphrasePromptCancel(),
 
   // QR-Send-Workflow
   'qr-scope-select':      (el) => { State.qrSendState.scope = el.dataset.scope; renderSyncModal(); },
@@ -8662,7 +8972,7 @@ async function syncOnlinePull(sourceId) {
   if (!src) return;
   showToast(t('sync.online_pulling', { label: src.label }), 'info');
   try {
-    const env = await Sync.pull(sourceId);
+    const env = await withPassphraseRecovery(src, () => Sync.pull(sourceId));
     if (env === null) {
       showToast(t('sync.online_empty'), 'info');
     } else {
@@ -8673,7 +8983,11 @@ async function syncOnlinePull(sourceId) {
   } catch (e) {
     showToast(t('sync.online_pull_failed', { msg: String(e.message || e) }), 'error');
   }
-  renderSyncModal();
+  // Falls der Passphrase-Prompt offen war, ist das Sync-Modal weg → nur
+  // rendern, wenn der Backdrop noch sichtbar ist und das aktuelle Modal
+  // das Sync-Modal ist. Vereinfacht: wenn Backdrop hidden, lassen wir's.
+  const backdrop = document.getElementById('modal-backdrop');
+  if (backdrop && backdrop.style.display === 'flex') renderSyncModal();
 }
 
 async function syncOnlinePush(sourceId) {
@@ -8681,18 +8995,119 @@ async function syncOnlinePush(sourceId) {
   if (!src) return;
   showToast(t('sync.online_pushing', { label: src.label }), 'info');
   try {
-    const env = await Sync.push(sourceId);
-    showToast(t('sync.online_pushed', { version: env.version }), 'success');
+    const env = await withPassphraseRecovery(src, () => Sync.push(sourceId));
+    if (env !== null && env !== undefined) {
+      showToast(t('sync.online_pushed', { version: env.version }), 'success');
+    }
   } catch (e) {
     showToast(t('sync.online_push_failed', { msg: String(e.message || e) }), 'error');
   }
-  renderSyncModal();
+  const backdrop = document.getElementById('modal-backdrop');
+  if (backdrop && backdrop.style.display === 'flex') renderSyncModal();
 }
 
 function syncOnlineGotoSettings() {
   closeModal();
   openSettingsModal();
   switchSettingsTab('sync');
+}
+
+/* ---- Passphrase-Prompt (V1.2 Encryption) ---------------------------------
+   Promise-basierter Mini-Modal. Wird aus syncOnlinePull/Push aufgerufen,
+   wenn Sync.push/pull eine PassphraseRequiredError wirft. Auflösung:
+     resolve(string)  → Passphrase eingegeben
+     resolve(null)    → abgebrochen
+   Der Aufrufer leitet daraufhin den CryptoKey ab und cached ihn via
+   Sync.setKeyForSource. */
+function promptPassphrase(source) {
+  return new Promise((resolve) => {
+    const title = document.getElementById('modal-title');
+    const body  = document.getElementById('modal-body');
+    const footer = document.getElementById('modal-footer');
+
+    title.textContent = t('passphrase.modal_title');
+    body.innerHTML = `
+      <div class="sync-explain">${escapeHTML(t('passphrase.modal_intro', { label: source.label }))}</div>
+      <div class="form-field" style="margin-top: 12px;">
+        <label class="form-label" for="passphrase-prompt-input">${escapeHTML(t('passphrase.modal_field'))}</label>
+        <input type="password" id="passphrase-prompt-input" class="form-input"
+               autocomplete="current-password" />
+        <div class="form-hint">${escapeHTML(t('passphrase.modal_hint'))}</div>
+      </div>
+    `;
+    footer.innerHTML = `
+      <button class="btn-secondary" data-action="passphrase-prompt-cancel">${escapeHTML(t('btn.cancel'))}</button>
+      <button class="btn-primary" data-action="passphrase-prompt-ok">${escapeHTML(t('btn.ok'))}</button>
+    `;
+    document.getElementById('modal-backdrop').style.display = 'flex';
+
+    const input = document.getElementById('passphrase-prompt-input');
+    setTimeout(() => input.focus(), 50);
+
+    // Ein-Shot-Listener — werden nach Resolve/Reject automatisch entfernt
+    function cleanup() {
+      passphrasePromptState.resolver = null;
+      closeModal();
+    }
+    passphrasePromptState.resolver = (val) => {
+      cleanup();
+      resolve(val);
+    };
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        passphrasePromptState.resolver && passphrasePromptState.resolver(input.value || '');
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        passphrasePromptState.resolver && passphrasePromptState.resolver(null);
+      }
+    });
+  });
+}
+
+// Globaler Zustand, damit die data-action-Handler den aktiven Promise-Resolver
+// erreichen können (Click-Dispatcher kennt keine Closures).
+const passphrasePromptState = { resolver: null };
+
+function passphrasePromptOk() {
+  const val = (document.getElementById('passphrase-prompt-input').value || '');
+  if (passphrasePromptState.resolver) passphrasePromptState.resolver(val);
+}
+
+function passphrasePromptCancel() {
+  if (passphrasePromptState.resolver) passphrasePromptState.resolver(null);
+}
+
+/* Helper: führt Pull oder Push aus, fängt PassphraseRequiredError und
+   wiederholt nach erfolgreicher Passphrase-Eingabe genau einmal. */
+async function withPassphraseRecovery(source, opFn) {
+  try {
+    return await opFn();
+  } catch (e) {
+    if (!e || e.name !== 'PassphraseRequiredError') throw e;
+    const passphrase = await promptPassphrase(source);
+    if (passphrase === null || passphrase === '') return null;  // cancelled
+    let saltB64 = source.encryption && source.encryption.salt;
+    if (!saltB64) {
+      // Source hat Encryption aktiv, aber noch kein Salt → vermutlich ein Pull
+      // bei dem der Server-Salt erst übernommen wird. Wir lesen den Salt aus
+      // dem Server-Probe oder generieren einen frischen (für ersten Push).
+      // Pragmatisch: frisches Salt, falls keiner — wird beim ersten Pull vom
+      // Server-Envelope überschrieben.
+      saltB64 = SyncCrypto.randomSaltB64();
+      Sync.updateSource(source.id, {
+        encryption: Object.assign({}, source.encryption || {}, { enabled: true, salt: saltB64 }),
+      });
+    }
+    try {
+      const key = await SyncCrypto.deriveKey(passphrase, saltB64);
+      Sync.setKeyForSource(source.id, key);
+    } catch (deriveErr) {
+      throw new Error(t('settings.sync_err_key_derive', { msg: String(deriveErr.message || deriveErr) }));
+    }
+    return await opFn();  // retry once
+  }
 }
 
 /* =========================================================================
@@ -10628,6 +11043,8 @@ function renderSettingsModal() {
   } else if (settingsState.activeTab === 'sync' && settingsState.formMode) {
     const authSel = document.getElementById('sync-form-auth');
     if (authSel) authSel.addEventListener('change', syncFormAuthChanged);
+    const encChk = document.getElementById('sync-form-enc-enabled');
+    if (encChk) encChk.addEventListener('change', syncFormEncToggled);
     setTimeout(() => {
       const labelEl = document.getElementById('sync-form-label');
       if (labelEl) labelEl.focus();
@@ -10713,9 +11130,12 @@ function renderSyncForm() {
   const isEdit = settingsState.formMode === 'edit';
   const src = isEdit ? Sync.getSource(settingsState.editingSourceId) : null;
   const cfg = src ? (src.config || {}) : {};
+  const enc = src ? (src.encryption || {}) : { enabled: true };
   const label = src ? src.label : '';
   const url = cfg.url || '';
   const authType = cfg.authType || 'none';
+  const encEnabled = enc.enabled !== false;  // default true
+  const hasExistingKey = isEdit && src && Sync.hasKeyForSource(src.id);
   const titleKey = isEdit ? 'settings.sync_form_edit_title' : 'settings.sync_form_add_title';
   const saveKey  = isEdit ? 'settings.sync_btn_save_edit'   : 'settings.sync_btn_save_new';
 
@@ -10760,6 +11180,35 @@ function renderSyncForm() {
       <div id="sync-form-auth-bearer" class="form-field" style="display: ${authType === 'bearer' ? 'block' : 'none'};">
         <label class="form-label" for="sync-form-token">${escapeHTML(t('settings.sync_field_token'))}</label>
         <input type="password" id="sync-form-token" class="form-input" value="${escapeHTML(cfg.authToken || '')}" autocomplete="new-password" />
+      </div>
+
+      <div class="sync-form-divider"></div>
+
+      <div class="form-field-check">
+        <label>
+          <input type="checkbox" id="sync-form-enc-enabled" ${encEnabled ? 'checked' : ''} />
+          <span>${escapeHTML(t('settings.sync_enc_enabled'))}</span>
+        </label>
+        <div class="form-hint">${escapeHTML(t('settings.sync_enc_hint'))}</div>
+      </div>
+
+      <div id="sync-form-enc-fields" style="display: ${encEnabled ? 'block' : 'none'};">
+        <div class="form-field">
+          <label class="form-label" for="sync-form-passphrase">
+            ${escapeHTML(t(isEdit && hasExistingKey ? 'settings.sync_passphrase_optional' : 'settings.sync_passphrase'))}
+          </label>
+          <input type="password" id="sync-form-passphrase" class="form-input"
+                 placeholder="${escapeHTML(t('settings.sync_passphrase_placeholder'))}"
+                 autocomplete="new-password" />
+          <div class="form-hint">${escapeHTML(t('settings.sync_passphrase_hint'))}</div>
+        </div>
+        ${isEdit ? '' : `
+          <div class="form-field">
+            <label class="form-label" for="sync-form-passphrase-confirm">${escapeHTML(t('settings.sync_passphrase_confirm'))}</label>
+            <input type="password" id="sync-form-passphrase-confirm" class="form-input"
+                   autocomplete="new-password" />
+          </div>
+        `}
       </div>
 
       <div class="sync-form-buttons">
@@ -10840,7 +11289,13 @@ function syncFormAuthChanged() {
   if (bearerBlock) bearerBlock.style.display = (auth === 'bearer') ? 'block' : 'none';
 }
 
-function syncFormSave() {
+function syncFormEncToggled() {
+  const enabled = document.getElementById('sync-form-enc-enabled').checked;
+  const block = document.getElementById('sync-form-enc-fields');
+  if (block) block.style.display = enabled ? 'block' : 'none';
+}
+
+async function syncFormSave() {
   const label = (document.getElementById('sync-form-label').value || '').trim();
   const url = (document.getElementById('sync-form-url').value || '').trim();
   const authType = (document.getElementById('sync-form-auth').value || 'none');
@@ -10877,20 +11332,80 @@ function syncFormSave() {
     config.authType = 'none';
   }
 
+  // Encryption setup
+  const encEnabled = document.getElementById('sync-form-enc-enabled').checked;
+  const passphraseInput = document.getElementById('sync-form-passphrase');
+  const passphrase = passphraseInput ? (passphraseInput.value || '') : '';
+  const confirmInput = document.getElementById('sync-form-passphrase-confirm');
+  const confirmPassphrase = confirmInput ? (confirmInput.value || '') : '';
+
+  const isEdit = settingsState.formMode === 'edit' && settingsState.editingSourceId;
+  const existingSrc = isEdit ? Sync.getSource(settingsState.editingSourceId) : null;
+  const existingEnc = existingSrc ? (existingSrc.encryption || {}) : {};
+  const hadKeyAlready = isEdit && Sync.hasKeyForSource(settingsState.editingSourceId);
+
+  let encryption;
+  if (!encEnabled) {
+    // Klartext-Modus
+    encryption = { enabled: false };
+    if (isEdit) Sync.clearKeyForSource(settingsState.editingSourceId);
+  } else if (isEdit && hadKeyAlready && !passphrase) {
+    // Edit ohne neue Passphrase → bestehender Salt+Key bleibt erhalten
+    encryption = Object.assign({}, existingEnc, { enabled: true });
+  } else {
+    // Neue Source ODER Edit mit neuer Passphrase → Passphrase pflicht
+    if (!passphrase) {
+      showToast(t('settings.sync_err_passphrase_required'), 'error');
+      return;
+    }
+    if (!isEdit && passphrase !== confirmPassphrase) {
+      showToast(t('settings.sync_err_passphrase_mismatch'), 'error');
+      return;
+    }
+    if (passphrase.length < 8) {
+      showToast(t('settings.sync_err_passphrase_short'), 'error');
+      return;
+    }
+    // Salt: bei neuer Passphrase oder neuer Source → frisch generieren.
+    // (Bei neuer Passphrase darf der alte Salt nicht recycled werden, sonst
+    // wäre die alte Server-Datei unlesbar mit dem neuen Schlüssel und der
+    // User würde nicht merken, dass es zwei Schlüssel-Sätze gibt.)
+    const saltB64 = SyncCrypto.randomSaltB64();
+    try {
+      const cryptoKey = await SyncCrypto.deriveKey(passphrase, saltB64);
+      encryption = { enabled: true, salt: saltB64 };
+      // Key-Cache erst nach erfolgreichem Save setzen — Source-ID brauchen wir
+      // dafür, daher unten nach add/update.
+      settingsState._pendingKey = cryptoKey;
+    } catch (e) {
+      showToast(t('settings.sync_err_key_derive', { msg: String(e.message || e) }), 'error');
+      return;
+    }
+  }
+
   const fallbackLabel = t('settings.sync_field_label_placeholder');
-  if (settingsState.formMode === 'edit' && settingsState.editingSourceId) {
-    Sync.updateSource(settingsState.editingSourceId, {
+  let savedSource;
+  if (isEdit) {
+    savedSource = Sync.updateSource(settingsState.editingSourceId, {
       label: label || fallbackLabel,
       config,
+      encryption,
     });
     showToast(t('toast.sync_source_updated'), 'success');
   } else {
-    Sync.addSource({
+    savedSource = Sync.addSource({
       type: 'http',
       label: label || fallbackLabel,
       config,
+      encryption,
     });
     showToast(t('toast.sync_source_added'), 'success');
+  }
+
+  // Cached key nach erfolgreichem Save anlegen (falls Passphrase gesetzt wurde)
+  if (settingsState._pendingKey && savedSource) {
+    Sync.setKeyForSource(savedSource.id, settingsState._pendingKey);
+    delete settingsState._pendingKey;
   }
 
   settingsState.formMode = null;
