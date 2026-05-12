@@ -2466,6 +2466,88 @@ button:focus-visible,
   white-space: nowrap;
 }
 
+/* ---- Bundle Share/Import (V1.2 Phase 3.3) ---- */
+.bundle-warning {
+  padding: 10px 12px;
+  background: var(--status-critical-bg, rgba(255,0,0,0.05));
+  border-left: 3px solid var(--status-critical);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--text-primary);
+}
+.bundle-warning strong { display: block; margin-bottom: 4px; font-size: 13px; }
+.bundle-text {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  resize: vertical;
+}
+.bundle-share-actions,
+.bundle-import-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.bundle-import-err {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: var(--status-critical-bg, rgba(255,0,0,0.05));
+  border-left: 3px solid var(--status-critical);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+.bundle-preview {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+}
+.bundle-preview-row { margin-bottom: 4px; }
+.bundle-preview-row strong { color: var(--text-secondary); margin-right: 4px; }
+.bundle-preview-row code { font-size: 11px; }
+.bundle-preview-hint {
+  margin-top: 4px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-style: italic;
+}
+.bundle-preview-fp {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.bundle-fp-tag {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 6px;
+  border-radius: 2px;
+  background: var(--bg-base);
+}
+.bundle-preview-fp[data-match="true"] .bundle-fp-tag {
+  color: var(--status-ok);
+  border: 1px solid var(--status-ok-border);
+}
+.bundle-preview-fp[data-match="false"] .bundle-fp-tag {
+  color: var(--status-critical);
+  border: 1px solid var(--status-critical-border);
+}
+.bundle-fp-warn {
+  margin-top: 8px;
+  color: var(--status-critical);
+  font-size: 11px;
+  font-weight: 600;
+}
+
 /* ---- Sync-Modal Online-Tab (V1.2) ---- */
 .sync-online-list {
   display: flex;
@@ -3709,6 +3791,11 @@ const Sync = (function() {
   // beim Tab-Close weg. Wird durch setKeyForSource() befüllt (typisch nach
   // einer Passphrase-Eingabe).
   const _keyCache = new Map();
+  // Passphrase-Cache: parallel zum Key-Cache. Brauchen wir, damit ein Bundle
+  // die ursprüngliche Passphrase einschließen kann (der Empfänger leitet seinen
+  // eigenen CryptoKey daraus ab). Wenn nicht gecached, prompted die UI vor dem
+  // Bundle-Export erneut.
+  const _passphraseCache = new Map();
 
   // Custom error: erlaubt der UI, gezielt auf "Passphrase fehlt" zu reagieren
   // und einen Prompt einzublenden, ohne den allgemeinen Error-Pfad zu stören.
@@ -3830,8 +3917,11 @@ const Sync = (function() {
   }
   function hasKeyForSource(id) { return _keyCache.has(id); }
   function setKeyForSource(id, cryptoKey) { _keyCache.set(id, cryptoKey); }
-  function clearKeyForSource(id) { _keyCache.delete(id); }
-  function clearAllKeys() { _keyCache.clear(); }
+  function clearKeyForSource(id) { _keyCache.delete(id); _passphraseCache.delete(id); }
+  function clearAllKeys() { _keyCache.clear(); _passphraseCache.clear(); }
+  function setPassphraseForSource(id, passphrase) { _passphraseCache.set(id, passphrase); }
+  function getPassphraseForSource(id) { return _passphraseCache.get(id) || null; }
+  function hasPassphraseForSource(id) { return _passphraseCache.has(id); }
   function needsPassphrase(source) {
     return isEncryptionEnabled(source) && !_keyCache.has(source.id);
   }
@@ -4045,6 +4135,7 @@ const Sync = (function() {
     buildEnvelopeForSource, applyEnvelopeForSource,
     isEncryptionEnabled, hasKeyForSource, setKeyForSource,
     clearKeyForSource, clearAllKeys, needsPassphrase,
+    setPassphraseForSource, getPassphraseForSource, hasPassphraseForSource,
     PassphraseRequiredError,
     pull, push,
   };
@@ -4289,6 +4380,158 @@ const SyncFileStore = (function() {
   createFileSystemClient.isSupported = isSupported;
 
   Sync.registerBackend('fileSystem', createFileSystemClient);
+})();
+
+/* =========================================================================
+   SYNC BUNDLE (V1.2)
+   Onboarding-Artefakt: ein selbstständiges JSON, das alles enthält, was
+   ein Empfänger braucht, um auf dieselbe Sync-Source zu zeigen.
+
+   Bundle-Schema:
+     {
+       format: 'cram-bundle-v1',
+       type:   'http' | 'fileSystem',
+       label:  '...',
+       config: { ... },                  // ohne dirName bei fileSystem
+       encryption: {
+         enabled: bool,
+         salt:    '...',                 // wenn enabled
+         passphrase: '...'               // wenn enabled — Empfänger leitet
+       },                                //   seinen eigenen Key daraus ab
+       configFingerprint: 'F4BC',
+       createdAt: '2026-...'
+     }
+
+   Wichtig: Bundle enthält Passphrase und Auth-Token im Klartext. Es ist
+   ein vertrauliches Artefakt — Distribution über sicheren Kanal nötig.
+   Die UI markiert das deutlich.
+   ========================================================================= */
+const SyncBundle = (function() {
+  const FORMAT = 'cram-bundle-v1';
+
+  function build(sourceId) {
+    const src = Sync.getSource(sourceId);
+    if (!src) throw new Error('Source not found: ' + sourceId);
+
+    const bundle = {
+      format: FORMAT,
+      type: src.type,
+      label: src.label,
+      config: Object.assign({}, src.config || {}),
+      encryption: { enabled: !!(src.encryption && src.encryption.enabled) },
+      configFingerprint: computeConfigHash(State.config),
+      createdAt: new Date().toISOString(),
+    };
+
+    // fileSystem: dirName ist gerätspezifisch → raus aus dem Bundle.
+    // Der Empfänger wählt seinen eigenen Ordner.
+    if (src.type === 'fileSystem') {
+      delete bundle.config.dirName;
+    }
+
+    if (bundle.encryption.enabled) {
+      bundle.encryption.salt = (src.encryption || {}).salt || '';
+      const passphrase = Sync.getPassphraseForSource(sourceId);
+      if (!passphrase) {
+        const e = new Error('Passphrase not cached — please re-enter to share');
+        e.name = 'BundlePassphraseRequiredError';
+        e.sourceId = sourceId;
+        e.sourceLabel = src.label;
+        throw e;
+      }
+      bundle.encryption.passphrase = passphrase;
+    }
+
+    return bundle;
+  }
+
+  function serialize(bundle) {
+    return JSON.stringify(bundle, null, 2);
+  }
+
+  function parse(text) {
+    let obj;
+    try { obj = JSON.parse(text); }
+    catch (e) { throw new Error('Bundle JSON is not valid: ' + e.message); }
+    if (!obj || obj.format !== FORMAT) {
+      throw new Error('Not a valid CRAM sync bundle (format mismatch)');
+    }
+    if (!obj.type || !obj.label || !obj.config) {
+      throw new Error('Bundle is missing required fields (type, label, config)');
+    }
+    if (obj.type !== 'http' && obj.type !== 'fileSystem') {
+      throw new Error('Unknown bundle source type: ' + obj.type);
+    }
+    if (obj.encryption && obj.encryption.enabled) {
+      if (!obj.encryption.passphrase || !obj.encryption.salt) {
+        throw new Error('Encrypted bundle missing passphrase or salt');
+      }
+    }
+    return obj;
+  }
+
+  // Wendet ein parsed Bundle an. Bei fileSystem wird der User aufgefordert,
+  // einen lokalen Ordner zu wählen (Rückgabe null bei Cancel). Liefert die
+  // neu angelegte Source oder null.
+  async function apply(bundle) {
+    const fingerprintLocal = computeConfigHash(State.config);
+    // Fingerprint-Mismatch wird vom Aufrufer (UI) abgefragt — hier nur ein
+    // Hinweis als Property auf der gelieferten Source, falls relevant.
+
+    let dirHandle = null;
+    if (bundle.type === 'fileSystem') {
+      if (typeof window.showDirectoryPicker !== 'function') {
+        throw new Error('Browser does not support file system access — use a Chromium-based browser to import file-system bundles.');
+      }
+      try {
+        dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+      } catch (e) {
+        if (e && e.name === 'AbortError') return null;
+        throw e;
+      }
+    }
+
+    const enc = bundle.encryption || {};
+    const encryptionForSrc = enc.enabled
+      ? { enabled: true, salt: enc.salt }
+      : { enabled: false };
+
+    const cfgClone = Object.assign({}, bundle.config);
+    if (bundle.type === 'fileSystem' && dirHandle) {
+      cfgClone.dirName = dirHandle.name;
+    }
+
+    const savedSource = Sync.addSource({
+      type: bundle.type,
+      label: bundle.label,
+      config: cfgClone,
+      encryption: encryptionForSrc,
+    });
+
+    if (bundle.type === 'fileSystem' && dirHandle) {
+      await SyncFileStore.setHandle(savedSource.id, dirHandle);
+    }
+
+    if (enc.enabled) {
+      try {
+        const key = await SyncCrypto.deriveKey(enc.passphrase, enc.salt);
+        Sync.setKeyForSource(savedSource.id, key);
+        Sync.setPassphraseForSource(savedSource.id, enc.passphrase);
+      } catch (e) {
+        // Source bleibt drin, aber ohne Key — User kann beim nächsten Sync
+        // erneut die Passphrase eingeben.
+        console.warn('Bundle key derivation failed:', e);
+      }
+    }
+
+    return { source: savedSource, fingerprintMatches: bundle.configFingerprint === fingerprintLocal };
+  }
+
+  function getFingerprintLocal() {
+    return computeConfigHash(State.config);
+  }
+
+  return { FORMAT, build, serialize, parse, apply, getFingerprintLocal };
 })();
 
 /* =========================================================================
@@ -4735,6 +4978,41 @@ const TRANSLATIONS = {
     'passphrase.modal_field': 'Passphrase',
     'passphrase.modal_hint': 'Wird nur im Arbeitsspeicher gehalten — beim Tab-Schließen geht sie wieder verloren.',
     'btn.ok': 'OK',
+    'settings.sync_btn_share': 'Teilen',
+    'settings.sync_import_bundle': 'Bundle importieren',
+    'bundle.share_title': 'Sync-Source teilen: {label}',
+    'bundle.share_warn_title': 'Vertrauliches Artefakt',
+    'bundle.share_warn_body': 'Dieses Bundle enthält Passphrase, Salt und Anmeldedaten im Klartext. Niemals über unverschlüsselte Kanäle teilen (kein offenes Chat, kein offener Mail-Anhang). Empfohlen: Signal/Threema, Passwort-Manager, oder persönliche Übergabe.',
+    'bundle.share_field': 'Bundle als JSON',
+    'bundle.share_copy': 'In Zwischenablage kopieren',
+    'bundle.share_download': 'Als JSON-Datei herunterladen',
+    'bundle.share_copied': 'In Zwischenablage kopiert.',
+    'bundle.share_copy_manual': 'Bitte manuell markieren und kopieren (Strg/Cmd+C).',
+    'bundle.share_downloaded': 'Bundle als Datei heruntergeladen.',
+    'bundle.share_build_failed': 'Bundle-Erstellung fehlgeschlagen: {msg}',
+    'bundle.import_title': 'Sync-Bundle importieren',
+    'bundle.import_intro': 'Füge das JSON eines geteilten Bundles ein oder lade es aus einer Datei. CRAM zeigt eine Vorschau, bevor die Source angelegt wird.',
+    'bundle.import_field': 'Bundle-JSON',
+    'bundle.import_placeholder': '{"format":"cram-bundle-v1",...}',
+    'bundle.import_from_file': '⇧ Aus Datei laden',
+    'bundle.import_parse': 'Vorschau',
+    'bundle.import_apply': 'Übernehmen',
+    'bundle.preview_type': 'Typ',
+    'bundle.preview_label': 'Bezeichnung',
+    'bundle.preview_filename': 'Dateiname',
+    'bundle.preview_fingerprint': 'Config-Fingerprint',
+    'bundle.preview_fp_match': 'passt',
+    'bundle.preview_fp_mismatch': 'WEICHT AB',
+    'bundle.preview_fp_warn': 'Achtung: Der Stab-Fingerprint im Bundle stimmt nicht mit deiner lokalen Konfiguration überein. Du würdest gegen einen anderen Stab synchronisieren.',
+    'bundle.preview_encrypted': 'Ende-zu-Ende-Verschlüsselung aktiv',
+    'bundle.preview_unencrypted': 'Bundle ohne Verschlüsselung — Server sähe Klartext',
+    'bundle.preview_fs_hint': 'Beim Übernehmen wirst du gebeten, ein lokales Verzeichnis zu wählen (das Bundle enthält keinen Pfad).',
+    'bundle.import_err_empty': 'Bitte JSON einfügen oder Datei laden.',
+    'bundle.import_err_no_bundle': 'Erst Vorschau erzeugen.',
+    'bundle.import_err_file_read': 'Datei konnte nicht gelesen werden: {msg}',
+    'bundle.import_err_apply': 'Import fehlgeschlagen: {msg}',
+    'bundle.import_confirm_fp_mismatch': 'Der Fingerprint des Bundles passt nicht zur lokalen Konfiguration. Wirklich importieren?',
+    'bundle.import_success': 'Source "{label}" importiert.',
     'toast.settings_saved': 'Einstellungen gespeichert',
     'print.header_title_default': 'Krisenstab — Rollen und Vertretungen',
     'print.title': 'Druckansicht',
@@ -5156,6 +5434,41 @@ const TRANSLATIONS = {
     'passphrase.modal_field': 'Passphrase',
     'passphrase.modal_hint': 'Held in memory only — discarded when the tab closes.',
     'btn.ok': 'OK',
+    'settings.sync_btn_share': 'Share',
+    'settings.sync_import_bundle': 'Import bundle',
+    'bundle.share_title': 'Share sync source: {label}',
+    'bundle.share_warn_title': 'Confidential artefact',
+    'bundle.share_warn_body': 'This bundle contains the passphrase, salt, and credentials in plaintext. Never share it over unencrypted channels (plain chat, plain email attachment). Recommended: Signal/Threema, password manager, or in-person handover.',
+    'bundle.share_field': 'Bundle as JSON',
+    'bundle.share_copy': 'Copy to clipboard',
+    'bundle.share_download': 'Download as JSON file',
+    'bundle.share_copied': 'Copied to clipboard.',
+    'bundle.share_copy_manual': 'Please select and copy manually (Ctrl/Cmd+C).',
+    'bundle.share_downloaded': 'Bundle downloaded as a file.',
+    'bundle.share_build_failed': 'Bundle build failed: {msg}',
+    'bundle.import_title': 'Import sync bundle',
+    'bundle.import_intro': 'Paste the JSON of a shared bundle or load it from a file. CRAM shows a preview before creating the source.',
+    'bundle.import_field': 'Bundle JSON',
+    'bundle.import_placeholder': '{"format":"cram-bundle-v1",...}',
+    'bundle.import_from_file': '⇧ Load from file',
+    'bundle.import_parse': 'Preview',
+    'bundle.import_apply': 'Apply',
+    'bundle.preview_type': 'Type',
+    'bundle.preview_label': 'Label',
+    'bundle.preview_filename': 'Filename',
+    'bundle.preview_fingerprint': 'Config fingerprint',
+    'bundle.preview_fp_match': 'matches',
+    'bundle.preview_fp_mismatch': 'DIFFERS',
+    'bundle.preview_fp_warn': 'Warning: the bundle’s team fingerprint does not match your local configuration. You would sync against a different team.',
+    'bundle.preview_encrypted': 'End-to-end encryption active',
+    'bundle.preview_unencrypted': 'Bundle without encryption — server would see plaintext',
+    'bundle.preview_fs_hint': 'When applying you will be prompted to choose a local directory (the bundle does not carry a path).',
+    'bundle.import_err_empty': 'Paste JSON or load a file first.',
+    'bundle.import_err_no_bundle': 'Generate the preview first.',
+    'bundle.import_err_file_read': 'Could not read file: {msg}',
+    'bundle.import_err_apply': 'Import failed: {msg}',
+    'bundle.import_confirm_fp_mismatch': 'The bundle fingerprint does not match the local configuration. Import anyway?',
+    'bundle.import_success': 'Source "{label}" imported.',
     'toast.settings_saved': 'Settings saved',
     'print.header_title_default': 'Crisis Staff — Roles and Substitutes',
     'print.title': 'Print view',
@@ -5576,6 +5889,41 @@ const TRANSLATIONS = {
     'passphrase.modal_field': 'Frase',
     'passphrase.modal_hint': 'Solo en memoria — se borra al cerrar la pestaña.',
     'btn.ok': 'OK',
+    'settings.sync_btn_share': 'Compartir',
+    'settings.sync_import_bundle': 'Importar bundle',
+    'bundle.share_title': 'Compartir fuente: {label}',
+    'bundle.share_warn_title': 'Artefacto confidencial',
+    'bundle.share_warn_body': 'Este bundle contiene la frase, el salt y las credenciales en texto plano. Nunca lo compartas por canales sin cifrar (chat abierto, correo sin cifrar). Recomendado: Signal/Threema, gestor de contraseñas o entrega personal.',
+    'bundle.share_field': 'Bundle como JSON',
+    'bundle.share_copy': 'Copiar al portapapeles',
+    'bundle.share_download': 'Descargar como archivo JSON',
+    'bundle.share_copied': 'Copiado al portapapeles.',
+    'bundle.share_copy_manual': 'Marca y copia manualmente (Ctrl/Cmd+C).',
+    'bundle.share_downloaded': 'Bundle descargado como archivo.',
+    'bundle.share_build_failed': 'Generación del bundle fallida: {msg}',
+    'bundle.import_title': 'Importar bundle de sync',
+    'bundle.import_intro': 'Pega el JSON de un bundle compartido o cárgalo desde archivo. CRAM muestra una vista previa antes de crear la fuente.',
+    'bundle.import_field': 'JSON del bundle',
+    'bundle.import_placeholder': '{"format":"cram-bundle-v1",...}',
+    'bundle.import_from_file': '⇧ Cargar desde archivo',
+    'bundle.import_parse': 'Vista previa',
+    'bundle.import_apply': 'Aplicar',
+    'bundle.preview_type': 'Tipo',
+    'bundle.preview_label': 'Etiqueta',
+    'bundle.preview_filename': 'Nombre de archivo',
+    'bundle.preview_fingerprint': 'Huella de config',
+    'bundle.preview_fp_match': 'coincide',
+    'bundle.preview_fp_mismatch': 'DIFIERE',
+    'bundle.preview_fp_warn': 'Aviso: la huella del bundle no coincide con tu configuración local. Sincronizarías con otro equipo.',
+    'bundle.preview_encrypted': 'Cifrado de extremo a extremo activo',
+    'bundle.preview_unencrypted': 'Bundle sin cifrar — el servidor vería texto plano',
+    'bundle.preview_fs_hint': 'Al aplicar se te pedirá elegir una carpeta local (el bundle no incluye ruta).',
+    'bundle.import_err_empty': 'Pega JSON o carga un archivo primero.',
+    'bundle.import_err_no_bundle': 'Genera primero la vista previa.',
+    'bundle.import_err_file_read': 'No se pudo leer el archivo: {msg}',
+    'bundle.import_err_apply': 'Importación fallida: {msg}',
+    'bundle.import_confirm_fp_mismatch': 'La huella del bundle no coincide con la configuración local. ¿Importar de todos modos?',
+    'bundle.import_success': 'Fuente "{label}" importada.',
     'toast.settings_saved': 'Configuración guardada',
     'print.header_title_default': 'Comité de crisis — Roles y suplentes',
     'print.title': 'Vista de impresión',
@@ -5997,6 +6345,41 @@ const TRANSLATIONS = {
     'passphrase.modal_field': 'Phrase',
     'passphrase.modal_hint': 'En mémoire uniquement — perdue à la fermeture de l’onglet.',
     'btn.ok': 'OK',
+    'settings.sync_btn_share': 'Partager',
+    'settings.sync_import_bundle': 'Importer un bundle',
+    'bundle.share_title': 'Partager la source : {label}',
+    'bundle.share_warn_title': 'Artefact confidentiel',
+    'bundle.share_warn_body': 'Ce bundle contient la phrase, le salt et les identifiants en clair. Ne le partagez jamais sur des canaux non chiffrés (chat ouvert, pièce jointe e-mail non chiffrée). Recommandé : Signal/Threema, gestionnaire de mots de passe, ou remise en main propre.',
+    'bundle.share_field': 'Bundle en JSON',
+    'bundle.share_copy': 'Copier dans le presse-papiers',
+    'bundle.share_download': 'Télécharger en JSON',
+    'bundle.share_copied': 'Copié dans le presse-papiers.',
+    'bundle.share_copy_manual': 'Sélectionnez et copiez manuellement (Ctrl/Cmd+C).',
+    'bundle.share_downloaded': 'Bundle téléchargé sous forme de fichier.',
+    'bundle.share_build_failed': 'Échec de la création du bundle : {msg}',
+    'bundle.import_title': 'Importer un bundle de sync',
+    'bundle.import_intro': 'Collez le JSON d’un bundle partagé ou chargez-le depuis un fichier. CRAM affiche un aperçu avant de créer la source.',
+    'bundle.import_field': 'JSON du bundle',
+    'bundle.import_placeholder': '{"format":"cram-bundle-v1",...}',
+    'bundle.import_from_file': '⇧ Charger depuis un fichier',
+    'bundle.import_parse': 'Aperçu',
+    'bundle.import_apply': 'Appliquer',
+    'bundle.preview_type': 'Type',
+    'bundle.preview_label': 'Libellé',
+    'bundle.preview_filename': 'Nom de fichier',
+    'bundle.preview_fingerprint': 'Empreinte config',
+    'bundle.preview_fp_match': 'correspond',
+    'bundle.preview_fp_mismatch': 'DIFFÈRE',
+    'bundle.preview_fp_warn': 'Attention : l’empreinte du bundle ne correspond pas à votre configuration locale. Vous synchroniseriez avec une autre cellule.',
+    'bundle.preview_encrypted': 'Chiffrement de bout en bout actif',
+    'bundle.preview_unencrypted': 'Bundle sans chiffrement — le serveur verrait du texte en clair',
+    'bundle.preview_fs_hint': 'Au moment d’appliquer, vous serez invité à choisir un dossier local (le bundle ne contient pas de chemin).',
+    'bundle.import_err_empty': 'Collez le JSON ou chargez un fichier d’abord.',
+    'bundle.import_err_no_bundle': 'Générez d’abord l’aperçu.',
+    'bundle.import_err_file_read': 'Impossible de lire le fichier : {msg}',
+    'bundle.import_err_apply': 'Échec de l’import : {msg}',
+    'bundle.import_confirm_fp_mismatch': 'L’empreinte du bundle ne correspond pas à la configuration locale. Importer quand même ?',
+    'bundle.import_success': 'Source « {label} » importée.',
     'toast.settings_saved': 'Paramètres enregistrés',
     'print.header_title_default': 'Cellule de crise — Rôles et suppléants',
     'print.title': 'Aperçu d\u2019impression',
@@ -6418,6 +6801,41 @@ const TRANSLATIONS = {
     'passphrase.modal_field': '口令',
     'passphrase.modal_hint': '仅保存在内存中——关闭标签页时丢失。',
     'btn.ok': '确定',
+    'settings.sync_btn_share': '分享',
+    'settings.sync_import_bundle': '导入 Bundle',
+    'bundle.share_title': '分享同步源：{label}',
+    'bundle.share_warn_title': '机密文件',
+    'bundle.share_warn_body': '该 Bundle 包含口令、Salt 和凭据（明文）。不要通过未加密的渠道分享（普通聊天、未加密邮件附件）。推荐使用 Signal/Threema、密码管理器或当面交接。',
+    'bundle.share_field': 'Bundle JSON',
+    'bundle.share_copy': '复制到剪贴板',
+    'bundle.share_download': '下载为 JSON 文件',
+    'bundle.share_copied': '已复制到剪贴板。',
+    'bundle.share_copy_manual': '请手动选中并复制 (Ctrl/Cmd+C)。',
+    'bundle.share_downloaded': 'Bundle 已下载为文件。',
+    'bundle.share_build_failed': 'Bundle 构建失败：{msg}',
+    'bundle.import_title': '导入同步 Bundle',
+    'bundle.import_intro': '粘贴所收到 Bundle 的 JSON 或从文件加载。CRAM 会在创建同步源前显示预览。',
+    'bundle.import_field': 'Bundle JSON',
+    'bundle.import_placeholder': '{"format":"cram-bundle-v1",...}',
+    'bundle.import_from_file': '⇧ 从文件加载',
+    'bundle.import_parse': '预览',
+    'bundle.import_apply': '应用',
+    'bundle.preview_type': '类型',
+    'bundle.preview_label': '名称',
+    'bundle.preview_filename': '文件名',
+    'bundle.preview_fingerprint': '配置指纹',
+    'bundle.preview_fp_match': '匹配',
+    'bundle.preview_fp_mismatch': '不一致',
+    'bundle.preview_fp_warn': '警告：Bundle 中的团队指纹与本地配置不一致。这将与不同的团队同步。',
+    'bundle.preview_encrypted': '端到端加密已启用',
+    'bundle.preview_unencrypted': 'Bundle 未加密——服务器会看到明文',
+    'bundle.preview_fs_hint': '应用时会要求你选择本地目录（Bundle 不包含路径）。',
+    'bundle.import_err_empty': '请先粘贴 JSON 或加载文件。',
+    'bundle.import_err_no_bundle': '请先生成预览。',
+    'bundle.import_err_file_read': '无法读取文件：{msg}',
+    'bundle.import_err_apply': '导入失败：{msg}',
+    'bundle.import_confirm_fp_mismatch': 'Bundle 指纹与本地配置不一致。仍要导入吗？',
+    'bundle.import_success': '已导入同步源 "{label}"。',
     'toast.settings_saved': '设置已保存',
     'print.header_title_default': '危机小组 — 角色与替补',
     'print.title': '打印视图',
@@ -7881,10 +8299,19 @@ const CLICK_HANDLERS = {
   'sync-add-http':          () => syncFormShowAddHttp(),
   'sync-add-fs':            () => syncFormShowAddFs(),
   'sync-edit-source':       (el) => syncFormShowEdit(el.dataset.sourceId),
+  'sync-share-source':      (el) => openSyncShareModal(el.dataset.sourceId),
   'sync-delete-source':     (el) => syncDeleteSource(el.dataset.sourceId, el.dataset.label),
   'sync-form-cancel':       () => syncFormCancel(),
   'sync-form-save':         () => syncFormSave(),
   'sync-form-pick-dir':     () => syncFormPickDirectory(),
+  'sync-import-bundle':     () => openSyncImportModal(),
+  'bundle-share-copy':      () => syncShareCopy(),
+  'bundle-share-download':  () => syncShareDownload(),
+  'bundle-share-close':     () => syncShareClose(),
+  'bundle-import-parse':    () => syncImportParse(),
+  'bundle-import-file':     () => syncImportFromFile(),
+  'bundle-import-apply':    () => syncImportApply(),
+  'bundle-import-close':    () => syncImportClose(),
 };
 
 function handleGlobalClick(e) {
@@ -9376,6 +9803,7 @@ async function withPassphraseRecovery(source, opFn) {
     try {
       const key = await SyncCrypto.deriveKey(passphrase, saltB64);
       Sync.setKeyForSource(source.id, key);
+      Sync.setPassphraseForSource(source.id, passphrase);
     } catch (deriveErr) {
       throw new Error(t('settings.sync_err_key_derive', { msg: String(deriveErr.message || deriveErr) }));
     }
@@ -11396,6 +11824,7 @@ function renderSettingsSync() {
             <div class="sync-source-meta">${escapeHTML(metaLine)}</div>
           </div>
           <div class="sync-source-actions">
+            <button data-action="sync-share-source" data-source-id="${escapeHTML(s.id)}">${escapeHTML(t('settings.sync_btn_share'))}</button>
             <button data-action="sync-edit-source" data-source-id="${escapeHTML(s.id)}">${escapeHTML(t('settings.sync_btn_edit'))}</button>
             <button class="danger" data-action="sync-delete-source" data-source-id="${escapeHTML(s.id)}" data-label="${escapeHTML(s.label)}">${escapeHTML(t('settings.sync_btn_delete'))}</button>
           </div>
@@ -11411,6 +11840,7 @@ function renderSettingsSync() {
       <div class="sync-add-buttons" style="margin-top: 12px;">
         <button class="btn-secondary" data-action="sync-add-http">+ ${escapeHTML(t('settings.sync_add_http'))}</button>
         <button class="btn-secondary" data-action="sync-add-fs" ${fsSupported ? '' : 'disabled title="' + escapeHTML(t('settings.sync_add_fs_unsupported')) + '"'}>+ ${escapeHTML(t('settings.sync_add_fs'))}</button>
+        <button class="btn-secondary" data-action="sync-import-bundle">⇩ ${escapeHTML(t('settings.sync_import_bundle'))}</button>
       </div>
     `;
   }
@@ -11827,6 +12257,7 @@ async function syncFormSave() {
       // Key-Cache erst nach erfolgreichem Save setzen — Source-ID brauchen wir
       // dafür, daher unten nach add/update.
       settingsState._pendingKey = cryptoKey;
+      settingsState._pendingPassphrase = passphrase;
     } catch (e) {
       showToast(t('settings.sync_err_key_derive', { msg: String(e.message || e) }), 'error');
       return;
@@ -11854,10 +12285,14 @@ async function syncFormSave() {
     showToast(t('toast.sync_source_added'), 'success');
   }
 
-  // Cached key nach erfolgreichem Save anlegen (falls Passphrase gesetzt wurde)
+  // Cached key + passphrase nach erfolgreichem Save anlegen (falls gesetzt)
   if (settingsState._pendingKey && savedSource) {
     Sync.setKeyForSource(savedSource.id, settingsState._pendingKey);
     delete settingsState._pendingKey;
+  }
+  if (settingsState._pendingPassphrase && savedSource) {
+    Sync.setPassphraseForSource(savedSource.id, settingsState._pendingPassphrase);
+    delete settingsState._pendingPassphrase;
   }
 
   // Directory-Handle in IndexedDB persistieren (nur fileSystem)
@@ -11888,6 +12323,273 @@ async function syncDeleteSource(sourceId, label) {
   }
   showToast(t('toast.sync_source_deleted'), 'success');
   renderSettingsModal();
+}
+
+/* =========================================================================
+   SYNC-BUNDLE SHARE / IMPORT FLOWS (V1.2 Phase 3.3)
+   Beide Flows nutzen das gleiche Modal-Backdrop, ersetzen kurzzeitig den
+   Settings-Modal-Inhalt, und kehren nach Close zum Settings → Sync-Tab
+   zurück.
+   ========================================================================= */
+
+let bundleShareState = { sourceId: null, bundle: null, json: null };
+
+async function openSyncShareModal(sourceId) {
+  bundleShareState = { sourceId, bundle: null, json: null };
+  const src = Sync.getSource(sourceId);
+  if (!src) { showToast('Source not found', 'error'); return; }
+
+  // Wenn Verschlüsselung aktiv und Passphrase nicht im Cache → prompten
+  if (Sync.isEncryptionEnabled(src) && !Sync.hasPassphraseForSource(sourceId)) {
+    const passphrase = await promptPassphrase(src);
+    if (!passphrase) { renderSettingsModal(); return; }
+    // Verify by deriving and comparing — wir vergleichen Keys nicht direkt,
+    // sondern speichern beide ein und vertrauen, dass die Passphrase richtig
+    // war. Falls falsch, würde der Empfänger ein Decryption-Failure sehen.
+    try {
+      const saltB64 = (src.encryption || {}).salt;
+      const key = await SyncCrypto.deriveKey(passphrase, saltB64);
+      Sync.setKeyForSource(sourceId, key);
+      Sync.setPassphraseForSource(sourceId, passphrase);
+    } catch (e) {
+      showToast(t('settings.sync_err_key_derive', { msg: String(e.message || e) }), 'error');
+      return;
+    }
+  }
+
+  try {
+    bundleShareState.bundle = SyncBundle.build(sourceId);
+    bundleShareState.json = SyncBundle.serialize(bundleShareState.bundle);
+  } catch (e) {
+    showToast(t('bundle.share_build_failed', { msg: String(e.message || e) }), 'error');
+    renderSettingsModal();
+    return;
+  }
+
+  renderSyncShareModal();
+}
+
+function renderSyncShareModal() {
+  const src = Sync.getSource(bundleShareState.sourceId);
+  const title = document.getElementById('modal-title');
+  const body  = document.getElementById('modal-body');
+  const footer = document.getElementById('modal-footer');
+
+  title.textContent = t('bundle.share_title', { label: (src && src.label) || '?' });
+  body.innerHTML = `
+    <div class="bundle-warning">
+      <strong>⚠ ${escapeHTML(t('bundle.share_warn_title'))}</strong>
+      <div>${escapeHTML(t('bundle.share_warn_body'))}</div>
+    </div>
+    <div class="form-field" style="margin-top: 12px;">
+      <label class="form-label" for="bundle-share-text">${escapeHTML(t('bundle.share_field'))}</label>
+      <textarea id="bundle-share-text" class="form-input bundle-text" rows="10" readonly>${escapeHTML(bundleShareState.json)}</textarea>
+    </div>
+    <div class="bundle-share-actions">
+      <button class="btn-secondary" data-action="bundle-share-copy">⎘ ${escapeHTML(t('bundle.share_copy'))}</button>
+      <button class="btn-secondary" data-action="bundle-share-download">⇩ ${escapeHTML(t('bundle.share_download'))}</button>
+    </div>
+  `;
+  footer.innerHTML = `
+    <button class="btn-secondary" data-action="bundle-share-close">${escapeHTML(t('btn.close'))}</button>
+  `;
+  document.getElementById('modal-backdrop').style.display = 'flex';
+}
+
+async function syncShareCopy() {
+  const txt = document.getElementById('bundle-share-text');
+  if (!txt) return;
+  try {
+    await navigator.clipboard.writeText(txt.value);
+    showToast(t('bundle.share_copied'), 'success');
+  } catch (e) {
+    // Fallback: select + manual copy
+    txt.focus();
+    txt.select();
+    showToast(t('bundle.share_copy_manual'), 'info');
+  }
+}
+
+function syncShareDownload() {
+  const json = bundleShareState.json;
+  if (!json) return;
+  const src = Sync.getSource(bundleShareState.sourceId);
+  const safeLabel = (src && src.label ? src.label : 'source').replace(/[^\w.-]+/g, '_');
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `cram-bundle-${safeLabel}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+  showToast(t('bundle.share_downloaded'), 'success');
+}
+
+function syncShareClose() {
+  bundleShareState = { sourceId: null, bundle: null, json: null };
+  // Zurück zum Settings-Modal, Sync-Tab
+  closeModal();
+  setTimeout(() => { openSettingsModal(); switchSettingsTab('sync'); }, 0);
+}
+
+/* ---- Import flow ---- */
+
+let bundleImportState = { rawText: '', bundle: null, parseError: null };
+
+function openSyncImportModal() {
+  bundleImportState = { rawText: '', bundle: null, parseError: null };
+  renderSyncImportModal();
+}
+
+function renderSyncImportModal() {
+  const title = document.getElementById('modal-title');
+  const body  = document.getElementById('modal-body');
+  const footer = document.getElementById('modal-footer');
+
+  title.textContent = t('bundle.import_title');
+
+  const b = bundleImportState.bundle;
+  const fingerprintLocal = SyncBundle.getFingerprintLocal();
+  const fpMatch = b && b.configFingerprint === fingerprintLocal;
+
+  let preview = '';
+  if (b) {
+    const fpLine = b.configFingerprint
+      ? `<div class="bundle-preview-fp" data-match="${fpMatch}">
+           <span>${escapeHTML(t('bundle.preview_fingerprint'))}: <code>${escapeHTML(b.configFingerprint)}</code>
+             vs. lokal <code>${escapeHTML(fingerprintLocal)}</code></span>
+           <span class="bundle-fp-tag">${escapeHTML(fpMatch ? t('bundle.preview_fp_match') : t('bundle.preview_fp_mismatch'))}</span>
+         </div>`
+      : '';
+    let detail = '';
+    if (b.type === 'http') {
+      detail = `<div class="bundle-preview-row"><strong>URL:</strong> <code>${escapeHTML((b.config || {}).url || '')}</code></div>`;
+    } else if (b.type === 'fileSystem') {
+      detail = `<div class="bundle-preview-row"><strong>${escapeHTML(t('bundle.preview_filename'))}:</strong> <code>${escapeHTML((b.config || {}).fileName || 'cram-sync.json')}</code></div>
+                <div class="bundle-preview-hint">${escapeHTML(t('bundle.preview_fs_hint'))}</div>`;
+    }
+    const encLine = b.encryption && b.encryption.enabled
+      ? `<div class="bundle-preview-row">🔒 ${escapeHTML(t('bundle.preview_encrypted'))}</div>`
+      : `<div class="bundle-preview-row">⚠ ${escapeHTML(t('bundle.preview_unencrypted'))}</div>`;
+    preview = `
+      <div class="bundle-preview">
+        <div class="bundle-preview-row"><strong>${escapeHTML(t('bundle.preview_type'))}:</strong> ${escapeHTML(b.type)}</div>
+        <div class="bundle-preview-row"><strong>${escapeHTML(t('bundle.preview_label'))}:</strong> ${escapeHTML(b.label)}</div>
+        ${detail}
+        ${encLine}
+        ${fpLine}
+        ${!fpMatch && b.configFingerprint ? `<div class="bundle-fp-warn">${escapeHTML(t('bundle.preview_fp_warn'))}</div>` : ''}
+      </div>
+    `;
+  }
+
+  const errBlock = bundleImportState.parseError
+    ? `<div class="bundle-import-err">${escapeHTML(bundleImportState.parseError)}</div>`
+    : '';
+
+  body.innerHTML = `
+    <div class="sync-explain">${escapeHTML(t('bundle.import_intro'))}</div>
+    <div class="form-field" style="margin-top: 12px;">
+      <label class="form-label" for="bundle-import-text">${escapeHTML(t('bundle.import_field'))}</label>
+      <textarea id="bundle-import-text" class="form-input bundle-text" rows="8"
+                placeholder="${escapeHTML(t('bundle.import_placeholder'))}">${escapeHTML(bundleImportState.rawText)}</textarea>
+    </div>
+    <div class="bundle-import-actions">
+      <button class="btn-secondary" data-action="bundle-import-file">${escapeHTML(t('bundle.import_from_file'))}</button>
+      <button class="btn-secondary" data-action="bundle-import-parse">${escapeHTML(t('bundle.import_parse'))}</button>
+    </div>
+    ${errBlock}
+    ${preview}
+  `;
+  footer.innerHTML = `
+    <button class="btn-secondary" data-action="bundle-import-close">${escapeHTML(t('btn.cancel'))}</button>
+    <button class="btn-primary" data-action="bundle-import-apply" ${b ? '' : 'disabled'}>${escapeHTML(t('bundle.import_apply'))}</button>
+  `;
+  document.getElementById('modal-backdrop').style.display = 'flex';
+
+  // Live-Parse beim Tippen (debounced über change-Event)
+  const ta = document.getElementById('bundle-import-text');
+  if (ta) {
+    ta.addEventListener('input', () => { bundleImportState.rawText = ta.value; });
+  }
+}
+
+function syncImportParse() {
+  const txt = document.getElementById('bundle-import-text');
+  if (!txt) return;
+  const raw = txt.value.trim();
+  bundleImportState.rawText = raw;
+  if (!raw) {
+    bundleImportState.bundle = null;
+    bundleImportState.parseError = t('bundle.import_err_empty');
+    renderSyncImportModal();
+    return;
+  }
+  try {
+    bundleImportState.bundle = SyncBundle.parse(raw);
+    bundleImportState.parseError = null;
+  } catch (e) {
+    bundleImportState.bundle = null;
+    bundleImportState.parseError = String(e.message || e);
+  }
+  renderSyncImportModal();
+}
+
+function syncImportFromFile() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json,application/json';
+  input.addEventListener('change', async () => {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      bundleImportState.rawText = text;
+      // Auto-parse after loading
+      try {
+        bundleImportState.bundle = SyncBundle.parse(text);
+        bundleImportState.parseError = null;
+      } catch (e) {
+        bundleImportState.bundle = null;
+        bundleImportState.parseError = String(e.message || e);
+      }
+      renderSyncImportModal();
+    } catch (e) {
+      showToast(t('bundle.import_err_file_read', { msg: String(e.message || e) }), 'error');
+    }
+  });
+  input.click();
+}
+
+async function syncImportApply() {
+  if (!bundleImportState.bundle) {
+    showToast(t('bundle.import_err_no_bundle'), 'error');
+    return;
+  }
+  const fpLocal = SyncBundle.getFingerprintLocal();
+  if (bundleImportState.bundle.configFingerprint &&
+      bundleImportState.bundle.configFingerprint !== fpLocal) {
+    if (!window.confirm(t('bundle.import_confirm_fp_mismatch'))) return;
+  }
+  try {
+    const result = await SyncBundle.apply(bundleImportState.bundle);
+    if (result === null) {
+      // user cancelled the directory picker (fileSystem)
+      return;
+    }
+    showToast(t('bundle.import_success', { label: result.source.label }), 'success');
+    syncImportClose();
+  } catch (e) {
+    showToast(t('bundle.import_err_apply', { msg: String(e.message || e) }), 'error');
+  }
+}
+
+function syncImportClose() {
+  bundleImportState = { rawText: '', bundle: null, parseError: null };
+  closeModal();
+  setTimeout(() => { openSettingsModal(); switchSettingsTab('sync'); }, 0);
 }
 
 /* =========================================================================
