@@ -2259,6 +2259,124 @@ button:focus-visible,
 .settings-about-value a:hover {
   text-decoration: underline;
 }
+
+/* ---- Settings-Tabs (V1.2) ---- */
+.settings-tabs {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 12px;
+}
+.settings-tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 8px 16px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+  transition: color 0.15s, border-color 0.15s;
+}
+.settings-tab:hover { color: var(--text-primary); }
+.settings-tab[data-active="true"] {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* ---- Sync-Sources Liste (V1.2) ---- */
+.sync-no-sources {
+  padding: 16px;
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 13px;
+  text-align: center;
+}
+.sync-source-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sync-source-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+.sync-source-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sync-source-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.sync-source-meta {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sync-source-type-badge {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 6px;
+  border-radius: 2px;
+  background: var(--bg-base);
+  color: var(--text-secondary);
+}
+.sync-source-actions {
+  display: flex;
+  gap: 6px;
+}
+.sync-source-actions button {
+  padding: 4px 8px;
+  font-size: 12px;
+  border: 1px solid var(--border-subtle);
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: inherit;
+}
+.sync-source-actions button:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+.sync-source-actions button.danger:hover { color: var(--status-err); border-color: var(--status-err); }
+
+/* Form für Add/Edit HTTP-Source */
+.sync-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  margin-bottom: 12px;
+}
+.sync-form-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+.sync-form-row .form-field { flex: 1; }
+.sync-form-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
 .qr-preview-title {
   font-weight: 600;
   font-size: 15px;
@@ -3954,6 +4072,40 @@ const TRANSLATIONS = {
         'settings.about_version': 'Version',
     'settings.about_project': 'Projekt',
     'settings.about_license': 'Lizenz',
+    'settings.tab_general': 'Allgemein',
+    'settings.tab_sync': 'Sync-Sources',
+    'settings.tab_about': 'Info',
+    'settings.sync_intro': 'Sync-Sources sind Endpunkte, gegen die manuell synchronisiert werden kann. V1.2 unterstützt HTTP(S)-Backends; weitere Backend-Typen folgen.',
+    'settings.sync_no_sources': 'Keine Sync-Sources konfiguriert.',
+    'settings.sync_add_http': 'Neue HTTP-Source',
+    'settings.sync_form_add_title': 'Neue HTTP-Source anlegen',
+    'settings.sync_form_edit_title': 'HTTP-Source bearbeiten',
+    'settings.sync_field_label': 'Bezeichnung',
+    'settings.sync_field_label_placeholder': 'z.B. Hauptserver intern',
+    'settings.sync_field_url': 'URL',
+    'settings.sync_field_url_placeholder': 'https://server.intern/cram/state.json',
+    'settings.sync_field_url_hint': 'Vollständige HTTPS-URL des state.json-Endpunkts. Lokales http://127.0.0.1:* nur für Entwicklung.',
+    'settings.sync_field_auth_type': 'Authentifizierung',
+    'settings.sync_auth_none': 'Keine',
+    'settings.sync_auth_basic': 'Basic-Auth',
+    'settings.sync_auth_bearer': 'Bearer-Token',
+    'settings.sync_field_user': 'Benutzer',
+    'settings.sync_field_pass': 'Passwort',
+    'settings.sync_field_token': 'Token',
+    'settings.sync_btn_save_new': 'Source anlegen',
+    'settings.sync_btn_save_edit': 'Änderungen speichern',
+    'settings.sync_btn_cancel': 'Abbrechen',
+    'settings.sync_btn_edit': 'Bearbeiten',
+    'settings.sync_btn_delete': 'Löschen',
+    'settings.sync_delete_confirm': 'Source "{label}" wirklich löschen?',
+    'settings.sync_type_http': 'HTTP',
+    'settings.sync_err_url_required': 'URL ist erforderlich.',
+    'settings.sync_err_url_invalid': 'URL muss mit http(s):// beginnen.',
+    'settings.sync_err_user_required': 'Benutzername ist bei Basic-Auth erforderlich.',
+    'settings.sync_err_token_required': 'Token ist bei Bearer-Auth erforderlich.',
+    'toast.sync_source_added': 'Sync-Source angelegt.',
+    'toast.sync_source_updated': 'Sync-Source aktualisiert.',
+    'toast.sync_source_deleted': 'Sync-Source gelöscht.',
     'toast.settings_saved': 'Einstellungen gespeichert',
     'print.header_title_default': 'Krisenstab — Rollen und Vertretungen',
     'print.title': 'Druckansicht',
@@ -4282,6 +4434,40 @@ const TRANSLATIONS = {
         'settings.about_version': 'Version',
     'settings.about_project': 'Project',
     'settings.about_license': 'License',
+    'settings.tab_general': 'General',
+    'settings.tab_sync': 'Sync sources',
+    'settings.tab_about': 'About',
+    'settings.sync_intro': 'Sync sources are endpoints you can manually synchronise against. V1.2 supports HTTP(S) backends; more backend types follow.',
+    'settings.sync_no_sources': 'No sync sources configured.',
+    'settings.sync_add_http': 'New HTTP source',
+    'settings.sync_form_add_title': 'Add a new HTTP source',
+    'settings.sync_form_edit_title': 'Edit HTTP source',
+    'settings.sync_field_label': 'Label',
+    'settings.sync_field_label_placeholder': 'e.g. Primary internal server',
+    'settings.sync_field_url': 'URL',
+    'settings.sync_field_url_placeholder': 'https://server.internal/cram/state.json',
+    'settings.sync_field_url_hint': 'Full HTTPS URL of the state.json endpoint. Plain http://127.0.0.1:* allowed for development only.',
+    'settings.sync_field_auth_type': 'Authentication',
+    'settings.sync_auth_none': 'None',
+    'settings.sync_auth_basic': 'Basic auth',
+    'settings.sync_auth_bearer': 'Bearer token',
+    'settings.sync_field_user': 'User',
+    'settings.sync_field_pass': 'Password',
+    'settings.sync_field_token': 'Token',
+    'settings.sync_btn_save_new': 'Add source',
+    'settings.sync_btn_save_edit': 'Save changes',
+    'settings.sync_btn_cancel': 'Cancel',
+    'settings.sync_btn_edit': 'Edit',
+    'settings.sync_btn_delete': 'Delete',
+    'settings.sync_delete_confirm': 'Really delete source "{label}"?',
+    'settings.sync_type_http': 'HTTP',
+    'settings.sync_err_url_required': 'URL is required.',
+    'settings.sync_err_url_invalid': 'URL must start with http(s)://.',
+    'settings.sync_err_user_required': 'Username is required for basic auth.',
+    'settings.sync_err_token_required': 'Token is required for bearer auth.',
+    'toast.sync_source_added': 'Sync source added.',
+    'toast.sync_source_updated': 'Sync source updated.',
+    'toast.sync_source_deleted': 'Sync source deleted.',
     'toast.settings_saved': 'Settings saved',
     'print.header_title_default': 'Crisis Staff — Roles and Substitutes',
     'print.title': 'Print view',
@@ -4609,6 +4795,40 @@ const TRANSLATIONS = {
         'settings.about_version': 'Versión',
     'settings.about_project': 'Proyecto',
     'settings.about_license': 'Licencia',
+    'settings.tab_general': 'General',
+    'settings.tab_sync': 'Fuentes de sync.',
+    'settings.tab_about': 'Acerca de',
+    'settings.sync_intro': 'Las fuentes de sincronización son endpoints contra los que puede sincronizar manualmente. V1.2 admite backends HTTP(S); seguirán más tipos.',
+    'settings.sync_no_sources': 'Ninguna fuente configurada.',
+    'settings.sync_add_http': 'Nueva fuente HTTP',
+    'settings.sync_form_add_title': 'Crear nueva fuente HTTP',
+    'settings.sync_form_edit_title': 'Editar fuente HTTP',
+    'settings.sync_field_label': 'Etiqueta',
+    'settings.sync_field_label_placeholder': 'p. ej. Servidor principal interno',
+    'settings.sync_field_url': 'URL',
+    'settings.sync_field_url_placeholder': 'https://servidor.interno/cram/state.json',
+    'settings.sync_field_url_hint': 'URL HTTPS completa del endpoint state.json. http://127.0.0.1:* solo para desarrollo.',
+    'settings.sync_field_auth_type': 'Autenticación',
+    'settings.sync_auth_none': 'Ninguna',
+    'settings.sync_auth_basic': 'Auth básica',
+    'settings.sync_auth_bearer': 'Token Bearer',
+    'settings.sync_field_user': 'Usuario',
+    'settings.sync_field_pass': 'Contraseña',
+    'settings.sync_field_token': 'Token',
+    'settings.sync_btn_save_new': 'Crear fuente',
+    'settings.sync_btn_save_edit': 'Guardar cambios',
+    'settings.sync_btn_cancel': 'Cancelar',
+    'settings.sync_btn_edit': 'Editar',
+    'settings.sync_btn_delete': 'Eliminar',
+    'settings.sync_delete_confirm': '¿Eliminar realmente la fuente "{label}"?',
+    'settings.sync_type_http': 'HTTP',
+    'settings.sync_err_url_required': 'La URL es obligatoria.',
+    'settings.sync_err_url_invalid': 'La URL debe empezar con http(s)://.',
+    'settings.sync_err_user_required': 'Usuario obligatorio para Auth básica.',
+    'settings.sync_err_token_required': 'Token obligatorio para Bearer.',
+    'toast.sync_source_added': 'Fuente añadida.',
+    'toast.sync_source_updated': 'Fuente actualizada.',
+    'toast.sync_source_deleted': 'Fuente eliminada.',
     'toast.settings_saved': 'Configuración guardada',
     'print.header_title_default': 'Comité de crisis — Roles y suplentes',
     'print.title': 'Vista de impresión',
@@ -4937,6 +5157,40 @@ const TRANSLATIONS = {
         'settings.about_version': 'Version',
     'settings.about_project': 'Projet',
     'settings.about_license': 'Licence',
+    'settings.tab_general': 'Général',
+    'settings.tab_sync': 'Sources de sync.',
+    'settings.tab_about': 'À propos',
+    'settings.sync_intro': 'Les sources de synchronisation sont des points d’accès contre lesquels vous pouvez synchroniser manuellement. La V1.2 prend en charge les backends HTTP(S); d’autres types suivront.',
+    'settings.sync_no_sources': 'Aucune source configurée.',
+    'settings.sync_add_http': 'Nouvelle source HTTP',
+    'settings.sync_form_add_title': 'Ajouter une source HTTP',
+    'settings.sync_form_edit_title': 'Modifier la source HTTP',
+    'settings.sync_field_label': 'Libellé',
+    'settings.sync_field_label_placeholder': 'p. ex. Serveur principal interne',
+    'settings.sync_field_url': 'URL',
+    'settings.sync_field_url_placeholder': 'https://serveur.interne/cram/state.json',
+    'settings.sync_field_url_hint': 'URL HTTPS complète du point d’accès state.json. http://127.0.0.1:* uniquement pour le développement.',
+    'settings.sync_field_auth_type': 'Authentification',
+    'settings.sync_auth_none': 'Aucune',
+    'settings.sync_auth_basic': 'Auth basique',
+    'settings.sync_auth_bearer': 'Token Bearer',
+    'settings.sync_field_user': 'Utilisateur',
+    'settings.sync_field_pass': 'Mot de passe',
+    'settings.sync_field_token': 'Token',
+    'settings.sync_btn_save_new': 'Créer la source',
+    'settings.sync_btn_save_edit': 'Enregistrer',
+    'settings.sync_btn_cancel': 'Annuler',
+    'settings.sync_btn_edit': 'Modifier',
+    'settings.sync_btn_delete': 'Supprimer',
+    'settings.sync_delete_confirm': 'Supprimer la source « {label} » ?',
+    'settings.sync_type_http': 'HTTP',
+    'settings.sync_err_url_required': 'URL obligatoire.',
+    'settings.sync_err_url_invalid': 'URL doit commencer par http(s)://.',
+    'settings.sync_err_user_required': 'Utilisateur obligatoire pour Auth basique.',
+    'settings.sync_err_token_required': 'Token obligatoire pour Bearer.',
+    'toast.sync_source_added': 'Source ajoutée.',
+    'toast.sync_source_updated': 'Source mise à jour.',
+    'toast.sync_source_deleted': 'Source supprimée.',
     'toast.settings_saved': 'Paramètres enregistrés',
     'print.header_title_default': 'Cellule de crise — Rôles et suppléants',
     'print.title': 'Aperçu d\u2019impression',
@@ -5265,6 +5519,40 @@ const TRANSLATIONS = {
         'settings.about_version': '版本',
     'settings.about_project': '项目',
     'settings.about_license': '许可证',
+    'settings.tab_general': '常规',
+    'settings.tab_sync': '同步源',
+    'settings.tab_about': '关于',
+    'settings.sync_intro': '同步源是可以手动同步的端点。V1.2 支持 HTTP(S) 后端；后续会增加更多类型。',
+    'settings.sync_no_sources': '未配置同步源。',
+    'settings.sync_add_http': '新建 HTTP 源',
+    'settings.sync_form_add_title': '添加新的 HTTP 源',
+    'settings.sync_form_edit_title': '编辑 HTTP 源',
+    'settings.sync_field_label': '名称',
+    'settings.sync_field_label_placeholder': '例如 内部主服务器',
+    'settings.sync_field_url': 'URL',
+    'settings.sync_field_url_placeholder': 'https://server.internal/cram/state.json',
+    'settings.sync_field_url_hint': 'state.json 端点的完整 HTTPS URL。http://127.0.0.1:* 仅用于开发。',
+    'settings.sync_field_auth_type': '认证',
+    'settings.sync_auth_none': '无',
+    'settings.sync_auth_basic': '基本认证',
+    'settings.sync_auth_bearer': 'Bearer Token',
+    'settings.sync_field_user': '用户名',
+    'settings.sync_field_pass': '密码',
+    'settings.sync_field_token': 'Token',
+    'settings.sync_btn_save_new': '创建源',
+    'settings.sync_btn_save_edit': '保存修改',
+    'settings.sync_btn_cancel': '取消',
+    'settings.sync_btn_edit': '编辑',
+    'settings.sync_btn_delete': '删除',
+    'settings.sync_delete_confirm': '确实删除源 "{label}" 吗？',
+    'settings.sync_type_http': 'HTTP',
+    'settings.sync_err_url_required': 'URL 必填。',
+    'settings.sync_err_url_invalid': 'URL 必须以 http(s):// 开头。',
+    'settings.sync_err_user_required': '基本认证需要用户名。',
+    'settings.sync_err_token_required': 'Bearer 认证需要 Token。',
+    'toast.sync_source_added': '同步源已添加。',
+    'toast.sync_source_updated': '同步源已更新。',
+    'toast.sync_source_deleted': '同步源已删除。',
     'toast.settings_saved': '设置已保存',
     'print.header_title_default': '危机小组 — 角色与替补',
     'print.title': '打印视图',
@@ -6656,8 +6944,14 @@ const CLICK_HANDLERS = {
   'print-start': () => startPrint(),
 
   // Allgemeine Einstellungen (nur im Edit-Modus sichtbar)
-  'open-settings': () => openSettingsModal(),
-  'settings-save': () => saveSettingsModal(),
+  'open-settings':          () => openSettingsModal(),
+  'settings-save':          () => saveSettingsModal(),
+  'settings-tab':           (el) => switchSettingsTab(el.dataset.tab),
+  'sync-add-http':          () => syncFormShowAdd(),
+  'sync-edit-source':       (el) => syncFormShowEdit(el.dataset.sourceId),
+  'sync-delete-source':     (el) => syncDeleteSource(el.dataset.sourceId, el.dataset.label),
+  'sync-form-cancel':       () => syncFormCancel(),
+  'sync-form-save':         () => syncFormSave(),
 };
 
 function handleGlobalClick(e) {
@@ -9794,18 +10088,96 @@ function buildPrintPersons() {
    Drucktitel. Werden in config.meta gespeichert und sind damit Teil
    der Config (Sync / Export enthält sie automatisch).
    ========================================================================= */
+/* Settings-Modal mit Tabs (V1.2):
+   - 'general': Organisationsname + Drucktitel
+   - 'sync':    Sync-Sources verwalten (CRUD)
+   - 'about':   Version, Projekt, Lizenz
+   Der module-state hält den aktiven Tab und ggf. die laufende Form-Aktion
+   im sync-Tab fest; jeder Render baut die UI neu auf. */
+let settingsState = { activeTab: 'general', editingSourceId: null, formMode: null };
+
 function openSettingsModal() {
+  settingsState = { activeTab: 'general', editingSourceId: null, formMode: null };
+  renderSettingsModal();
+}
+
+function switchSettingsTab(tab) {
+  settingsState.activeTab = tab;
+  settingsState.editingSourceId = null;
+  settingsState.formMode = null;
+  renderSettingsModal();
+}
+
+function renderSettingsModal() {
   const title = document.getElementById('modal-title');
   const body  = document.getElementById('modal-body');
   const footer = document.getElementById('modal-footer');
 
   title.textContent = t('settings.title');
 
+  const tabs = [
+    { id: 'general', label: t('settings.tab_general') },
+    { id: 'sync',    label: t('settings.tab_sync') },
+    { id: 'about',   label: t('settings.tab_about') },
+  ];
+
+  const tabsHTML = `
+    <div class="settings-tabs" role="tablist">
+      ${tabs.map(tab => `
+        <button class="settings-tab" data-action="settings-tab" data-tab="${escapeHTML(tab.id)}"
+                data-active="${settingsState.activeTab === tab.id}">
+          ${escapeHTML(tab.label)}
+        </button>
+      `).join('')}
+    </div>
+  `;
+
+  let panelHTML;
+  if (settingsState.activeTab === 'general')      panelHTML = renderSettingsGeneral();
+  else if (settingsState.activeTab === 'sync')    panelHTML = renderSettingsSync();
+  else                                            panelHTML = renderSettingsAbout();
+
+  body.innerHTML = tabsHTML + '<div class="settings-panel">' + panelHTML + '</div>';
+
+  // Footer per Tab:
+  // - 'general' hat Save-Button (für Org-Name / Print-Title)
+  // - 'sync' und 'about' sind self-contained / read-only → nur Close
+  if (settingsState.activeTab === 'general') {
+    footer.innerHTML = `
+      <button class="btn-secondary" data-action="modal-cancel">${escapeHTML(t('btn.cancel'))}</button>
+      <button class="btn-primary" data-action="settings-save">${escapeHTML(t('settings.save'))}</button>
+    `;
+  } else {
+    footer.innerHTML = `
+      <button class="btn-secondary" data-action="modal-cancel">${escapeHTML(t('btn.close'))}</button>
+    `;
+  }
+
+  document.getElementById('modal-backdrop').style.display = 'flex';
+
+  // Auto-focus + Listener für Auth-Type-Select (change-Event ist nicht im
+  // CLICK_HANDLERS-Dispatcher abgedeckt)
+  if (settingsState.activeTab === 'general') {
+    setTimeout(() => {
+      const el = document.getElementById('settings-org-name');
+      if (el) el.focus();
+    }, 50);
+  } else if (settingsState.activeTab === 'sync' && settingsState.formMode) {
+    const authSel = document.getElementById('sync-form-auth');
+    if (authSel) authSel.addEventListener('change', syncFormAuthChanged);
+    setTimeout(() => {
+      const labelEl = document.getElementById('sync-form-label');
+      if (labelEl) labelEl.focus();
+    }, 50);
+  }
+}
+
+function renderSettingsGeneral() {
   const meta = State.config.meta || {};
   const orgName = meta.organizationName || '';
   const printTitle = meta.printTitle || '';
 
-  body.innerHTML = `
+  return `
     <div class="sync-explain">${escapeHTML(t('settings.intro'))}</div>
 
     <div class="form-field" style="margin-top: 14px;">
@@ -9825,8 +10197,119 @@ function openSettingsModal() {
              autocomplete="off" />
       <div class="form-hint">${escapeHTML(t('settings.field_print_title_hint'))}</div>
     </div>
+  `;
+}
 
-    <div class="settings-about">
+function renderSettingsSync() {
+  const sources = Sync.listSources();
+  let html = `<div class="sync-explain">${escapeHTML(t('settings.sync_intro'))}</div>`;
+
+  if (settingsState.formMode) {
+    html += '<div style="margin-top: 12px;">' + renderSyncForm() + '</div>';
+  }
+
+  if (sources.length === 0) {
+    if (!settingsState.formMode) {
+      html += `<div class="sync-no-sources" style="margin-top: 12px;">${escapeHTML(t('settings.sync_no_sources'))}</div>`;
+    }
+  } else {
+    html += `<div class="sync-source-list" style="margin-top: 12px;">`;
+    sources.forEach(s => {
+      const cfg = s.config || {};
+      const metaLine = (s.type === 'http') ? (cfg.url || '') : '';
+      const typeLabel = t('settings.sync_type_' + s.type) || s.type;
+      html += `
+        <div class="sync-source-row">
+          <span class="sync-source-type-badge">${escapeHTML(typeLabel)}</span>
+          <div class="sync-source-info">
+            <div class="sync-source-label">${escapeHTML(s.label)}</div>
+            <div class="sync-source-meta">${escapeHTML(metaLine)}</div>
+          </div>
+          <div class="sync-source-actions">
+            <button data-action="sync-edit-source" data-source-id="${escapeHTML(s.id)}">${escapeHTML(t('settings.sync_btn_edit'))}</button>
+            <button class="danger" data-action="sync-delete-source" data-source-id="${escapeHTML(s.id)}" data-label="${escapeHTML(s.label)}">${escapeHTML(t('settings.sync_btn_delete'))}</button>
+          </div>
+        </div>
+      `;
+    });
+    html += `</div>`;
+  }
+
+  if (!settingsState.formMode) {
+    html += `
+      <div style="margin-top: 12px;">
+        <button class="btn-secondary" data-action="sync-add-http">+ ${escapeHTML(t('settings.sync_add_http'))}</button>
+      </div>
+    `;
+  }
+
+  return html;
+}
+
+function renderSyncForm() {
+  const isEdit = settingsState.formMode === 'edit';
+  const src = isEdit ? Sync.getSource(settingsState.editingSourceId) : null;
+  const cfg = src ? (src.config || {}) : {};
+  const label = src ? src.label : '';
+  const url = cfg.url || '';
+  const authType = cfg.authType || 'none';
+  const titleKey = isEdit ? 'settings.sync_form_edit_title' : 'settings.sync_form_add_title';
+  const saveKey  = isEdit ? 'settings.sync_btn_save_edit'   : 'settings.sync_btn_save_new';
+
+  return `
+    <div class="sync-form">
+      <div style="font-weight: 600; font-size: 13px;">${escapeHTML(t(titleKey))}</div>
+
+      <div class="form-field">
+        <label class="form-label" for="sync-form-label">${escapeHTML(t('settings.sync_field_label'))}</label>
+        <input type="text" id="sync-form-label" class="form-input" value="${escapeHTML(label)}"
+               placeholder="${escapeHTML(t('settings.sync_field_label_placeholder'))}" autocomplete="off" />
+      </div>
+
+      <div class="form-field">
+        <label class="form-label" for="sync-form-url">${escapeHTML(t('settings.sync_field_url'))}</label>
+        <input type="text" id="sync-form-url" class="form-input" value="${escapeHTML(url)}"
+               placeholder="${escapeHTML(t('settings.sync_field_url_placeholder'))}"
+               autocomplete="off" spellcheck="false" />
+        <div class="form-hint">${escapeHTML(t('settings.sync_field_url_hint'))}</div>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label" for="sync-form-auth">${escapeHTML(t('settings.sync_field_auth_type'))}</label>
+        <select id="sync-form-auth" class="form-input">
+          <option value="none"${authType === 'none' ? ' selected' : ''}>${escapeHTML(t('settings.sync_auth_none'))}</option>
+          <option value="basic"${authType === 'basic' ? ' selected' : ''}>${escapeHTML(t('settings.sync_auth_basic'))}</option>
+          <option value="bearer"${authType === 'bearer' ? ' selected' : ''}>${escapeHTML(t('settings.sync_auth_bearer'))}</option>
+        </select>
+      </div>
+
+      <div id="sync-form-auth-basic" class="sync-form-row" style="display: ${authType === 'basic' ? 'flex' : 'none'};">
+        <div class="form-field">
+          <label class="form-label" for="sync-form-user">${escapeHTML(t('settings.sync_field_user'))}</label>
+          <input type="text" id="sync-form-user" class="form-input" value="${escapeHTML(cfg.authUser || '')}" autocomplete="off" />
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="sync-form-pass">${escapeHTML(t('settings.sync_field_pass'))}</label>
+          <input type="password" id="sync-form-pass" class="form-input" value="${escapeHTML(cfg.authPass || '')}" autocomplete="new-password" />
+        </div>
+      </div>
+
+      <div id="sync-form-auth-bearer" class="form-field" style="display: ${authType === 'bearer' ? 'block' : 'none'};">
+        <label class="form-label" for="sync-form-token">${escapeHTML(t('settings.sync_field_token'))}</label>
+        <input type="password" id="sync-form-token" class="form-input" value="${escapeHTML(cfg.authToken || '')}" autocomplete="new-password" />
+      </div>
+
+      <div class="sync-form-buttons">
+        <button class="btn-secondary" data-action="sync-form-cancel">${escapeHTML(t('settings.sync_btn_cancel'))}</button>
+        <button class="btn-primary" data-action="sync-form-save">${escapeHTML(t(saveKey))}</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderSettingsAbout() {
+  return `
+    <div class="settings-about" style="margin-top: 4px;">
       <div class="settings-about-row">
         <span class="settings-about-label">${escapeHTML(t('settings.about_version'))}</span>
         <span class="settings-about-value"><code>${escapeHTML(APP_VERSION)}</code></span>
@@ -9843,16 +10326,15 @@ function openSettingsModal() {
       </div>
     </div>
   `;
-  footer.innerHTML = `
-    <button class="btn-secondary" data-action="modal-cancel">${escapeHTML(t('btn.cancel'))}</button>
-    <button class="btn-primary" data-action="settings-save">${escapeHTML(t('settings.save'))}</button>
-  `;
-
-  document.getElementById('modal-backdrop').style.display = 'flex';
-  setTimeout(() => document.getElementById('settings-org-name').focus(), 50);
 }
 
 function saveSettingsModal() {
+  // Save-Button existiert nur im General-Tab; sync-Tab speichert über
+  // sync-form-save, about-Tab ist read-only.
+  if (settingsState.activeTab !== 'general') {
+    closeModal();
+    return;
+  }
   const orgName = (document.getElementById('settings-org-name').value || '').trim();
   const printTitle = (document.getElementById('settings-print-title').value || '').trim();
 
@@ -9865,6 +10347,100 @@ function saveSettingsModal() {
   closeModal();
   saveConfigAndRerender();
   showToast(t('toast.settings_saved'), 'success');
+}
+
+/* ---- Sync-Sources Form/CRUD-Handler (V1.2) ---- */
+
+function syncFormShowAdd() {
+  settingsState.formMode = 'add';
+  settingsState.editingSourceId = null;
+  renderSettingsModal();
+}
+
+function syncFormShowEdit(sourceId) {
+  settingsState.formMode = 'edit';
+  settingsState.editingSourceId = sourceId;
+  renderSettingsModal();
+}
+
+function syncFormCancel() {
+  settingsState.formMode = null;
+  settingsState.editingSourceId = null;
+  renderSettingsModal();
+}
+
+function syncFormAuthChanged() {
+  const auth = (document.getElementById('sync-form-auth').value || 'none');
+  const basicBlock = document.getElementById('sync-form-auth-basic');
+  const bearerBlock = document.getElementById('sync-form-auth-bearer');
+  if (basicBlock)  basicBlock.style.display  = (auth === 'basic')  ? 'flex'  : 'none';
+  if (bearerBlock) bearerBlock.style.display = (auth === 'bearer') ? 'block' : 'none';
+}
+
+function syncFormSave() {
+  const label = (document.getElementById('sync-form-label').value || '').trim();
+  const url = (document.getElementById('sync-form-url').value || '').trim();
+  const authType = (document.getElementById('sync-form-auth').value || 'none');
+
+  if (!url) {
+    showToast(t('settings.sync_err_url_required'), 'error');
+    return;
+  }
+  if (!/^https?:\/\//i.test(url)) {
+    showToast(t('settings.sync_err_url_invalid'), 'error');
+    return;
+  }
+
+  const config = { url };
+  if (authType === 'basic') {
+    const user = (document.getElementById('sync-form-user').value || '').trim();
+    const pass = (document.getElementById('sync-form-pass').value || '');
+    if (!user) {
+      showToast(t('settings.sync_err_user_required'), 'error');
+      return;
+    }
+    config.authType = 'basic';
+    config.authUser = user;
+    config.authPass = pass;
+  } else if (authType === 'bearer') {
+    const token = (document.getElementById('sync-form-token').value || '').trim();
+    if (!token) {
+      showToast(t('settings.sync_err_token_required'), 'error');
+      return;
+    }
+    config.authType = 'bearer';
+    config.authToken = token;
+  } else {
+    config.authType = 'none';
+  }
+
+  const fallbackLabel = t('settings.sync_field_label_placeholder');
+  if (settingsState.formMode === 'edit' && settingsState.editingSourceId) {
+    Sync.updateSource(settingsState.editingSourceId, {
+      label: label || fallbackLabel,
+      config,
+    });
+    showToast(t('toast.sync_source_updated'), 'success');
+  } else {
+    Sync.addSource({
+      type: 'http',
+      label: label || fallbackLabel,
+      config,
+    });
+    showToast(t('toast.sync_source_added'), 'success');
+  }
+
+  settingsState.formMode = null;
+  settingsState.editingSourceId = null;
+  renderSettingsModal();
+}
+
+function syncDeleteSource(sourceId, label) {
+  const msg = t('settings.sync_delete_confirm', { label: label || '' });
+  if (!window.confirm(msg)) return;
+  Sync.removeSource(sourceId);
+  showToast(t('toast.sync_source_deleted'), 'success');
+  renderSettingsModal();
 }
 
 /* =========================================================================
