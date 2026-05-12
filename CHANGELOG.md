@@ -2,6 +2,19 @@
 
 All notable changes to CRAM are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] — 2026-05-12
+
+Two bug fixes against the V1.2.0 surface, found in first practical use.
+
+### Fixed
+
+- **Online sync now correctly applies full configurations, not just status.** The leftover fingerprint-mismatch check in `applyEnvelopeForSource` (inherited from the sync-code channel, which is status-only) refused any pull where the server config differed from the local one — exactly the case the online-sync feature exists to handle. The check is removed for the online path; the receiver now accepts the server's full `config` and `runtime` as authoritative. A `sync_config_replaced` audit-log entry records every config-changing pull with the old and new fingerprints so the change stays traceable. The sync-code channel still enforces fingerprint match (status-only semantics).
+- **Cascade arrows no longer clip when the org chart scrolls.** `.cascade-overlay` was sized with `width: 100%; height: 100%` in CSS, which resolves to the containing block (the relatively-positioned `#org-chart`'s padding-box) rather than the scroll-content box. Paths drawn beyond that area were rendered but visually cut off. The CSS sizing rules are removed; the SVG now uses the `width` and `height` attributes set by `renderCascadeLines()` to `chart.scrollWidth` and `chart.scrollHeight`, which include the full scrollable content. The bug pre-dated V1.2 — first reported and fixed now.
+
+### Changed
+
+- `APP_VERSION` bumped to `1.2.1`.
+
 ## [1.2.0] — 2026-05-12
 
 Online synchronisation as a new transfer channel, manual mode. The previous three channels (sync code, QR transfer, JSON export/import) remain unchanged and continue to work as before. V1.2 adds a fourth: a server-or-folder-backed pull/push pair driven by two explicit buttons. V2.0 will automate it; V1.2 deliberately keeps the user in control of every operation.

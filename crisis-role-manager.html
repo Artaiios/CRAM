@@ -780,8 +780,11 @@ button:focus-visible,
   position: absolute;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
+  /* width/height bewusst NICHT in CSS — sie kommen aus den SVG-Attributen,
+     die in renderCascadeLines() auf chart.scrollWidth/scrollHeight gesetzt
+     werden. CSS-Werte (insb. height:100%) referenzieren den Containing-Block
+     (Padding-Box des relativ-positionierten Parents) und schneiden dadurch
+     bei scrollbarem Inhalt die Pfade auf den initial sichtbaren Bereich. */
   pointer-events: none;
   z-index: 5;
 }
@@ -4052,9 +4055,6 @@ const Sync = (function() {
         updateSource(source.id, {
           encryption: Object.assign({}, source.encryption, { salt: envelope.salt }),
         });
-        // Cached key war ggf. mit altem (leerem) Salt abgeleitet — nicht
-        // wahrscheinlich, aber zur Sicherheit: invalidieren, der Caller
-        // muss die Passphrase erneut prompten.
         if (!_keyCache.has(source.id)) {
           throw new PassphraseRequiredError(source.id, source.label);
         }
@@ -4073,10 +4073,26 @@ const Sync = (function() {
     if (!inner || inner.format !== 'cram-export') {
       throw new Error('Invalid inner payload format');
     }
+
+    // Online-Sync transportiert die KOMPLETTE Konfiguration + Runtime, nicht
+    // nur Status. Ein Fingerprint-Mismatch ist hier KEIN Fehler, sondern ein
+    // legitimer Config-Wechsel (User hat explizit gegen diese Source gepullt).
+    // Wir protokollieren den Wechsel im Audit-Log, damit er nachvollziehbar
+    // bleibt, und ersetzen lokal config + runtime durch den Server-Stand.
     const localFp = computeConfigHash(State.config);
-    if (envelope.fingerprint && envelope.fingerprint !== localFp) {
-      throw new Error('Fingerprint mismatch (local ' + localFp + ', remote ' + envelope.fingerprint + ')');
+    const remoteFp = envelope.fingerprint || computeConfigHash(inner.config);
+    if (remoteFp !== localFp) {
+      try {
+        Storage.appendAudit({
+          id: uid('a'),
+          timestamp: new Date().toISOString(),
+          type: 'sync_config_replaced',
+          action: 'sync_config_replaced',
+          detail: 'Source ' + (source ? source.label : '?') + ' lieferte andere Config (' + localFp + ' → ' + remoteFp + ')',
+        });
+      } catch (e) { /* audit ist best-effort */ }
     }
+
     State.config = inner.config;
     State.runtime = inner.runtime || { unavailable: {}, manualAssignments: {} };
     Storage.saveConfig(State.config);
@@ -10992,7 +11008,7 @@ function updateMobileNavUI() {
    }
    ========================================================================= */
 const EXPORT_FORMAT_VERSION = 1;
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.2.1';
 
 // State für Import-Modal (parsed file content + ursprünglicher Filename)
 let dataModalState = {
