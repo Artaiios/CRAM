@@ -2,6 +2,33 @@
 
 All notable changes to CRAM are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] — 2026-05-13
+
+Clean split between **Sync** (status-only, gated by configuration fingerprint match) and **Data** (full configuration + status, explicit confirm). Solves the silent-config-replacement risk that V1.2.1 worked around with an audit-log entry, and prepares the V2.0 auto-polling design so it can never accidentally overwrite a team's stab structure.
+
+### Added
+
+- **Sync API: mode parameter.** `Sync.push(sourceId, { mode })` and `Sync.pull(sourceId, { mode })` now accept `'status'` (default) or `'full'`. Status mode probes the server first and refuses the operation when the server's fingerprint does not match the local one (throws a typed `ConfigDriftError` so the UI can react). Status pulls apply only `inner.runtime`, leaving `State.config` alone. Full mode behaves as before and is used by the new Data-Online tab.
+- **Sync.probeMeta / Sync.previewDiff.** Two new read-only methods. `probeMeta` returns the envelope metadata (version, timestamp, fingerprint, encrypted) without decrypting; `previewDiff` does the full comparison including counts per side (persons / levels / roles / absent / manual) and the lists of person IDs that exist only locally or only on the server. Both back the live preview cards.
+- **Sync-Modal Online tab: preview cards.** Replaces the two flat buttons with one card per source that adapts to actual state — unreachable, empty, encryption-locked, decryption error, fingerprints match, fingerprints differ. When fingerprints match, the user sees a green pill and "Pull status" / "Push status" buttons. When they differ, status buttons are removed entirely and the card surfaces a single "Open Data → Online" button.
+- **Data modal: new Online tab.** Third tab next to Export and Import. Same card layout as Sync's, but the active buttons always do a full pull or full push (`mode: 'full'`), with a `confirm()` dialog that summarises server-vs-local stats and warns the action cannot be undone. The Sync-Modal "Open Data" path lands here with the relevant source highlighted.
+- **Awareness indicator: config-drift state.** Fifth visible state next to synced / syncing / out-of-sync / error. Rendered with a red ⚠ pill and made clickable — opens Data → Online directly. Detection runs off the shared previewDiff cache, so the indicator only flips after the user has actually inspected the server (no surprise polling).
+- **Onboarding auto-pull after bundle import.** When a freshly imported sync bundle points at a server that already has state, the user is asked once whether to take that state immediately. Accepting runs a full pull and re-renders the chart; declining leaves the user to use Data → Online manually later.
+
+### Changed
+
+- `APP_VERSION` bumped to `1.3.0`.
+- `Sync.push` / `Sync.pull` defaults changed to `mode: 'status'`. The wrappers `syncOnlinePull` and `syncOnlinePush` (kept for backward compatibility with any external callers) explicitly pass `mode: 'full'` to preserve V1.2 semantics; the new card UI uses `syncOnlinePullStatus` and `syncOnlinePushStatus` exclusively.
+- Handbook chapters (DE + EN) extended with a "Sync vs. Data — what to use when" subsection covering typical workflows.
+
+### Compatibility
+
+V1.2 source configurations carry over without migration. The internal envelope wire format is unchanged (still `format: 'cram-sync-v1'`). A V1.2 client pulling from a V1.3-pushed envelope behaves identically because mode handling is receiver-side only. A V1.3 client running against a V1.2-only server simply sees status sync work when fingerprints match and bumps to Data → Online when they do not — no breaking error.
+
+### Why this matters for V2.0
+
+V2.0's polling-every-90-seconds was a security risk in the V1.2 design — a routine background pull could silently replace your stab configuration. With the V1.3 split, V2.0 auto-pull will only operate in status mode; a config drift surfaces as a visible indicator state, not as an automatic data loss.
+
 ## [1.2.1] — 2026-05-12
 
 Two bug fixes against the V1.2.0 surface, found in first practical use.
