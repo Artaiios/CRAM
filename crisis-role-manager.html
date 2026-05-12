@@ -2548,6 +2548,33 @@ button:focus-visible,
   font-weight: 600;
 }
 
+/* ---- Browser-Support-Banner (V1.2 Phase 3.4) ---- */
+.browser-support-banner {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--status-warn);
+  background: var(--status-warn-bg, rgba(255,180,0,0.05));
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--text-primary);
+}
+.browser-support-banner strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+.browser-banner-lead { color: var(--text-secondary); }
+.browser-banner-list {
+  margin: 6px 0 4px 0;
+  padding-left: 18px;
+}
+.browser-banner-list li { margin-bottom: 2px; }
+.browser-banner-foot {
+  margin-top: 4px;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
 /* ---- Sync-Modal Online-Tab (V1.2) ---- */
 .sync-online-list {
   display: flex;
@@ -5013,6 +5040,13 @@ const TRANSLATIONS = {
     'bundle.import_err_apply': 'Import fehlgeschlagen: {msg}',
     'bundle.import_confirm_fp_mismatch': 'Der Fingerprint des Bundles passt nicht zur lokalen Konfiguration. Wirklich importieren?',
     'bundle.import_success': 'Source "{label}" importiert.',
+    'browser.banner_title': 'Browser-Hinweis',
+    'browser.lead_firefox': 'Firefox unterstützt einige der hier verwendeten APIs nicht. Das ist kein Bug — Firefox hat sich gegen diese Standards entschieden.',
+    'browser.lead_safari': 'Deine Safari-Version hat eingeschränkten Support für einige Funktionen unten.',
+    'browser.lead_generic': 'Dein Browser unterstützt nicht alle Funktionen — siehe Liste:',
+    'browser.limit_fs': 'Sync-Source-Typ „Lokales Verzeichnis" ist nicht verfügbar (kein File-System-Access-API). HTTP-Sources funktionieren weiterhin.',
+    'browser.limit_qr': 'QR-Scan ist nicht verfügbar (kein BarcodeDetector). Bundle-Import per JSON-Datei oder Paste funktioniert.',
+    'browser.banner_workaround': 'Empfehlung für volles Feature-Set: Edge, Chrome oder Safari (Desktop).',
     'toast.settings_saved': 'Einstellungen gespeichert',
     'print.header_title_default': 'Krisenstab — Rollen und Vertretungen',
     'print.title': 'Druckansicht',
@@ -5469,6 +5503,13 @@ const TRANSLATIONS = {
     'bundle.import_err_apply': 'Import failed: {msg}',
     'bundle.import_confirm_fp_mismatch': 'The bundle fingerprint does not match the local configuration. Import anyway?',
     'bundle.import_success': 'Source "{label}" imported.',
+    'browser.banner_title': 'Browser note',
+    'browser.lead_firefox': 'Firefox does not implement some of the APIs used below. This is by Mozilla’s choice, not a bug.',
+    'browser.lead_safari': 'Your Safari version has limited support for some features below.',
+    'browser.lead_generic': 'Your browser does not implement all features below:',
+    'browser.limit_fs': 'Sync source type "Local directory" is unavailable (no File System Access API). HTTP sources still work.',
+    'browser.limit_qr': 'QR scanning is unavailable (no BarcodeDetector). Bundle import via JSON file or paste works.',
+    'browser.banner_workaround': 'For full feature support: Edge, Chrome, or desktop Safari.',
     'toast.settings_saved': 'Settings saved',
     'print.header_title_default': 'Crisis Staff — Roles and Substitutes',
     'print.title': 'Print view',
@@ -5924,6 +5965,13 @@ const TRANSLATIONS = {
     'bundle.import_err_apply': 'Importación fallida: {msg}',
     'bundle.import_confirm_fp_mismatch': 'La huella del bundle no coincide con la configuración local. ¿Importar de todos modos?',
     'bundle.import_success': 'Fuente "{label}" importada.',
+    'browser.banner_title': 'Aviso del navegador',
+    'browser.lead_firefox': 'Firefox no implementa algunas APIs usadas abajo. Es por decisión de Mozilla, no un bug.',
+    'browser.lead_safari': 'Tu versión de Safari tiene soporte limitado para algunas funciones de abajo.',
+    'browser.lead_generic': 'Tu navegador no implementa todas las funciones de abajo:',
+    'browser.limit_fs': 'El tipo "Carpeta local" no está disponible (no hay File System Access API). Las fuentes HTTP siguen funcionando.',
+    'browser.limit_qr': 'Escaneo QR no disponible (sin BarcodeDetector). El import de bundle por archivo o pegado funciona.',
+    'browser.banner_workaround': 'Para soporte completo: Edge, Chrome o Safari de escritorio.',
     'toast.settings_saved': 'Configuración guardada',
     'print.header_title_default': 'Comité de crisis — Roles y suplentes',
     'print.title': 'Vista de impresión',
@@ -6380,6 +6428,13 @@ const TRANSLATIONS = {
     'bundle.import_err_apply': 'Échec de l’import : {msg}',
     'bundle.import_confirm_fp_mismatch': 'L’empreinte du bundle ne correspond pas à la configuration locale. Importer quand même ?',
     'bundle.import_success': 'Source « {label} » importée.',
+    'browser.banner_title': 'Note navigateur',
+    'browser.lead_firefox': 'Firefox n’implémente pas certaines API utilisées ci-dessous. C’est un choix de Mozilla, pas un bug.',
+    'browser.lead_safari': 'Votre version de Safari a un support limité pour certaines fonctionnalités ci-dessous.',
+    'browser.lead_generic': 'Votre navigateur n’implémente pas toutes les fonctionnalités ci-dessous :',
+    'browser.limit_fs': 'Le type « Dossier local » n’est pas disponible (pas de File System Access API). Les sources HTTP fonctionnent.',
+    'browser.limit_qr': 'Lecture QR indisponible (pas de BarcodeDetector). L’import de bundle par fichier ou collage fonctionne.',
+    'browser.banner_workaround': 'Pour le support complet : Edge, Chrome, ou Safari desktop.',
     'toast.settings_saved': 'Paramètres enregistrés',
     'print.header_title_default': 'Cellule de crise — Rôles et suppléants',
     'print.title': 'Aperçu d\u2019impression',
@@ -6836,6 +6891,13 @@ const TRANSLATIONS = {
     'bundle.import_err_apply': '导入失败：{msg}',
     'bundle.import_confirm_fp_mismatch': 'Bundle 指纹与本地配置不一致。仍要导入吗？',
     'bundle.import_success': '已导入同步源 "{label}"。',
+    'browser.banner_title': '浏览器提示',
+    'browser.lead_firefox': 'Firefox 未实现下方使用的某些 API。这是 Mozilla 的设计选择，不是 bug。',
+    'browser.lead_safari': '你的 Safari 版本对下方部分功能支持有限。',
+    'browser.lead_generic': '你的浏览器未实现下方全部功能：',
+    'browser.limit_fs': '同步源类型"本地目录"不可用（无 File System Access API）。HTTP 源仍可使用。',
+    'browser.limit_qr': 'QR 扫描不可用（无 BarcodeDetector）。通过文件或粘贴导入 Bundle 仍可用。',
+    'browser.banner_workaround': '若需完整功能：Edge、Chrome 或桌面版 Safari。',
     'toast.settings_saved': '设置已保存',
     'print.header_title_default': '危机小组 — 角色与替补',
     'print.title': '打印视图',
@@ -11791,9 +11853,49 @@ function renderSettingsGeneral() {
   `;
 }
 
+function getBrowserSupport() {
+  // Sammelt Feature-Detection-Ergebnisse für V1.2-relevante APIs.
+  // Wird vom Browser-Warnungs-Banner und von den Backend-Initialisierungen
+  // gleichermaßen genutzt.
+  const fs = typeof window.showDirectoryPicker === 'function';
+  const bd = typeof window.BarcodeDetector === 'function';
+  const wc = !!(window.crypto && window.crypto.subtle);
+  // Browser-Family für die Banner-Texte. Wir wollen NICHT spezifisch Firefox
+  // outen, sondern beschreiben das fehlende Feature — aber bei Firefox liefert
+  // userAgent das Hinweis-Token, was die Doku-Verweise zielgenauer macht.
+  const ua = navigator.userAgent || '';
+  const isFirefox = /Firefox/i.test(ua) && !/Seamonkey/i.test(ua);
+  const isSafari = /Safari/i.test(ua) && !/Chrome|Chromium|Edg/i.test(ua);
+  return { fileSystemAccess: fs, barcodeDetector: bd, webCrypto: wc, isFirefox, isSafari };
+}
+
+function renderBrowserSupportBanner() {
+  const sup = getBrowserSupport();
+  const limits = [];
+  if (!sup.fileSystemAccess) limits.push(t('browser.limit_fs'));
+  if (!sup.barcodeDetector) limits.push(t('browser.limit_qr'));
+  if (limits.length === 0) return '';
+
+  const lead = sup.isFirefox
+    ? t('browser.lead_firefox')
+    : (sup.isSafari ? t('browser.lead_safari') : t('browser.lead_generic'));
+
+  return `
+    <div class="browser-support-banner" role="status">
+      <strong>${escapeHTML(t('browser.banner_title'))}</strong>
+      <div class="browser-banner-lead">${escapeHTML(lead)}</div>
+      <ul class="browser-banner-list">
+        ${limits.map(l => `<li>${escapeHTML(l)}</li>`).join('')}
+      </ul>
+      <div class="browser-banner-foot">${escapeHTML(t('browser.banner_workaround'))}</div>
+    </div>
+  `;
+}
+
 function renderSettingsSync() {
   const sources = Sync.listSources();
   let html = `<div class="sync-explain">${escapeHTML(t('settings.sync_intro'))}</div>`;
+  html += renderBrowserSupportBanner();
 
   if (settingsState.formMode) {
     html += '<div style="margin-top: 12px;">' + renderSyncForm() + '</div>';
