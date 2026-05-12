@@ -2012,12 +2012,15 @@ button:focus-visible,
   border-radius: var(--radius-sm);
 }
 
-/* ---- Sync-Kanal-Picker (Code vs QR) ---- */
+/* ---- Sync-Kanal-Picker (Code vs QR vs Online) ---- */
 .sync-channel-picker {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
   margin-bottom: 12px;
+}
+@media (max-width: 600px) {
+  .sync-channel-picker { grid-template-columns: 1fr; }
 }
 .sync-channel-btn {
   display: flex;
@@ -2375,6 +2378,63 @@ button:focus-visible,
   gap: 8px;
   justify-content: flex-end;
   margin-top: 4px;
+}
+
+/* ---- Sync-Modal Online-Tab (V1.2) ---- */
+.sync-online-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+.sync-online-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+@media (max-width: 600px) {
+  .sync-online-row { flex-direction: column; align-items: stretch; }
+}
+.sync-online-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sync-online-row-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sync-online-last {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.sync-online-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.sync-online-actions button {
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  border-radius: var(--radius-sm);
+}
+.sync-online-error {
+  margin: 8px 0;
+  padding: 8px 12px;
+  border-left: 3px solid var(--status-err);
+  background: var(--status-err-bg, rgba(255,0,0,0.05));
+  color: var(--text-primary);
+  font-size: 12px;
+  border-radius: var(--radius-sm);
 }
 
 .qr-preview-title {
@@ -3949,6 +4009,22 @@ const TRANSLATIONS = {
     'sync.mode_qr': '📷 QR-Transfer (Kamera)',
     'sync.mode_code_hint': 'Kurzer Code für Status-Abgleich per Telefon/Chat — erfordert identische Grundkonfiguration auf beiden Seiten.',
     'sync.mode_qr_hint': 'QR-Code für Konfiguration und/oder Status — für initiale Verteilung oder bei Config-Unterschieden.',
+    'sync.mode_online': '🌐 Online (Server)',
+    'sync.mode_online_hint': 'HTTP(S)-Backend für asynchronen Abgleich mehrerer Geräte. Erfordert konfigurierte Sync-Source in den Einstellungen.',
+    'sync.online_intro': 'Manueller Pull/Push gegen konfigurierte Sync-Sources. Im Krisenfall jederzeit verfügbar; V2 wird das automatisieren.',
+    'sync.online_no_sources': 'Keine Sync-Sources konfiguriert. Lege zuerst eine in den Einstellungen an.',
+    'sync.online_open_settings': 'Sync-Source einrichten',
+    'sync.online_pull': 'Vom Server holen',
+    'sync.online_push': 'Zum Server schicken',
+    'sync.online_last_sync': 'Zuletzt synchronisiert',
+    'sync.online_last_error': 'Letzter Fehler',
+    'sync.online_pulling': 'Hole von {label}…',
+    'sync.online_pushing': 'Schicke an {label}…',
+    'sync.online_pulled': 'Stand v{version} geladen.',
+    'sync.online_pushed': 'Stand v{version} geschickt.',
+    'sync.online_empty': 'Source ist leer (noch nichts hochgeladen).',
+    'sync.online_pull_failed': 'Pull fehlgeschlagen: {msg}',
+    'sync.online_push_failed': 'Push fehlgeschlagen: {msg}',
     'sync.tab_send': '↗ Senden',
     'sync.tab_receive': '↙ Empfangen',
     'qr.send_title': 'QR-Transfer senden',
@@ -4311,6 +4387,22 @@ const TRANSLATIONS = {
     'sync.mode_qr': '📷 QR transfer (camera)',
     'sync.mode_code_hint': 'Short code for status exchange via phone/chat — requires identical base configuration on both sides.',
     'sync.mode_qr_hint': 'QR code for configuration and/or status — for initial distribution or config mismatch.',
+    'sync.mode_online': '🌐 Online (server)',
+    'sync.mode_online_hint': 'HTTP(S) backend for asynchronous multi-device sync. Requires a sync source configured in settings.',
+    'sync.online_intro': 'Manual pull/push against configured sync sources. Available any time; V2 will automate this.',
+    'sync.online_no_sources': 'No sync sources configured. Add one in settings first.',
+    'sync.online_open_settings': 'Configure sync source',
+    'sync.online_pull': 'Pull from server',
+    'sync.online_push': 'Push to server',
+    'sync.online_last_sync': 'Last synced',
+    'sync.online_last_error': 'Last error',
+    'sync.online_pulling': 'Pulling from {label}…',
+    'sync.online_pushing': 'Pushing to {label}…',
+    'sync.online_pulled': 'Loaded version v{version}.',
+    'sync.online_pushed': 'Pushed version v{version}.',
+    'sync.online_empty': 'Source is empty (nothing uploaded yet).',
+    'sync.online_pull_failed': 'Pull failed: {msg}',
+    'sync.online_push_failed': 'Push failed: {msg}',
     'sync.tab_send': '↗ Send',
     'sync.tab_receive': '↙ Receive',
     'qr.send_title': 'Send QR transfer',
@@ -4672,6 +4764,22 @@ const TRANSLATIONS = {
     'sync.mode_qr': '📷 Transfer. QR (cámara)',
     'sync.mode_code_hint': 'Código corto para intercambio de estado por teléfono/chat — requiere configuración base idéntica en ambos lados.',
     'sync.mode_qr_hint': 'Código QR para configuración y/o estado — para distribución inicial o cuando las configuraciones difieren.',
+    'sync.mode_online': '🌐 En línea (servidor)',
+    'sync.mode_online_hint': 'Backend HTTP(S) para sincronización asíncrona entre dispositivos. Requiere una fuente configurada en ajustes.',
+    'sync.online_intro': 'Pull/push manual contra las fuentes configuradas. Siempre disponible; V2 lo automatiza.',
+    'sync.online_no_sources': 'Sin fuentes configuradas. Añade una en ajustes primero.',
+    'sync.online_open_settings': 'Configurar fuente',
+    'sync.online_pull': 'Traer del servidor',
+    'sync.online_push': 'Enviar al servidor',
+    'sync.online_last_sync': 'Última sincronización',
+    'sync.online_last_error': 'Último error',
+    'sync.online_pulling': 'Trayendo de {label}…',
+    'sync.online_pushing': 'Enviando a {label}…',
+    'sync.online_pulled': 'Versión v{version} cargada.',
+    'sync.online_pushed': 'Versión v{version} enviada.',
+    'sync.online_empty': 'Fuente vacía (aún sin subida).',
+    'sync.online_pull_failed': 'Pull falló: {msg}',
+    'sync.online_push_failed': 'Push falló: {msg}',
     'sync.tab_send': '↗ Enviar',
     'sync.tab_receive': '↙ Recibir',
     'qr.send_title': 'Enviar transferencia QR',
@@ -5034,6 +5142,22 @@ const TRANSLATIONS = {
     'sync.mode_qr': '📷 Transfert QR (caméra)',
     'sync.mode_code_hint': 'Code court pour échange de statut par téléphone/message — nécessite une configuration de base identique des deux côtés.',
     'sync.mode_qr_hint': 'QR code pour configuration et/ou statut — pour distribution initiale ou en cas de configurations différentes.',
+    'sync.mode_online': '🌐 En ligne (serveur)',
+    'sync.mode_online_hint': 'Backend HTTP(S) pour sync asynchrone multi-appareils. Nécessite une source configurée dans les paramètres.',
+    'sync.online_intro': 'Pull/push manuel sur les sources configurées. Toujours disponible; la V2 automatisera.',
+    'sync.online_no_sources': 'Aucune source configurée. Ajoutez-en une dans les paramètres.',
+    'sync.online_open_settings': 'Configurer une source',
+    'sync.online_pull': 'Récupérer du serveur',
+    'sync.online_push': 'Envoyer au serveur',
+    'sync.online_last_sync': 'Dernière sync.',
+    'sync.online_last_error': 'Dernière erreur',
+    'sync.online_pulling': 'Récupération depuis {label}…',
+    'sync.online_pushing': 'Envoi vers {label}…',
+    'sync.online_pulled': 'Version v{version} chargée.',
+    'sync.online_pushed': 'Version v{version} envoyée.',
+    'sync.online_empty': 'Source vide (rien encore envoyé).',
+    'sync.online_pull_failed': 'Pull échoué : {msg}',
+    'sync.online_push_failed': 'Push échoué : {msg}',
     'sync.tab_send': '↗ Envoyer',
     'sync.tab_receive': '↙ Recevoir',
     'qr.send_title': 'Envoyer transfert QR',
@@ -5396,6 +5520,22 @@ const TRANSLATIONS = {
     'sync.mode_qr': '📷 QR 传输（相机）',
     'sync.mode_code_hint': '用于通过电话/聊天交换状态的短代码——需要双方基础配置完全相同。',
     'sync.mode_qr_hint': '用于配置和/或状态的二维码——适用于初始分发或配置不同时。',
+    'sync.mode_online': '🌐 在线（服务器）',
+    'sync.mode_online_hint': '用于多设备异步同步的 HTTP(S) 后端。需要在设置中配置同步源。',
+    'sync.online_intro': '对已配置同步源的手动拉取/推送。随时可用；V2 将自动化。',
+    'sync.online_no_sources': '尚未配置同步源。请先在设置中添加。',
+    'sync.online_open_settings': '配置同步源',
+    'sync.online_pull': '从服务器拉取',
+    'sync.online_push': '推送到服务器',
+    'sync.online_last_sync': '上次同步',
+    'sync.online_last_error': '上次错误',
+    'sync.online_pulling': '正在从 {label} 拉取…',
+    'sync.online_pushing': '正在推送到 {label}…',
+    'sync.online_pulled': '已加载版本 v{version}。',
+    'sync.online_pushed': '已推送版本 v{version}。',
+    'sync.online_empty': '源为空（尚未上传任何内容）。',
+    'sync.online_pull_failed': '拉取失败：{msg}',
+    'sync.online_push_failed': '推送失败：{msg}',
     'sync.tab_send': '↗ 发送',
     'sync.tab_receive': '↙ 接收',
     'qr.send_title': '发送 QR 传输',
@@ -6916,6 +7056,10 @@ const CLICK_HANDLERS = {
   // Sync-Kanal-Auswahl (Code-Sync vs QR-Transfer)
   'sync-mode-code':   () => { qrStopScanner(); State.syncChannel = 'code'; renderSyncModal(); },
   'sync-mode-qr':     () => { State.syncChannel = 'qr'; renderSyncModal(); },
+  'sync-mode-online': () => { qrStopScanner(); State.syncChannel = 'online'; renderSyncModal(); },
+  'sync-online-pull': (el) => syncOnlinePull(el.dataset.sourceId),
+  'sync-online-push': (el) => syncOnlinePush(el.dataset.sourceId),
+  'sync-online-goto-settings': () => syncOnlineGotoSettings(),
 
   // QR-Send-Workflow
   'qr-scope-select':      (el) => { State.qrSendState.scope = el.dataset.scope; renderSyncModal(); },
@@ -8105,7 +8249,7 @@ function renderSyncModal() {
   const footer = document.getElementById('modal-footer');
   const channel = State.syncChannel || 'code';
 
-  // Kanal-Auswahl (Code vs QR) — immer oben
+  // Kanal-Auswahl (Code vs QR vs Online) — immer oben
   const channelPickerHTML = `
     <div class="sync-channel-picker">
       <button class="sync-channel-btn" data-action="sync-mode-code" ${channel === 'code' ? 'data-active="true"' : ''}>
@@ -8115,6 +8259,10 @@ function renderSyncModal() {
       <button class="sync-channel-btn" data-action="sync-mode-qr" ${channel === 'qr' ? 'data-active="true"' : ''}>
         <div class="sync-channel-label">${escapeHTML(t('sync.mode_qr'))}</div>
         <div class="sync-channel-hint">${escapeHTML(t('sync.mode_qr_hint'))}</div>
+      </button>
+      <button class="sync-channel-btn" data-action="sync-mode-online" ${channel === 'online' ? 'data-active="true"' : ''}>
+        <div class="sync-channel-label">${escapeHTML(t('sync.mode_online'))}</div>
+        <div class="sync-channel-hint">${escapeHTML(t('sync.mode_online_hint'))}</div>
       </button>
     </div>
   `;
@@ -8148,6 +8296,11 @@ function renderSyncModal() {
     } else {
       renderQrReceiveView(body, footer, channelPickerHTML + qrTabsHTML);
     }
+    return;
+  }
+
+  if (channel === 'online') {
+    renderSyncOnlineView(body, footer, channelPickerHTML);
     return;
   }
 
@@ -8230,6 +8383,110 @@ function renderSyncModal() {
     });
     setTimeout(() => input.focus(), 50);
   }
+}
+
+/* =========================================================================
+   ONLINE VIEW — Render-Logik für Online-Kanal (V1.2 manuell)
+   Listet alle konfigurierten Sync-Sources mit Pull-/Push-Buttons.
+   Sources werden im Settings-Modal (Tab 'Sync-Sources') verwaltet.
+   ========================================================================= */
+function renderSyncOnlineView(body, footer, headerHTML) {
+  const sources = Sync.listSources();
+  const syncState = Sync.load();
+
+  let listHTML;
+  if (sources.length === 0) {
+    listHTML = `
+      <div class="sync-no-sources" style="margin-top: 8px;">
+        ${escapeHTML(t('sync.online_no_sources'))}
+      </div>
+      <div style="margin-top: 10px; text-align: center;">
+        <button class="btn-secondary" data-action="sync-online-goto-settings">
+          ⚙ ${escapeHTML(t('sync.online_open_settings'))}
+        </button>
+      </div>
+    `;
+  } else {
+    listHTML = '<div class="sync-online-list">';
+    sources.forEach(s => {
+      const cfg = s.config || {};
+      const metaLine = (s.type === 'http') ? (cfg.url || '') : '';
+      const typeLabel = t('settings.sync_type_' + s.type) || s.type;
+      const isLastSource = syncState.lastSyncedSourceId === s.id && syncState.lastSyncedAt;
+      const lastSyncLine = isLastSource
+        ? `<div class="sync-online-last">${escapeHTML(t('sync.online_last_sync'))}: <code>v${syncState.lastSyncedVersion}</code> · ${escapeHTML(new Date(syncState.lastSyncedAt).toLocaleString())}</div>`
+        : '';
+      listHTML += `
+        <div class="sync-online-row">
+          <div class="sync-online-info">
+            <div class="sync-online-row-head">
+              <span class="sync-source-type-badge">${escapeHTML(typeLabel)}</span>
+              <span class="sync-source-label">${escapeHTML(s.label)}</span>
+            </div>
+            <div class="sync-source-meta">${escapeHTML(metaLine)}</div>
+            ${lastSyncLine}
+          </div>
+          <div class="sync-online-actions">
+            <button class="btn-secondary" data-action="sync-online-pull" data-source-id="${escapeHTML(s.id)}">↓ ${escapeHTML(t('sync.online_pull'))}</button>
+            <button class="btn-primary" data-action="sync-online-push" data-source-id="${escapeHTML(s.id)}">↑ ${escapeHTML(t('sync.online_push'))}</button>
+          </div>
+        </div>
+      `;
+    });
+    listHTML += '</div>';
+  }
+
+  const errorBanner = syncState.lastError
+    ? `<div class="sync-online-error"><strong>${escapeHTML(t('sync.online_last_error'))}:</strong> ${escapeHTML(syncState.lastError)}</div>`
+    : '';
+
+  body.innerHTML = `
+    ${headerHTML}
+    <div class="sync-explain">${escapeHTML(t('sync.online_intro'))}</div>
+    ${errorBanner}
+    ${listHTML}
+  `;
+  footer.innerHTML = `
+    <button class="btn-secondary" data-action="modal-close">${escapeHTML(t('btn.close'))}</button>
+  `;
+}
+
+async function syncOnlinePull(sourceId) {
+  const src = Sync.getSource(sourceId);
+  if (!src) return;
+  showToast(t('sync.online_pulling', { label: src.label }), 'info');
+  try {
+    const env = await Sync.pull(sourceId);
+    if (env === null) {
+      showToast(t('sync.online_empty'), 'info');
+    } else {
+      showToast(t('sync.online_pulled', { version: env.version }), 'success');
+      // applyEnvelope hat State.config/runtime überschrieben — Hauptansicht neu rendern
+      render();
+    }
+  } catch (e) {
+    showToast(t('sync.online_pull_failed', { msg: String(e.message || e) }), 'error');
+  }
+  renderSyncModal();
+}
+
+async function syncOnlinePush(sourceId) {
+  const src = Sync.getSource(sourceId);
+  if (!src) return;
+  showToast(t('sync.online_pushing', { label: src.label }), 'info');
+  try {
+    const env = await Sync.push(sourceId);
+    showToast(t('sync.online_pushed', { version: env.version }), 'success');
+  } catch (e) {
+    showToast(t('sync.online_push_failed', { msg: String(e.message || e) }), 'error');
+  }
+  renderSyncModal();
+}
+
+function syncOnlineGotoSettings() {
+  closeModal();
+  openSettingsModal();
+  switchSettingsTab('sync');
 }
 
 /* =========================================================================
