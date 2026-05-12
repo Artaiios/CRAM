@@ -369,6 +369,8 @@ button:focus-visible,
 .sync-indicator[data-state="syncing"]     { color: var(--status-warn); border-color: var(--status-warn-border); }
 .sync-indicator[data-state="syncing"] .sync-indicator-icon { animation: spin 1.2s linear infinite; }
 .sync-indicator[data-state="out-of-sync"] { color: var(--status-warn); border-color: var(--status-warn-border); }
+.sync-indicator[data-state="config-drift"] { color: var(--status-critical); border-color: var(--status-critical-border); cursor: pointer; }
+.sync-indicator[data-state="config-drift"]:hover { opacity: 0.85; }
 .sync-indicator[data-state="error"]       { color: var(--status-critical); border-color: var(--status-critical-border); }
 @keyframes spin {
   from { transform: rotate(0deg); }
@@ -5203,6 +5205,8 @@ const TRANSLATIONS = {
     'header.sync_tooltip_syncing': 'Sync läuft…',
     'header.sync_tooltip_out_of_sync': 'Lokale Änderungen warten auf Push. Letzter Stand: {label} · v{version} · {when}',
     'header.sync_tooltip_error': 'Sync-Fehler: {msg}',
+    'header.sync_status_config_drift': 'Konfig-Drift',
+    'header.sync_tooltip_config_drift': 'Server hat eine andere Konfiguration. Klick öffnet Daten → Online für den Abgleich.',
     'header.data': 'Daten',
     'header.data_tooltip': 'Import / Export',
     'header.print': 'Drucken',
@@ -5324,6 +5328,8 @@ const TRANSLATIONS = {
     'bundle.import_err_apply': 'Import fehlgeschlagen: {msg}',
     'bundle.import_confirm_fp_mismatch': 'Der Fingerprint des Bundles passt nicht zur lokalen Konfiguration. Wirklich importieren?',
     'bundle.import_success': 'Source "{label}" importiert.',
+    'bundle.onboard_auto_pull_prompt': 'Source "{label}" wurde angelegt. Der Server hat bereits einen Stand — jetzt übernehmen?',
+    'bundle.onboard_auto_pull_done': 'Server-Stand von "{label}" übernommen.',
     'browser.banner_title': 'Browser-Hinweis',
     'browser.lead_firefox': 'Firefox unterstützt einige der hier verwendeten APIs nicht. Das ist kein Bug — Firefox hat sich gegen diese Standards entschieden.',
     'browser.lead_safari': 'Deine Safari-Version hat eingeschränkten Support für einige Funktionen unten.',
@@ -5719,6 +5725,8 @@ const TRANSLATIONS = {
     'header.sync_tooltip_syncing': 'Syncing…',
     'header.sync_tooltip_out_of_sync': 'Local changes pending push. Last state: {label} · v{version} · {when}',
     'header.sync_tooltip_error': 'Sync error: {msg}',
+    'header.sync_status_config_drift': 'Config drift',
+    'header.sync_tooltip_config_drift': 'Server has a different configuration. Click opens Data → Online to reconcile.',
     'header.data': 'Data',
     'header.data_tooltip': 'Import / Export',
     'header.print': 'Print',
@@ -5840,6 +5848,8 @@ const TRANSLATIONS = {
     'bundle.import_err_apply': 'Import failed: {msg}',
     'bundle.import_confirm_fp_mismatch': 'The bundle fingerprint does not match the local configuration. Import anyway?',
     'bundle.import_success': 'Source "{label}" imported.',
+    'bundle.onboard_auto_pull_prompt': 'Source "{label}" added. Server already has a state — take it now?',
+    'bundle.onboard_auto_pull_done': 'Server state from "{label}" taken.',
     'browser.banner_title': 'Browser note',
     'browser.lead_firefox': 'Firefox does not implement some of the APIs used below. This is by Mozilla’s choice, not a bug.',
     'browser.lead_safari': 'Your Safari version has limited support for some features below.',
@@ -6234,6 +6244,8 @@ const TRANSLATIONS = {
     'header.sync_tooltip_syncing': 'Sincronizando…',
     'header.sync_tooltip_out_of_sync': 'Cambios locales pendientes de push. Último estado: {label} · v{version} · {when}',
     'header.sync_tooltip_error': 'Error de sync: {msg}',
+    'header.sync_status_config_drift': 'Config diferente',
+    'header.sync_tooltip_config_drift': 'El servidor tiene otra configuración. Click abre Datos → Online para reconciliar.',
     'header.data': 'Datos',
     'header.data_tooltip': 'Importar / Exportar',
     'header.print': 'Imprimir',
@@ -6355,6 +6367,8 @@ const TRANSLATIONS = {
     'bundle.import_err_apply': 'Importación fallida: {msg}',
     'bundle.import_confirm_fp_mismatch': 'La huella del bundle no coincide con la configuración local. ¿Importar de todos modos?',
     'bundle.import_success': 'Fuente "{label}" importada.',
+    'bundle.onboard_auto_pull_prompt': 'Fuente "{label}" añadida. El servidor ya tiene un estado — ¿tomarlo ahora?',
+    'bundle.onboard_auto_pull_done': 'Estado servidor de "{label}" tomado.',
     'browser.banner_title': 'Aviso del navegador',
     'browser.lead_firefox': 'Firefox no implementa algunas APIs usadas abajo. Es por decisión de Mozilla, no un bug.',
     'browser.lead_safari': 'Tu versión de Safari tiene soporte limitado para algunas funciones de abajo.',
@@ -6750,6 +6764,8 @@ const TRANSLATIONS = {
     'header.sync_tooltip_syncing': 'Synchronisation…',
     'header.sync_tooltip_out_of_sync': 'Modifications locales en attente. Dernier état : {label} · v{version} · {when}',
     'header.sync_tooltip_error': 'Erreur sync : {msg}',
+    'header.sync_status_config_drift': 'Drift config',
+    'header.sync_tooltip_config_drift': 'Le serveur a une configuration différente. Cliquer ouvre Données → Online pour réconcilier.',
     'header.data': 'Données',
     'header.data_tooltip': 'Importer / Exporter',
     'header.print': 'Imprimer',
@@ -6871,6 +6887,8 @@ const TRANSLATIONS = {
     'bundle.import_err_apply': 'Échec de l’import : {msg}',
     'bundle.import_confirm_fp_mismatch': 'L’empreinte du bundle ne correspond pas à la configuration locale. Importer quand même ?',
     'bundle.import_success': 'Source « {label} » importée.',
+    'bundle.onboard_auto_pull_prompt': 'Source « {label} » ajoutée. Le serveur a déjà un état — le prendre maintenant ?',
+    'bundle.onboard_auto_pull_done': 'État serveur de « {label} » pris.',
     'browser.banner_title': 'Note navigateur',
     'browser.lead_firefox': 'Firefox n’implémente pas certaines API utilisées ci-dessous. C’est un choix de Mozilla, pas un bug.',
     'browser.lead_safari': 'Votre version de Safari a un support limité pour certaines fonctionnalités ci-dessous.',
@@ -7266,6 +7284,8 @@ const TRANSLATIONS = {
     'header.sync_tooltip_syncing': '同步中…',
     'header.sync_tooltip_out_of_sync': '本地变更待推送。上次状态：{label} · v{version} · {when}',
     'header.sync_tooltip_error': '同步错误：{msg}',
+    'header.sync_status_config_drift': '配置不同',
+    'header.sync_tooltip_config_drift': '服务器配置不同。点击打开 数据 → 在线 进行同步。',
     'header.data': '数据',
     'header.data_tooltip': '导入 / 导出',
     'header.print': '打印',
@@ -7387,6 +7407,8 @@ const TRANSLATIONS = {
     'bundle.import_err_apply': '导入失败：{msg}',
     'bundle.import_confirm_fp_mismatch': 'Bundle 指纹与本地配置不一致。仍要导入吗？',
     'bundle.import_success': '已导入同步源 "{label}"。',
+    'bundle.onboard_auto_pull_prompt': '已添加同步源 "{label}"。服务器已有数据 — 现在采用吗？',
+    'bundle.onboard_auto_pull_done': '已采用 "{label}" 的服务器状态。',
     'browser.banner_title': '浏览器提示',
     'browser.lead_firefox': 'Firefox 未实现下方使用的某些 API。这是 Mozilla 的设计选择，不是 bug。',
     'browser.lead_safari': '你的 Safari 版本对下方部分功能支持有限。',
@@ -7898,15 +7920,34 @@ function renderStatusBanner() {
   }
 }
 
-/* ---- Sync-Awareness-Indikator (V1.2) ----
-   System-Status links der Stab-Status-Pills. Vier sichtbare Zustände:
-   synced / syncing / out-of-sync / error. 'disabled' = hidden.
-   Wird via Sync.onChange() bei jeder Sync-State-Mutation re-gerendert. */
+/* ---- Sync-Awareness-Indikator (V1.2 + V1.3 config-drift) ----
+   System-Status links der Stab-Status-Pills. Fünf sichtbare Zustände:
+     synced / syncing / out-of-sync / config-drift / error
+   'disabled' = hidden.
+   Config-Drift wird aus dem letzten previewDiff-Cache abgeleitet — wenn
+   die UI eine previewDiff durchgeführt hat (Sync-Modal oder Data-Modal
+   Online-Tab geöffnet) und Fingerprint-Mismatch erkannt wurde, wird das
+   im Indikator als persistenter Hinweis sichtbar. */
 function renderSyncIndicator() {
   const el = document.getElementById('sync-indicator');
   if (!el) return;
 
-  const status = Sync.isSyncing() ? 'syncing' : Sync.getStatus();
+  let status = Sync.isSyncing() ? 'syncing' : Sync.getStatus();
+
+  // V1.3: Drift-Detection aus dem Preview-Cache. Wir untersuchen die zuletzt
+  // gemerkten previews aller Sources — wenn irgendeine 'fingerprintMatches: false'
+  // hat, überschreibt das den (positiven) 'synced'-Status.
+  if (status === 'synced' || status === 'out-of-sync') {
+    if (typeof _previewCache !== 'undefined' && _previewCache.size > 0) {
+      for (const [id, entry] of _previewCache.entries()) {
+        const p = entry && entry.result;
+        if (p && p.reachable && !p.empty && p.decrypted && p.fingerprintMatches === false) {
+          status = 'config-drift';
+          break;
+        }
+      }
+    }
+  }
 
   if (status === 'disabled') {
     el.hidden = true;
@@ -7931,15 +7972,23 @@ function renderSyncIndicator() {
   tInfo.msg = state.lastError || '';
 
   let icon, labelKey, tooltipKey;
-  if (status === 'synced')          { icon = '✓'; labelKey = 'header.sync_status_synced';      tooltipKey = state.lastSyncedAt ? 'header.sync_tooltip_synced' : 'header.sync_tooltip_synced_never'; }
-  else if (status === 'syncing')    { icon = '↻'; labelKey = 'header.sync_status_syncing';     tooltipKey = 'header.sync_tooltip_syncing'; }
-  else if (status === 'out-of-sync'){ icon = '↑'; labelKey = 'header.sync_status_out_of_sync'; tooltipKey = 'header.sync_tooltip_out_of_sync'; }
-  else /* error */                  { icon = '✗'; labelKey = 'header.sync_status_error';       tooltipKey = 'header.sync_tooltip_error'; }
+  if (status === 'synced')          { icon = '✓'; labelKey = 'header.sync_status_synced';        tooltipKey = state.lastSyncedAt ? 'header.sync_tooltip_synced' : 'header.sync_tooltip_synced_never'; }
+  else if (status === 'syncing')    { icon = '↻'; labelKey = 'header.sync_status_syncing';       tooltipKey = 'header.sync_tooltip_syncing'; }
+  else if (status === 'out-of-sync'){ icon = '↑'; labelKey = 'header.sync_status_out_of_sync';   tooltipKey = 'header.sync_tooltip_out_of_sync'; }
+  else if (status === 'config-drift'){ icon = '⚠'; labelKey = 'header.sync_status_config_drift'; tooltipKey = 'header.sync_tooltip_config_drift'; }
+  else /* error */                  { icon = '✗'; labelKey = 'header.sync_status_error';         tooltipKey = 'header.sync_tooltip_error'; }
 
   el.innerHTML =
     '<span class="sync-indicator-icon">' + escapeHTML(icon) + '</span>' +
     '<span class="sync-indicator-label">' + escapeHTML(t(labelKey)) + '</span>';
   el.title = t(tooltipKey, tInfo);
+  // Im config-drift-Zustand wird der Indikator klickbar und öffnet
+  // Data-Modal → Online-Tab. Sonst kein onclick.
+  if (status === 'config-drift') {
+    el.setAttribute('data-action', 'sync-indicator-open-data');
+  } else {
+    el.removeAttribute('data-action');
+  }
 }
 
 function formatRelativeTime(timestamp) {
@@ -8873,6 +8922,11 @@ const CLICK_HANDLERS = {
   'data-tab-export':  () => { dataModalState.mode = 'export'; renderDataModal(); },
   'data-tab-import':  () => { dataModalState.mode = 'import'; renderDataModal(); },
   'data-tab-online':  () => { dataModalState.mode = 'online'; renderDataModal(); },
+  'sync-indicator-open-data': () => {
+    openDataModal();
+    dataModalState.mode = 'online';
+    renderDataModal();
+  },
   // V1.3 Data-Online Cards
   'data-online-refresh':    (el) => dataOnlineRefresh(el.dataset.sourceId),
   'data-online-unlock':     (el) => dataOnlineUnlock(el.dataset.sourceId),
@@ -13737,6 +13791,29 @@ async function syncImportApply() {
     }
     showToast(t('bundle.import_success', { label: result.source.label }), 'success');
     syncImportClose();
+
+    // V1.3 Onboarding-Auto-Pull: nach erfolgreichem Bundle-Import die
+    // Source einmal probehören. Wenn der Server bereits einen Stand hat,
+    // anbieten ihn direkt zu übernehmen — sonst muss der User erst über
+    // Daten → Online den Stand explizit holen, was eine zähe Onboarding-
+    // Erfahrung wäre.
+    setTimeout(async () => {
+      try {
+        const meta = await Sync.probeMeta(result.source.id);
+        if (!meta || !meta.reachable || meta.empty) return;
+        const msg = t('bundle.onboard_auto_pull_prompt', { label: result.source.label });
+        if (window.confirm(msg)) {
+          showToast(t('sync.online_pulling', { label: result.source.label }), 'info');
+          try {
+            await withPassphraseRecovery(result.source, () => Sync.pull(result.source.id, { mode: 'full' }));
+            showToast(t('bundle.onboard_auto_pull_done', { label: result.source.label }), 'success');
+            render();
+          } catch (e) {
+            showToast(t('sync.online_pull_failed', { msg: String(e.message || e) }), 'error');
+          }
+        }
+      } catch (e) { /* probe fehler ignorieren — User kann später manuell */ }
+    }, 200);
   } catch (e) {
     showToast(t('bundle.import_err_apply', { msg: String(e.message || e) }), 'error');
   }
