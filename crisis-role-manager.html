@@ -369,6 +369,8 @@ button:focus-visible,
 .sync-indicator[data-state="syncing"]     { color: var(--status-warn); border-color: var(--status-warn-border); }
 .sync-indicator[data-state="syncing"] .sync-indicator-icon { animation: spin 1.2s linear infinite; }
 .sync-indicator[data-state="out-of-sync"] { color: var(--status-warn); border-color: var(--status-warn-border); }
+.sync-indicator[data-state="config-drift"] { color: var(--status-critical); border-color: var(--status-critical-border); cursor: pointer; }
+.sync-indicator[data-state="config-drift"]:hover { opacity: 0.85; }
 .sync-indicator[data-state="error"]       { color: var(--status-critical); border-color: var(--status-critical-border); }
 @keyframes spin {
   from { transform: rotate(0deg); }
@@ -2578,12 +2580,85 @@ button:focus-visible,
   font-size: 11px;
 }
 
-/* ---- Sync-Modal Online-Tab (V1.2) ---- */
+/* ---- Sync-Modal Online-Tab (V1.2 → V1.3 Karten-Layout) ---- */
 .sync-online-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
   margin-top: 4px;
+}
+.sync-online-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sync-online-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sync-online-card-meta {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sync-card-loading {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+.sync-card-status {
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  border-left: 3px solid transparent;
+}
+.sync-card-status strong { display: block; margin-bottom: 2px; font-size: 13px; }
+.sync-card-status.status-ok     { border-left-color: var(--status-ok); background: var(--status-ok-bg, rgba(0,200,0,0.04)); color: var(--text-primary); }
+.sync-card-status.status-warn   { border-left-color: var(--status-warn); background: var(--status-warn-bg, rgba(255,180,0,0.04)); color: var(--text-primary); }
+.sync-card-status.status-error  { border-left-color: var(--status-critical); background: var(--status-critical-bg, rgba(255,0,0,0.04)); color: var(--text-primary); }
+.sync-card-status .sync-card-meta { font-size: 11px; color: var(--text-secondary); margin-top: 2px; font-family: var(--font-mono); }
+.sync-card-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding: 4px 0;
+}
+.sync-card-stats-row { display: flex; gap: 10px; }
+.sync-card-stats-label { min-width: 70px; text-transform: uppercase; letter-spacing: 0.04em; font-size: 10px; }
+.sync-card-stats-value { font-family: var(--font-mono); }
+.sync-card-drift-hint {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-style: italic;
+  padding: 4px 0;
+}
+.sync-online-card[data-focused="true"] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+/* Data-Modal Online-Tab (V1.3): zwei vertikale Buttons mit
+   begleitender Mini-Erklärung. */
+.data-online-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.data-online-action-hint {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-style: italic;
+  padding: 4px 0 0 0;
 }
 .sync-online-row {
   display: flex;
@@ -3838,6 +3913,19 @@ const Sync = (function() {
     }
   }
 
+  // V1.3 Trennung Sync (Status) vs Data (Config + Status): wenn Sync im
+  // 'status'-Modus operiert und Server-Fingerprint != lokaler Fingerprint,
+  // wird die Operation mit dieser Error-Klasse abgelehnt. Die UI fängt sie
+  // ab und verweist auf den Data-Tab für den Config-Abgleich.
+  class ConfigDriftError extends Error {
+    constructor(serverFingerprint, localFingerprint) {
+      super('Configuration drift: server ' + serverFingerprint + ' vs local ' + localFingerprint);
+      this.name = 'ConfigDriftError';
+      this.serverFingerprint = serverFingerprint;
+      this.localFingerprint = localFingerprint;
+    }
+  }
+
   function isSyncing() { return _syncing; }
 
   function onChange(fn) { _onChange = (typeof fn === 'function') ? fn : null; }
@@ -4039,7 +4127,17 @@ const Sync = (function() {
     Storage.saveRuntime(State.runtime);
   }
 
-  async function applyEnvelopeForSource(envelope, source) {
+  /* applyEnvelopeForSource(envelope, source, opts)
+       opts.mode = 'status' | 'full' (Default 'full')
+     'status'  → erzwingt Fingerprint-Match, applied NUR runtime
+     'full'    → ersetzt config + runtime, Fingerprint-Differenz wird
+                 ins Audit-Log geloggt aber nicht abgelehnt
+     Beide Modi geben den entschlüsselten inner payload zurück, damit
+     Caller darauf zugreifen können (UI für preview-vor-apply). */
+  async function applyEnvelopeForSource(envelope, source, opts) {
+    opts = opts || {};
+    const mode = opts.mode || 'full';
+
     if (!envelope || envelope.format !== 'cram-sync-v1') {
       throw new Error('Invalid envelope format');
     }
@@ -4074,13 +4172,21 @@ const Sync = (function() {
       throw new Error('Invalid inner payload format');
     }
 
-    // Online-Sync transportiert die KOMPLETTE Konfiguration + Runtime, nicht
-    // nur Status. Ein Fingerprint-Mismatch ist hier KEIN Fehler, sondern ein
-    // legitimer Config-Wechsel (User hat explizit gegen diese Source gepullt).
-    // Wir protokollieren den Wechsel im Audit-Log, damit er nachvollziehbar
-    // bleibt, und ersetzen lokal config + runtime durch den Server-Stand.
     const localFp = computeConfigHash(State.config);
     const remoteFp = envelope.fingerprint || computeConfigHash(inner.config);
+
+    if (mode === 'status') {
+      // Status-only: Fingerprint MUSS matchen. Sonst Drift-Error.
+      if (remoteFp !== localFp) {
+        throw new ConfigDriftError(remoteFp, localFp);
+      }
+      // Config bleibt unverändert; nur runtime wird angewandt.
+      State.runtime = inner.runtime || { unavailable: {}, manualAssignments: {} };
+      Storage.saveRuntime(State.runtime);
+      return inner;
+    }
+
+    // mode === 'full': config + runtime ersetzen, Drift loggen
     if (remoteFp !== localFp) {
       try {
         Storage.appendAudit({
@@ -4092,16 +4198,22 @@ const Sync = (function() {
         });
       } catch (e) { /* audit ist best-effort */ }
     }
-
     State.config = inner.config;
     State.runtime = inner.runtime || { unavailable: {}, manualAssignments: {} };
     Storage.saveConfig(State.config);
     Storage.saveRuntime(State.runtime);
+    return inner;
   }
 
   /* ---- Manual sync actions ---- */
 
-  async function pull(sourceId) {
+  /* pull(sourceId, opts)
+       opts.mode = 'status' | 'full' (Default 'status' für sicherheit)
+     'status' → nur Runtime wird angewandt; Drift → ConfigDriftError
+     'full'   → kompletter State (config + runtime) wird ersetzt */
+  async function pull(sourceId, opts) {
+    opts = opts || {};
+    const mode = opts.mode || 'status';
     const source = getSource(sourceId);
     if (!source) throw new Error('Source not found: ' + sourceId);
     _setSyncing(true);
@@ -4109,11 +4221,8 @@ const Sync = (function() {
       const client = createSourceClient(source);
       const envelope = await client.read();
       if (envelope === null) return null;
-      // Während applyEnvelope wird Storage.saveConfig/saveRuntime
-      // aufgerufen — wir wollen den dirty-flag dabei NICHT setzen,
-      // weil der Stand vom Server ja gerade synchron ist.
       _suppressDirty = true;
-      try { await applyEnvelopeForSource(envelope, source); }
+      try { await applyEnvelopeForSource(envelope, source, { mode }); }
       finally { _suppressDirty = false; }
       const state = load();
       state.lastSyncedVersion = envelope.version;
@@ -4124,9 +4233,7 @@ const Sync = (function() {
       save(state);
       return envelope;
     } catch (e) {
-      if (e && e.name === 'PassphraseRequiredError') {
-        // Passphrase-Fehler nicht als lastError persistieren — die UI
-        // promptet stattdessen und wiederholt die Aktion.
+      if (e && (e.name === 'PassphraseRequiredError' || e.name === 'ConfigDriftError')) {
         throw e;
       }
       const state = load();
@@ -4139,12 +4246,37 @@ const Sync = (function() {
     }
   }
 
-  async function push(sourceId) {
+  /* push(sourceId, opts)
+       opts.mode = 'status' | 'full' (Default 'status')
+     'status' → probt zuerst den Server-Fingerprint; bei Drift ConfigDriftError
+                und Abbruch. Verhindert versehentliches Überschreiben einer
+                fremden Server-Config.
+     'full'   → schreibt vollen Envelope ohne Probe. Ersetzt den Server-Stand. */
+  async function push(sourceId, opts) {
+    opts = opts || {};
+    const mode = opts.mode || 'status';
     const source = getSource(sourceId);
     if (!source) throw new Error('Source not found: ' + sourceId);
     _setSyncing(true);
     try {
       const client = createSourceClient(source);
+
+      // Status-mode pre-check: server muss gleiche Config haben
+      if (mode === 'status') {
+        let serverEnvelope = null;
+        try { serverEnvelope = await client.read(); } catch (e) {
+          // Server unerreichbar: lassen wir den Push trotzdem versuchen — der
+          // write() bringt dann den richtigen Fehler.
+        }
+        if (serverEnvelope) {
+          const localFp = computeConfigHash(State.config);
+          const remoteFp = serverEnvelope.fingerprint || '';
+          if (remoteFp && remoteFp !== localFp) {
+            throw new ConfigDriftError(remoteFp, localFp);
+          }
+        }
+      }
+
       const envelope = await buildEnvelopeForSource(source);
       await client.write(envelope);
       const state = load();
@@ -4156,7 +4288,7 @@ const Sync = (function() {
       save(state);
       return envelope;
     } catch (e) {
-      if (e && e.name === 'PassphraseRequiredError') {
+      if (e && (e.name === 'PassphraseRequiredError' || e.name === 'ConfigDriftError')) {
         throw e;
       }
       const state = load();
@@ -4167,6 +4299,114 @@ const Sync = (function() {
       _setSyncing(false);
       _emitChange();
     }
+  }
+
+  /* probeMeta(sourceId) — lädt das Envelope vom Server und gibt
+     ausschließlich Metadaten zurück. Keine Decryption, kein
+     Apply. Nutzbar für leichte "was liegt auf dem Server"-
+     Abfragen aus der UI (Sync-Modal-Card, Awareness-Indikator). */
+  async function probeMeta(sourceId) {
+    const source = getSource(sourceId);
+    if (!source) throw new Error('Source not found: ' + sourceId);
+    try {
+      const client = createSourceClient(source);
+      const envelope = await client.read();
+      if (envelope === null) {
+        return { reachable: true, empty: true };
+      }
+      return {
+        reachable: true,
+        empty: false,
+        version: envelope.version || 0,
+        timestamp: envelope.timestamp || 0,
+        fingerprint: envelope.fingerprint || '',
+        encrypted: !!envelope.encrypted,
+        _envelope: envelope,  // für previewDiff
+      };
+    } catch (e) {
+      return { reachable: false, error: String(e.message || e) };
+    }
+  }
+
+  /* previewDiff(sourceId) — vollständiger Vergleich Server vs lokal,
+     inklusive Decryption (falls Schlüssel im Cache) und Count-Stats.
+     Liefert ein Objekt, das die UI direkt rendern kann. Wenn die
+     Decryption fehlschlägt (Passphrase fehlt) wird ein eingeschränktes
+     Objekt zurückgegeben (nur Fingerprint-Vergleich möglich). */
+  async function previewDiff(sourceId) {
+    const meta = await probeMeta(sourceId);
+    if (!meta.reachable) return { reachable: false, error: meta.error };
+    if (meta.empty)     return { reachable: true, empty: true, fingerprintLocal: computeConfigHash(State.config) };
+
+    const source = getSource(sourceId);
+    const localFp = computeConfigHash(State.config);
+    const result = {
+      reachable: true,
+      empty: false,
+      version: meta.version,
+      timestamp: meta.timestamp,
+      fingerprint: meta.fingerprint,
+      fingerprintLocal: localFp,
+      fingerprintMatches: meta.fingerprint === localFp,
+      encrypted: meta.encrypted,
+      decrypted: false,
+    };
+
+    let inner;
+    if (meta.encrypted) {
+      const key = _keyCache.get(sourceId);
+      if (!key) {
+        result.needsPassphrase = true;
+        return result;
+      }
+      try {
+        inner = await SyncCrypto.decryptJSON(key, meta._envelope.iv, meta._envelope.ciphertext);
+      } catch (e) {
+        result.decryptError = String(e.message || e);
+        return result;
+      }
+    } else {
+      inner = meta._envelope.payload;
+    }
+    if (!inner || inner.format !== 'cram-export') {
+      result.malformed = true;
+      return result;
+    }
+    result.decrypted = true;
+
+    const sCfg = inner.config || {};
+    const sRt  = inner.runtime || { unavailable: {}, manualAssignments: {} };
+    const lCfg = State.config;
+    const lRt  = State.runtime;
+
+    function countRoles(cfg) {
+      return (cfg.levels || []).reduce((s, l) => s + (l.roles || []).length, 0);
+    }
+
+    result.stats = {
+      server: {
+        persons: (sCfg.persons || []).length,
+        levels:  (sCfg.levels  || []).length,
+        roles:   countRoles(sCfg),
+        absent:  Object.keys(sRt.unavailable || {}).length,
+        manual:  Object.keys(sRt.manualAssignments || {}).length,
+      },
+      local: {
+        persons: (lCfg.persons || []).length,
+        levels:  (lCfg.levels  || []).length,
+        roles:   countRoles(lCfg),
+        absent:  Object.keys(lRt.unavailable || {}).length,
+        manual:  Object.keys(lRt.manualAssignments || {}).length,
+      },
+    };
+
+    // Personen-Diff (welche IDs gibt es nur auf einer Seite)
+    const serverIds = new Set((sCfg.persons || []).map(p => p.id));
+    const localIds  = new Set((lCfg.persons || []).map(p => p.id));
+    result.onlyLocal  = (lCfg.persons || []).filter(p => !serverIds.has(p.id)).map(p => ({ id: p.id, name: p.name }));
+    result.onlyServer = (sCfg.persons || []).filter(p => !localIds.has(p.id)).map(p => ({ id: p.id, name: p.name }));
+
+    return result;
   }
 
   return {
@@ -4179,8 +4419,9 @@ const Sync = (function() {
     isEncryptionEnabled, hasKeyForSource, setKeyForSource,
     clearKeyForSource, clearAllKeys, needsPassphrase,
     setPassphraseForSource, getPassphraseForSource, hasPassphraseForSource,
-    PassphraseRequiredError,
+    PassphraseRequiredError, ConfigDriftError,
     pull, push,
+    probeMeta, previewDiff,
   };
 })();
 
@@ -4821,6 +5062,35 @@ const TRANSLATIONS = {
     'sync.online_empty': 'Source ist leer (noch nichts hochgeladen).',
     'sync.online_pull_failed': 'Pull fehlgeschlagen: {msg}',
     'sync.online_push_failed': 'Push fehlgeschlagen: {msg}',
+    'sync.online_intro_v13': 'Status (Abwesenheiten + manuelle Zuweisungen) zwischen Geräten abgleichen. Funktioniert nur bei identischer Stab-Konfiguration. Konfigurations-Änderungen laufen über Daten → Online.',
+    'sync.online_card_loading': 'Server-Stand wird geladen…',
+    'sync.online_card_unreachable': 'Server nicht erreichbar',
+    'sync.online_card_retry': 'Erneut versuchen',
+    'sync.online_card_empty': 'Server ist noch leer',
+    'sync.online_card_empty_hint': 'Noch nichts hochgeladen. Mit dem ersten Push wird die aktuelle Konfiguration und der Status als Initial-Stand gesetzt.',
+    'sync.online_card_locked': 'Verschlüsselt — Passphrase erforderlich',
+    'sync.online_card_locked_hint': 'Vor dem Vergleich muss die Passphrase eingegeben werden, damit CRAM den Server-Stand entschlüsseln kann.',
+    'sync.online_card_unlock': 'Passphrase eingeben',
+    'sync.online_card_decrypt_failed': 'Entschlüsselung fehlgeschlagen',
+    'sync.online_card_unlock_retry': 'Passphrase erneut eingeben',
+    'sync.online_card_match': 'Konfiguration identisch',
+    'sync.online_card_fp_match': 'Fingerprint {fp} — Status-Sync ist möglich.',
+    'sync.online_card_drift': 'Konfiguration abweichend',
+    'sync.online_card_fp_drift': 'Server-Fingerprint {server} ≠ lokaler Fingerprint {local}.',
+    'sync.online_card_server': 'Server',
+    'sync.online_card_status_diff': 'Status',
+    'sync.online_card_abs_diff': 'Server: {server} abwesend · lokal: {local} abwesend',
+    'sync.online_card_summary_server': 'Server: {persons} Personen · {levels} Ebenen · {roles} Rollen',
+    'sync.online_card_summary_local':  'Lokal:  {persons} Personen · {levels} Ebenen · {roles} Rollen',
+    'sync.online_card_drift_hint': 'Status-Sync ist gesperrt solange Konfigurationen abweichen. Über Daten → Online lässt sich entweder der Server- oder der lokale Stand durchsetzen.',
+    'sync.online_card_open_data': 'Daten → Online öffnen',
+    'sync.online_first_push': 'Erste Konfiguration hochladen',
+    'sync.online_first_pushed': 'Initial-Stand v{version} hochgeladen.',
+    'sync.online_pull_status': 'Status holen',
+    'sync.online_push_status': 'Status schicken',
+    'sync.online_pulled_status': 'Status v{version} geladen.',
+    'sync.online_pushed_status': 'Status v{version} geschickt.',
+    'sync.online_drift_blocked': 'Status-Sync gesperrt: Konfigurationen weichen ab — bitte über Daten → Online abgleichen.',
     'sync.tab_send': '↗ Senden',
     'sync.tab_receive': '↙ Empfangen',
     'qr.send_title': 'QR-Transfer senden',
@@ -4935,6 +5205,8 @@ const TRANSLATIONS = {
     'header.sync_tooltip_syncing': 'Sync läuft…',
     'header.sync_tooltip_out_of_sync': 'Lokale Änderungen warten auf Push. Letzter Stand: {label} · v{version} · {when}',
     'header.sync_tooltip_error': 'Sync-Fehler: {msg}',
+    'header.sync_status_config_drift': 'Konfig-Drift',
+    'header.sync_tooltip_config_drift': 'Server hat eine andere Konfiguration. Klick öffnet Daten → Online für den Abgleich.',
     'header.data': 'Daten',
     'header.data_tooltip': 'Import / Export',
     'header.print': 'Drucken',
@@ -5056,6 +5328,8 @@ const TRANSLATIONS = {
     'bundle.import_err_apply': 'Import fehlgeschlagen: {msg}',
     'bundle.import_confirm_fp_mismatch': 'Der Fingerprint des Bundles passt nicht zur lokalen Konfiguration. Wirklich importieren?',
     'bundle.import_success': 'Source "{label}" importiert.',
+    'bundle.onboard_auto_pull_prompt': 'Source "{label}" wurde angelegt. Der Server hat bereits einen Stand — jetzt übernehmen?',
+    'bundle.onboard_auto_pull_done': 'Server-Stand von "{label}" übernommen.',
     'browser.banner_title': 'Browser-Hinweis',
     'browser.lead_firefox': 'Firefox unterstützt einige der hier verwendeten APIs nicht. Das ist kein Bug — Firefox hat sich gegen diese Standards entschieden.',
     'browser.lead_safari': 'Deine Safari-Version hat eingeschränkten Support für einige Funktionen unten.',
@@ -5110,6 +5384,30 @@ const TRANSLATIONS = {
     'data.title': 'Konfiguration sichern / einspielen',
     'data.tab_export': '↑ Export',
     'data.tab_import': '↓ Import',
+    'data.tab_online': '🌐 Online',
+    'data.online_intro': 'Komplette Konfiguration + Status mit einer Online-Source abgleichen. Nutze diesen Tab bei Konfigurations-Änderungen (neue Rolle, umstrukturierter Stab). Für routine Status-Updates: ⇄ Sync → Online.',
+    'data.online_no_sources': 'Keine Sync-Sources konfiguriert. Lege zuerst eine über Einstellungen → Sync-Sources an.',
+    'data.online_empty_hint': 'Noch nichts hochgeladen. Mit dem ersten Push wird die komplette Konfiguration und der Status als Initial-Stand gesetzt.',
+    'data.online_first_push': 'Erste Konfiguration hochladen',
+    'data.online_match_hint': 'Server und lokal sind identisch — Konfig-Sync ist nicht nötig. Für Status-Sync siehe ⇄ Sync → Online.',
+    'data.online_local': 'Lokal',
+    'data.online_stats_brief': '{persons} Personen · {roles} Rollen · {levels} Ebenen · {absent} abwesend',
+    'data.online_diff_only_local':  'Nur lokal',
+    'data.online_diff_only_server': 'Nur Server',
+    'data.online_pull_full':  'Server-Stand übernehmen (überschreibt lokal)',
+    'data.online_push_full':  'Lokalen Stand auf Server schicken (überschreibt Server)',
+    'data.online_action_hint': 'Beide Aktionen ersetzen die jeweils gegenseitige Seite vollständig — Konfiguration UND Status. Audit-Log dokumentiert die Änderung.',
+    'data.online_confirm_pull': 'Server-Stand von "{label}" wird übernommen.\nLokale Konfiguration + Status werden überschrieben.',
+    'data.online_confirm_pull_line_server': 'Server: {persons} Personen · {roles} Rollen · {levels} Ebenen',
+    'data.online_confirm_pull_line_local':  'Lokal:  {persons} Personen · {roles} Rollen · {levels} Ebenen',
+    'data.online_confirm_push': 'Lokaler Stand wird auf "{label}" geschickt.\nServer-Konfiguration + Status werden überschrieben.',
+    'data.online_confirm_push_line_local':  'Lokal sendet: {persons} Personen · {roles} Rollen · {levels} Ebenen',
+    'data.online_confirm_push_line_server': 'Server hat aktuell: {persons} Personen · {roles} Rollen · {levels} Ebenen',
+    'data.online_confirm_push_line_empty':  'Server ist leer — wird mit lokalem Stand initialisiert.',
+    'data.online_confirm_irreversible': 'Diese Aktion ist nicht rückgängig zu machen. Fortfahren?',
+    'data.online_pulled_full': 'Server-Stand von "{label}" übernommen.',
+    'data.online_pushed_full': 'Lokaler Stand auf "{label}" geschickt.',
+    'data.online_err_nothing_to_pull': 'Server hat noch keinen Stand — nichts zu holen.',
     'data.export_intro': 'Die komplette Konfiguration (Ebenen, Rollen, Personen) und optional der Laufzeitzustand (Abwesenheiten, manuelle Zuordnungen) werden als JSON-Datei heruntergeladen. Die Datei kann auf einem anderen Gerät wieder eingespielt werden.',
     'data.import_intro': 'JSON-Datei einspielen. Die aktuelle Konfiguration wird ersetzt — prüfe den Inhalt vor dem Übernehmen.',
     'data.include_runtime': 'Laufzeitzustand mitnehmen (Abwesenheiten, manuelle Zuordnungen)',
@@ -5284,6 +5582,35 @@ const TRANSLATIONS = {
     'sync.online_empty': 'Source is empty (nothing uploaded yet).',
     'sync.online_pull_failed': 'Pull failed: {msg}',
     'sync.online_push_failed': 'Push failed: {msg}',
+    'sync.online_intro_v13': 'Reconcile status (absences + manual assignments) across devices. Works only when the stab configuration is identical. Configuration changes go through Data → Online.',
+    'sync.online_card_loading': 'Loading server state…',
+    'sync.online_card_unreachable': 'Server unreachable',
+    'sync.online_card_retry': 'Try again',
+    'sync.online_card_empty': 'Server is still empty',
+    'sync.online_card_empty_hint': 'Nothing uploaded yet. The first push will seed the initial state with the current config and status.',
+    'sync.online_card_locked': 'Encrypted — passphrase required',
+    'sync.online_card_locked_hint': 'Enter the passphrase before comparing so CRAM can decrypt the server state.',
+    'sync.online_card_unlock': 'Enter passphrase',
+    'sync.online_card_decrypt_failed': 'Decryption failed',
+    'sync.online_card_unlock_retry': 'Re-enter passphrase',
+    'sync.online_card_match': 'Configuration matches',
+    'sync.online_card_fp_match': 'Fingerprint {fp} — status sync is possible.',
+    'sync.online_card_drift': 'Configuration differs',
+    'sync.online_card_fp_drift': 'Server fingerprint {server} ≠ local fingerprint {local}.',
+    'sync.online_card_server': 'Server',
+    'sync.online_card_status_diff': 'Status',
+    'sync.online_card_abs_diff': 'Server: {server} absent · local: {local} absent',
+    'sync.online_card_summary_server': 'Server: {persons} persons · {levels} levels · {roles} roles',
+    'sync.online_card_summary_local':  'Local:  {persons} persons · {levels} levels · {roles} roles',
+    'sync.online_card_drift_hint': 'Status sync is blocked while configurations differ. Use Data → Online to push or pull the full configuration.',
+    'sync.online_card_open_data': 'Open Data → Online',
+    'sync.online_first_push': 'Upload initial configuration',
+    'sync.online_first_pushed': 'Initial state v{version} uploaded.',
+    'sync.online_pull_status': 'Pull status',
+    'sync.online_push_status': 'Push status',
+    'sync.online_pulled_status': 'Status v{version} loaded.',
+    'sync.online_pushed_status': 'Status v{version} pushed.',
+    'sync.online_drift_blocked': 'Status sync blocked: configurations differ — reconcile via Data → Online first.',
     'sync.tab_send': '↗ Send',
     'sync.tab_receive': '↙ Receive',
     'qr.send_title': 'Send QR transfer',
@@ -5398,6 +5725,8 @@ const TRANSLATIONS = {
     'header.sync_tooltip_syncing': 'Syncing…',
     'header.sync_tooltip_out_of_sync': 'Local changes pending push. Last state: {label} · v{version} · {when}',
     'header.sync_tooltip_error': 'Sync error: {msg}',
+    'header.sync_status_config_drift': 'Config drift',
+    'header.sync_tooltip_config_drift': 'Server has a different configuration. Click opens Data → Online to reconcile.',
     'header.data': 'Data',
     'header.data_tooltip': 'Import / Export',
     'header.print': 'Print',
@@ -5519,6 +5848,8 @@ const TRANSLATIONS = {
     'bundle.import_err_apply': 'Import failed: {msg}',
     'bundle.import_confirm_fp_mismatch': 'The bundle fingerprint does not match the local configuration. Import anyway?',
     'bundle.import_success': 'Source "{label}" imported.',
+    'bundle.onboard_auto_pull_prompt': 'Source "{label}" added. Server already has a state — take it now?',
+    'bundle.onboard_auto_pull_done': 'Server state from "{label}" taken.',
     'browser.banner_title': 'Browser note',
     'browser.lead_firefox': 'Firefox does not implement some of the APIs used below. This is by Mozilla’s choice, not a bug.',
     'browser.lead_safari': 'Your Safari version has limited support for some features below.',
@@ -5573,6 +5904,30 @@ const TRANSLATIONS = {
     'data.title': 'Backup / restore configuration',
     'data.tab_export': '↑ Export',
     'data.tab_import': '↓ Import',
+    'data.tab_online': '🌐 Online',
+    'data.online_intro': 'Reconcile full configuration + status with an online source. Use this tab for configuration changes (new role, restructured stab). For routine status updates: ⇄ Sync → Online.',
+    'data.online_no_sources': 'No sync sources configured. Add one via Settings → Sync sources first.',
+    'data.online_empty_hint': 'Nothing uploaded yet. The first push seeds the server with the complete configuration and status as the initial state.',
+    'data.online_first_push': 'Upload initial configuration',
+    'data.online_match_hint': 'Server and local are identical — config sync is not needed. For status sync see ⇄ Sync → Online.',
+    'data.online_local': 'Local',
+    'data.online_stats_brief': '{persons} persons · {roles} roles · {levels} levels · {absent} absent',
+    'data.online_diff_only_local':  'Only local',
+    'data.online_diff_only_server': 'Only server',
+    'data.online_pull_full':  'Take server state (overwrites local)',
+    'data.online_push_full':  'Send local state to server (overwrites server)',
+    'data.online_action_hint': 'Both actions replace the other side completely — configuration AND status. Audit log records the change.',
+    'data.online_confirm_pull': 'Server state from "{label}" will be taken.\nLocal configuration + status will be overwritten.',
+    'data.online_confirm_pull_line_server': 'Server: {persons} persons · {roles} roles · {levels} levels',
+    'data.online_confirm_pull_line_local':  'Local:  {persons} persons · {roles} roles · {levels} levels',
+    'data.online_confirm_push': 'Local state will be sent to "{label}".\nServer configuration + status will be overwritten.',
+    'data.online_confirm_push_line_local':  'Local sends: {persons} persons · {roles} roles · {levels} levels',
+    'data.online_confirm_push_line_server': 'Server currently has: {persons} persons · {roles} roles · {levels} levels',
+    'data.online_confirm_push_line_empty':  'Server is empty — will be seeded with local state.',
+    'data.online_confirm_irreversible': 'This action cannot be undone. Continue?',
+    'data.online_pulled_full': 'Server state from "{label}" taken.',
+    'data.online_pushed_full': 'Local state sent to "{label}".',
+    'data.online_err_nothing_to_pull': 'Server has no state yet — nothing to pull.',
     'data.export_intro': 'The full configuration (levels, roles, persons) and optionally the runtime state (absences, manual assignments) are downloaded as a JSON file. The file can be imported on another device.',
     'data.import_intro': 'Import a JSON file. The current configuration will be replaced — review the content before applying.',
     'data.include_runtime': 'Include runtime state (absences, manual assignments)',
@@ -5746,6 +6101,35 @@ const TRANSLATIONS = {
     'sync.online_empty': 'Fuente vacía (aún sin subida).',
     'sync.online_pull_failed': 'Pull falló: {msg}',
     'sync.online_push_failed': 'Push falló: {msg}',
+    'sync.online_intro_v13': 'Reconcilia el estado (ausencias + asignaciones manuales) entre dispositivos. Funciona solo con configuración idéntica del comité. Los cambios de configuración van por Datos → Online.',
+    'sync.online_card_loading': 'Cargando estado del servidor…',
+    'sync.online_card_unreachable': 'Servidor no accesible',
+    'sync.online_card_retry': 'Reintentar',
+    'sync.online_card_empty': 'Servidor todavía vacío',
+    'sync.online_card_empty_hint': 'Aún sin subida. El primer push inicializa con la configuración y estado actuales.',
+    'sync.online_card_locked': 'Cifrado — frase requerida',
+    'sync.online_card_locked_hint': 'Introduce la frase antes de comparar para que CRAM pueda descifrar el estado del servidor.',
+    'sync.online_card_unlock': 'Introducir frase',
+    'sync.online_card_decrypt_failed': 'Descifrado falló',
+    'sync.online_card_unlock_retry': 'Reintroducir frase',
+    'sync.online_card_match': 'Configuración coincide',
+    'sync.online_card_fp_match': 'Huella {fp} — sync de estado posible.',
+    'sync.online_card_drift': 'Configuración diferente',
+    'sync.online_card_fp_drift': 'Huella servidor {server} ≠ huella local {local}.',
+    'sync.online_card_server': 'Servidor',
+    'sync.online_card_status_diff': 'Estado',
+    'sync.online_card_abs_diff': 'Servidor: {server} ausentes · local: {local} ausentes',
+    'sync.online_card_summary_server': 'Servidor: {persons} personas · {levels} niveles · {roles} roles',
+    'sync.online_card_summary_local':  'Local:    {persons} personas · {levels} niveles · {roles} roles',
+    'sync.online_card_drift_hint': 'Sync de estado bloqueado mientras las configuraciones difieren. Usa Datos → Online para empujar o traer la configuración completa.',
+    'sync.online_card_open_data': 'Abrir Datos → Online',
+    'sync.online_first_push': 'Subir configuración inicial',
+    'sync.online_first_pushed': 'Estado inicial v{version} subido.',
+    'sync.online_pull_status': 'Traer estado',
+    'sync.online_push_status': 'Enviar estado',
+    'sync.online_pulled_status': 'Estado v{version} cargado.',
+    'sync.online_pushed_status': 'Estado v{version} enviado.',
+    'sync.online_drift_blocked': 'Sync de estado bloqueado: las configuraciones difieren — reconcilia primero vía Datos → Online.',
     'sync.tab_send': '↗ Enviar',
     'sync.tab_receive': '↙ Recibir',
     'qr.send_title': 'Enviar transferencia QR',
@@ -5860,6 +6244,8 @@ const TRANSLATIONS = {
     'header.sync_tooltip_syncing': 'Sincronizando…',
     'header.sync_tooltip_out_of_sync': 'Cambios locales pendientes de push. Último estado: {label} · v{version} · {when}',
     'header.sync_tooltip_error': 'Error de sync: {msg}',
+    'header.sync_status_config_drift': 'Config diferente',
+    'header.sync_tooltip_config_drift': 'El servidor tiene otra configuración. Click abre Datos → Online para reconciliar.',
     'header.data': 'Datos',
     'header.data_tooltip': 'Importar / Exportar',
     'header.print': 'Imprimir',
@@ -5981,6 +6367,8 @@ const TRANSLATIONS = {
     'bundle.import_err_apply': 'Importación fallida: {msg}',
     'bundle.import_confirm_fp_mismatch': 'La huella del bundle no coincide con la configuración local. ¿Importar de todos modos?',
     'bundle.import_success': 'Fuente "{label}" importada.',
+    'bundle.onboard_auto_pull_prompt': 'Fuente "{label}" añadida. El servidor ya tiene un estado — ¿tomarlo ahora?',
+    'bundle.onboard_auto_pull_done': 'Estado servidor de "{label}" tomado.',
     'browser.banner_title': 'Aviso del navegador',
     'browser.lead_firefox': 'Firefox no implementa algunas APIs usadas abajo. Es por decisión de Mozilla, no un bug.',
     'browser.lead_safari': 'Tu versión de Safari tiene soporte limitado para algunas funciones de abajo.',
@@ -6035,6 +6423,30 @@ const TRANSLATIONS = {
     'data.title': 'Copia de seguridad / restaurar configuración',
     'data.tab_export': '↑ Exportar',
     'data.tab_import': '↓ Importar',
+    'data.tab_online': '🌐 Online',
+    'data.online_intro': 'Sincronizar configuración + estado completos con una fuente online. Usa este tab para cambios de configuración (nuevo rol, comité reestructurado). Para estado rutinario: ⇄ Sync → Online.',
+    'data.online_no_sources': 'Sin fuentes configuradas. Añade una vía Ajustes → Fuentes de sync.',
+    'data.online_empty_hint': 'Aún sin subida. El primer push inicializa el servidor con la configuración y estado actuales.',
+    'data.online_first_push': 'Subir configuración inicial',
+    'data.online_match_hint': 'Servidor y local son idénticos — no hace falta sync de config. Para sync de estado: ⇄ Sync → Online.',
+    'data.online_local': 'Local',
+    'data.online_stats_brief': '{persons} personas · {roles} roles · {levels} niveles · {absent} ausentes',
+    'data.online_diff_only_local':  'Solo local',
+    'data.online_diff_only_server': 'Solo servidor',
+    'data.online_pull_full':  'Tomar estado del servidor (sobrescribe local)',
+    'data.online_push_full':  'Enviar estado local al servidor (sobrescribe servidor)',
+    'data.online_action_hint': 'Ambas acciones reemplazan el otro lado por completo — configuración Y estado. El audit log registra el cambio.',
+    'data.online_confirm_pull': 'Estado servidor de "{label}" será tomado.\nConfiguración + estado locales serán sobrescritos.',
+    'data.online_confirm_pull_line_server': 'Servidor: {persons} personas · {roles} roles · {levels} niveles',
+    'data.online_confirm_pull_line_local':  'Local:    {persons} personas · {roles} roles · {levels} niveles',
+    'data.online_confirm_push': 'Estado local será enviado a "{label}".\nConfiguración + estado del servidor serán sobrescritos.',
+    'data.online_confirm_push_line_local':  'Local envía: {persons} personas · {roles} roles · {levels} niveles',
+    'data.online_confirm_push_line_server': 'Servidor tiene: {persons} personas · {roles} roles · {levels} niveles',
+    'data.online_confirm_push_line_empty':  'Servidor vacío — se inicializará con el estado local.',
+    'data.online_confirm_irreversible': 'Esta acción no se puede deshacer. ¿Continuar?',
+    'data.online_pulled_full': 'Estado servidor de "{label}" tomado.',
+    'data.online_pushed_full': 'Estado local enviado a "{label}".',
+    'data.online_err_nothing_to_pull': 'Servidor sin estado aún — nada que traer.',
     'data.export_intro': 'La configuración completa (niveles, roles, personas) y opcionalmente el estado en tiempo real (ausencias, asignaciones manuales) se descargan como archivo JSON. El archivo puede importarse en otro dispositivo.',
     'data.import_intro': 'Importe un archivo JSON. La configuración actual será reemplazada — revise el contenido antes de aplicar.',
     'data.include_runtime': 'Incluir estado en tiempo real (ausencias, asignaciones manuales)',
@@ -6209,6 +6621,35 @@ const TRANSLATIONS = {
     'sync.online_empty': 'Source vide (rien encore envoyé).',
     'sync.online_pull_failed': 'Pull échoué : {msg}',
     'sync.online_push_failed': 'Push échoué : {msg}',
+    'sync.online_intro_v13': 'Réconcilier l’état (absences + affectations manuelles) entre appareils. Ne fonctionne qu’avec une configuration de cellule identique. Les changements de configuration passent par Données → Online.',
+    'sync.online_card_loading': 'Chargement de l’état serveur…',
+    'sync.online_card_unreachable': 'Serveur inaccessible',
+    'sync.online_card_retry': 'Réessayer',
+    'sync.online_card_empty': 'Serveur encore vide',
+    'sync.online_card_empty_hint': 'Rien envoyé encore. Le premier push amorce avec la configuration et l’état actuels.',
+    'sync.online_card_locked': 'Chiffré — phrase requise',
+    'sync.online_card_locked_hint': 'Saisissez la phrase avant la comparaison pour que CRAM puisse déchiffrer l’état serveur.',
+    'sync.online_card_unlock': 'Saisir la phrase',
+    'sync.online_card_decrypt_failed': 'Déchiffrement échoué',
+    'sync.online_card_unlock_retry': 'Ressaisir la phrase',
+    'sync.online_card_match': 'Configuration correspond',
+    'sync.online_card_fp_match': 'Empreinte {fp} — sync d’état possible.',
+    'sync.online_card_drift': 'Configuration différente',
+    'sync.online_card_fp_drift': 'Empreinte serveur {server} ≠ empreinte locale {local}.',
+    'sync.online_card_server': 'Serveur',
+    'sync.online_card_status_diff': 'État',
+    'sync.online_card_abs_diff': 'Serveur : {server} absents · local : {local} absents',
+    'sync.online_card_summary_server': 'Serveur : {persons} personnes · {levels} niveaux · {roles} rôles',
+    'sync.online_card_summary_local':  'Local :   {persons} personnes · {levels} niveaux · {roles} rôles',
+    'sync.online_card_drift_hint': 'La sync d’état est bloquée tant que les configurations diffèrent. Utilisez Données → Online pour pousser ou récupérer la configuration complète.',
+    'sync.online_card_open_data': 'Ouvrir Données → Online',
+    'sync.online_first_push': 'Téléverser la configuration initiale',
+    'sync.online_first_pushed': 'État initial v{version} téléversé.',
+    'sync.online_pull_status': 'Récupérer l’état',
+    'sync.online_push_status': 'Envoyer l’état',
+    'sync.online_pulled_status': 'État v{version} chargé.',
+    'sync.online_pushed_status': 'État v{version} envoyé.',
+    'sync.online_drift_blocked': 'Sync d’état bloquée : les configurations diffèrent — réconciliez d’abord via Données → Online.',
     'sync.tab_send': '↗ Envoyer',
     'sync.tab_receive': '↙ Recevoir',
     'qr.send_title': 'Envoyer transfert QR',
@@ -6323,6 +6764,8 @@ const TRANSLATIONS = {
     'header.sync_tooltip_syncing': 'Synchronisation…',
     'header.sync_tooltip_out_of_sync': 'Modifications locales en attente. Dernier état : {label} · v{version} · {when}',
     'header.sync_tooltip_error': 'Erreur sync : {msg}',
+    'header.sync_status_config_drift': 'Drift config',
+    'header.sync_tooltip_config_drift': 'Le serveur a une configuration différente. Cliquer ouvre Données → Online pour réconcilier.',
     'header.data': 'Données',
     'header.data_tooltip': 'Importer / Exporter',
     'header.print': 'Imprimer',
@@ -6444,6 +6887,8 @@ const TRANSLATIONS = {
     'bundle.import_err_apply': 'Échec de l’import : {msg}',
     'bundle.import_confirm_fp_mismatch': 'L’empreinte du bundle ne correspond pas à la configuration locale. Importer quand même ?',
     'bundle.import_success': 'Source « {label} » importée.',
+    'bundle.onboard_auto_pull_prompt': 'Source « {label} » ajoutée. Le serveur a déjà un état — le prendre maintenant ?',
+    'bundle.onboard_auto_pull_done': 'État serveur de « {label} » pris.',
     'browser.banner_title': 'Note navigateur',
     'browser.lead_firefox': 'Firefox n’implémente pas certaines API utilisées ci-dessous. C’est un choix de Mozilla, pas un bug.',
     'browser.lead_safari': 'Votre version de Safari a un support limité pour certaines fonctionnalités ci-dessous.',
@@ -6498,6 +6943,30 @@ const TRANSLATIONS = {
     'data.title': 'Sauvegarder / restaurer la configuration',
     'data.tab_export': '↑ Exporter',
     'data.tab_import': '↓ Importer',
+    'data.tab_online': '🌐 Online',
+    'data.online_intro': 'Synchroniser la configuration + état complets avec une source online. Utilisez cet onglet pour les changements de configuration. Pour le statut routinier : ⇄ Sync → Online.',
+    'data.online_no_sources': 'Aucune source configurée. Ajoutez-en une via Paramètres → Sources de sync.',
+    'data.online_empty_hint': 'Rien envoyé encore. Le premier push amorce le serveur avec la configuration et l état actuels.',
+    'data.online_first_push': 'Téléverser la configuration initiale',
+    'data.online_match_hint': 'Serveur et local sont identiques — pas besoin de sync config. Pour la sync d état : ⇄ Sync → Online.',
+    'data.online_local': 'Local',
+    'data.online_stats_brief': '{persons} personnes · {roles} rôles · {levels} niveaux · {absent} absents',
+    'data.online_diff_only_local':  'Local seulement',
+    'data.online_diff_only_server': 'Serveur seulement',
+    'data.online_pull_full':  'Prendre l état serveur (écrase local)',
+    'data.online_push_full':  'Envoyer l état local au serveur (écrase serveur)',
+    'data.online_action_hint': 'Les deux actions remplacent complètement l autre côté — configuration ET état. Le journal d audit enregistre la modification.',
+    'data.online_confirm_pull': 'L état serveur de « {label} » sera pris.\nLa configuration + état locaux seront écrasés.',
+    'data.online_confirm_pull_line_server': 'Serveur : {persons} personnes · {roles} rôles · {levels} niveaux',
+    'data.online_confirm_pull_line_local':  'Local :   {persons} personnes · {roles} rôles · {levels} niveaux',
+    'data.online_confirm_push': 'L état local sera envoyé à « {label} ».\nLa configuration + état du serveur seront écrasés.',
+    'data.online_confirm_push_line_local':  'Local envoie : {persons} personnes · {roles} rôles · {levels} niveaux',
+    'data.online_confirm_push_line_server': 'Serveur a : {persons} personnes · {roles} rôles · {levels} niveaux',
+    'data.online_confirm_push_line_empty':  'Serveur vide — sera initialisé avec l état local.',
+    'data.online_confirm_irreversible': 'Cette action est irréversible. Continuer ?',
+    'data.online_pulled_full': 'État serveur de « {label} » pris.',
+    'data.online_pushed_full': 'État local envoyé à « {label} ».',
+    'data.online_err_nothing_to_pull': 'Serveur sans état encore — rien à récupérer.',
     'data.export_intro': 'La configuration complète (niveaux, rôles, personnes) et éventuellement l\u2019état runtime (absences, affectations manuelles) sont téléchargés dans un fichier JSON. Le fichier peut être importé sur un autre appareil.',
     'data.import_intro': 'Importer un fichier JSON. La configuration actuelle sera remplacée — vérifiez le contenu avant d\u2019appliquer.',
     'data.include_runtime': 'Inclure l\u2019état runtime (absences, affectations manuelles)',
@@ -6672,6 +7141,35 @@ const TRANSLATIONS = {
     'sync.online_empty': '源为空（尚未上传任何内容）。',
     'sync.online_pull_failed': '拉取失败：{msg}',
     'sync.online_push_failed': '推送失败：{msg}',
+    'sync.online_intro_v13': '在设备间同步状态（缺勤 + 手动指派）。仅在团队配置相同时可用。配置更改请使用 数据 → 在线。',
+    'sync.online_card_loading': '正在加载服务器状态…',
+    'sync.online_card_unreachable': '服务器不可达',
+    'sync.online_card_retry': '重试',
+    'sync.online_card_empty': '服务器尚为空',
+    'sync.online_card_empty_hint': '尚未上传。首次推送将以当前配置和状态作为初始数据。',
+    'sync.online_card_locked': '已加密 — 需要口令',
+    'sync.online_card_locked_hint': '比较前请输入口令，以便 CRAM 解密服务器状态。',
+    'sync.online_card_unlock': '输入口令',
+    'sync.online_card_decrypt_failed': '解密失败',
+    'sync.online_card_unlock_retry': '重新输入口令',
+    'sync.online_card_match': '配置相同',
+    'sync.online_card_fp_match': '指纹 {fp} — 可进行状态同步。',
+    'sync.online_card_drift': '配置不同',
+    'sync.online_card_fp_drift': '服务器指纹 {server} ≠ 本地指纹 {local}。',
+    'sync.online_card_server': '服务器',
+    'sync.online_card_status_diff': '状态',
+    'sync.online_card_abs_diff': '服务器：{server} 缺勤 · 本地：{local} 缺勤',
+    'sync.online_card_summary_server': '服务器：{persons} 人 · {levels} 层级 · {roles} 角色',
+    'sync.online_card_summary_local':  '本地：  {persons} 人 · {levels} 层级 · {roles} 角色',
+    'sync.online_card_drift_hint': '配置不同时状态同步被禁用。通过 数据 → 在线 推送或拉取完整配置。',
+    'sync.online_card_open_data': '打开 数据 → 在线',
+    'sync.online_first_push': '上传初始配置',
+    'sync.online_first_pushed': '初始状态 v{version} 已上传。',
+    'sync.online_pull_status': '拉取状态',
+    'sync.online_push_status': '推送状态',
+    'sync.online_pulled_status': '状态 v{version} 已加载。',
+    'sync.online_pushed_status': '状态 v{version} 已推送。',
+    'sync.online_drift_blocked': '状态同步已禁用：配置不同 — 请先通过 数据 → 在线 进行同步。',
     'sync.tab_send': '↗ 发送',
     'sync.tab_receive': '↙ 接收',
     'qr.send_title': '发送 QR 传输',
@@ -6786,6 +7284,8 @@ const TRANSLATIONS = {
     'header.sync_tooltip_syncing': '同步中…',
     'header.sync_tooltip_out_of_sync': '本地变更待推送。上次状态：{label} · v{version} · {when}',
     'header.sync_tooltip_error': '同步错误：{msg}',
+    'header.sync_status_config_drift': '配置不同',
+    'header.sync_tooltip_config_drift': '服务器配置不同。点击打开 数据 → 在线 进行同步。',
     'header.data': '数据',
     'header.data_tooltip': '导入 / 导出',
     'header.print': '打印',
@@ -6907,6 +7407,8 @@ const TRANSLATIONS = {
     'bundle.import_err_apply': '导入失败：{msg}',
     'bundle.import_confirm_fp_mismatch': 'Bundle 指纹与本地配置不一致。仍要导入吗？',
     'bundle.import_success': '已导入同步源 "{label}"。',
+    'bundle.onboard_auto_pull_prompt': '已添加同步源 "{label}"。服务器已有数据 — 现在采用吗？',
+    'bundle.onboard_auto_pull_done': '已采用 "{label}" 的服务器状态。',
     'browser.banner_title': '浏览器提示',
     'browser.lead_firefox': 'Firefox 未实现下方使用的某些 API。这是 Mozilla 的设计选择，不是 bug。',
     'browser.lead_safari': '你的 Safari 版本对下方部分功能支持有限。',
@@ -6961,6 +7463,30 @@ const TRANSLATIONS = {
     'data.title': '备份 / 恢复配置',
     'data.tab_export': '↑ 导出',
     'data.tab_import': '↓ 导入',
+    'data.tab_online': '🌐 在线',
+    'data.online_intro': '与在线同步源进行完整配置 + 状态的同步。用于配置更改（新增角色、重组团队）。日常状态更新请使用 ⇄ 同步 → 在线。',
+    'data.online_no_sources': '尚未配置同步源。请先通过 设置 → 同步源 添加。',
+    'data.online_empty_hint': '尚未上传。首次推送将以当前配置和状态作为初始数据。',
+    'data.online_first_push': '上传初始配置',
+    'data.online_match_hint': '服务器和本地相同 — 无需配置同步。状态同步请用 ⇄ 同步 → 在线。',
+    'data.online_local': '本地',
+    'data.online_stats_brief': '{persons} 人 · {roles} 角色 · {levels} 层级 · {absent} 缺勤',
+    'data.online_diff_only_local':  '仅本地',
+    'data.online_diff_only_server': '仅服务器',
+    'data.online_pull_full':  '采用服务器状态（覆盖本地）',
+    'data.online_push_full':  '推送本地状态到服务器（覆盖服务器）',
+    'data.online_action_hint': '两个操作都会完全替换对方 — 配置和状态。审计日志会记录变更。',
+    'data.online_confirm_pull': '"{label}" 的服务器状态将被采用。\n本地配置 + 状态将被覆盖。',
+    'data.online_confirm_pull_line_server': '服务器：{persons} 人 · {roles} 角色 · {levels} 层级',
+    'data.online_confirm_pull_line_local':  '本地：  {persons} 人 · {roles} 角色 · {levels} 层级',
+    'data.online_confirm_push': '本地状态将发送到 "{label}"。\n服务器配置 + 状态将被覆盖。',
+    'data.online_confirm_push_line_local':  '本地发送：{persons} 人 · {roles} 角色 · {levels} 层级',
+    'data.online_confirm_push_line_server': '服务器当前：{persons} 人 · {roles} 角色 · {levels} 层级',
+    'data.online_confirm_push_line_empty':  '服务器为空 — 将以本地状态初始化。',
+    'data.online_confirm_irreversible': '此操作不可撤销。继续吗？',
+    'data.online_pulled_full': '已采用 "{label}" 的服务器状态。',
+    'data.online_pushed_full': '本地状态已发送到 "{label}"。',
+    'data.online_err_nothing_to_pull': '服务器尚无状态 — 无内容可获取。',
     'data.export_intro': '将完整配置（层级、角色、人员）以及可选的运行时状态（缺席、手动分配）下载为 JSON 文件。该文件可在另一台设备上导入。',
     'data.import_intro': '导入 JSON 文件。当前配置将被替换——请先检查内容再应用。',
     'data.include_runtime': '包含运行时状态（缺席、手动分配）',
@@ -7394,15 +7920,34 @@ function renderStatusBanner() {
   }
 }
 
-/* ---- Sync-Awareness-Indikator (V1.2) ----
-   System-Status links der Stab-Status-Pills. Vier sichtbare Zustände:
-   synced / syncing / out-of-sync / error. 'disabled' = hidden.
-   Wird via Sync.onChange() bei jeder Sync-State-Mutation re-gerendert. */
+/* ---- Sync-Awareness-Indikator (V1.2 + V1.3 config-drift) ----
+   System-Status links der Stab-Status-Pills. Fünf sichtbare Zustände:
+     synced / syncing / out-of-sync / config-drift / error
+   'disabled' = hidden.
+   Config-Drift wird aus dem letzten previewDiff-Cache abgeleitet — wenn
+   die UI eine previewDiff durchgeführt hat (Sync-Modal oder Data-Modal
+   Online-Tab geöffnet) und Fingerprint-Mismatch erkannt wurde, wird das
+   im Indikator als persistenter Hinweis sichtbar. */
 function renderSyncIndicator() {
   const el = document.getElementById('sync-indicator');
   if (!el) return;
 
-  const status = Sync.isSyncing() ? 'syncing' : Sync.getStatus();
+  let status = Sync.isSyncing() ? 'syncing' : Sync.getStatus();
+
+  // V1.3: Drift-Detection aus dem Preview-Cache. Wir untersuchen die zuletzt
+  // gemerkten previews aller Sources — wenn irgendeine 'fingerprintMatches: false'
+  // hat, überschreibt das den (positiven) 'synced'-Status.
+  if (status === 'synced' || status === 'out-of-sync') {
+    if (typeof _previewCache !== 'undefined' && _previewCache.size > 0) {
+      for (const [id, entry] of _previewCache.entries()) {
+        const p = entry && entry.result;
+        if (p && p.reachable && !p.empty && p.decrypted && p.fingerprintMatches === false) {
+          status = 'config-drift';
+          break;
+        }
+      }
+    }
+  }
 
   if (status === 'disabled') {
     el.hidden = true;
@@ -7427,15 +7972,23 @@ function renderSyncIndicator() {
   tInfo.msg = state.lastError || '';
 
   let icon, labelKey, tooltipKey;
-  if (status === 'synced')          { icon = '✓'; labelKey = 'header.sync_status_synced';      tooltipKey = state.lastSyncedAt ? 'header.sync_tooltip_synced' : 'header.sync_tooltip_synced_never'; }
-  else if (status === 'syncing')    { icon = '↻'; labelKey = 'header.sync_status_syncing';     tooltipKey = 'header.sync_tooltip_syncing'; }
-  else if (status === 'out-of-sync'){ icon = '↑'; labelKey = 'header.sync_status_out_of_sync'; tooltipKey = 'header.sync_tooltip_out_of_sync'; }
-  else /* error */                  { icon = '✗'; labelKey = 'header.sync_status_error';       tooltipKey = 'header.sync_tooltip_error'; }
+  if (status === 'synced')          { icon = '✓'; labelKey = 'header.sync_status_synced';        tooltipKey = state.lastSyncedAt ? 'header.sync_tooltip_synced' : 'header.sync_tooltip_synced_never'; }
+  else if (status === 'syncing')    { icon = '↻'; labelKey = 'header.sync_status_syncing';       tooltipKey = 'header.sync_tooltip_syncing'; }
+  else if (status === 'out-of-sync'){ icon = '↑'; labelKey = 'header.sync_status_out_of_sync';   tooltipKey = 'header.sync_tooltip_out_of_sync'; }
+  else if (status === 'config-drift'){ icon = '⚠'; labelKey = 'header.sync_status_config_drift'; tooltipKey = 'header.sync_tooltip_config_drift'; }
+  else /* error */                  { icon = '✗'; labelKey = 'header.sync_status_error';         tooltipKey = 'header.sync_tooltip_error'; }
 
   el.innerHTML =
     '<span class="sync-indicator-icon">' + escapeHTML(icon) + '</span>' +
     '<span class="sync-indicator-label">' + escapeHTML(t(labelKey)) + '</span>';
   el.title = t(tooltipKey, tInfo);
+  // Im config-drift-Zustand wird der Indikator klickbar und öffnet
+  // Data-Modal → Online-Tab. Sonst kein onclick.
+  if (status === 'config-drift') {
+    el.setAttribute('data-action', 'sync-indicator-open-data');
+  } else {
+    el.removeAttribute('data-action');
+  }
 }
 
 function formatRelativeTime(timestamp) {
@@ -8341,6 +8894,13 @@ const CLICK_HANDLERS = {
   'sync-online-pull': (el) => syncOnlinePull(el.dataset.sourceId),
   'sync-online-push': (el) => syncOnlinePush(el.dataset.sourceId),
   'sync-online-goto-settings': () => syncOnlineGotoSettings(),
+  // V1.3 Online-Tab-Cards
+  'sync-online-refresh-card':  (el) => syncOnlineRefreshCard(el.dataset.sourceId),
+  'sync-online-unlock-card':   (el) => syncOnlineUnlockCard(el.dataset.sourceId),
+  'sync-online-pull-status':   (el) => syncOnlinePullStatus(el.dataset.sourceId),
+  'sync-online-push-status':   (el) => syncOnlinePushStatus(el.dataset.sourceId),
+  'sync-online-push-full':     (el) => syncOnlinePushFullFromCard(el.dataset.sourceId),
+  'sync-online-open-data':     (el) => syncOnlineOpenData(el.dataset.sourceId),
   'passphrase-prompt-ok':      () => passphrasePromptOk(),
   'passphrase-prompt-cancel':  () => passphrasePromptCancel(),
 
@@ -8361,6 +8921,18 @@ const CLICK_HANDLERS = {
   // Data-Modal
   'data-tab-export':  () => { dataModalState.mode = 'export'; renderDataModal(); },
   'data-tab-import':  () => { dataModalState.mode = 'import'; renderDataModal(); },
+  'data-tab-online':  () => { dataModalState.mode = 'online'; renderDataModal(); },
+  'sync-indicator-open-data': () => {
+    openDataModal();
+    dataModalState.mode = 'online';
+    renderDataModal();
+  },
+  // V1.3 Data-Online Cards
+  'data-online-refresh':    (el) => dataOnlineRefresh(el.dataset.sourceId),
+  'data-online-unlock':     (el) => dataOnlineUnlock(el.dataset.sourceId),
+  'data-online-pull-full':  (el) => dataOnlinePullFull(el.dataset.sourceId),
+  'data-online-push-full':  (el) => dataOnlinePushFull(el.dataset.sourceId),
+  'data-online-push':       (el) => dataOnlinePushFull(el.dataset.sourceId), // empty-server alias
   'data-download':    () => {
     const cb = document.getElementById('export-include-runtime');
     exportConfig(cb ? cb.checked : true);
@@ -9680,17 +10252,19 @@ function renderSyncModal() {
 }
 
 /* =========================================================================
-   ONLINE VIEW — Render-Logik für Online-Kanal (V1.2 manuell)
-   Listet alle konfigurierten Sync-Sources mit Pull-/Push-Buttons.
+   ONLINE VIEW — Render-Logik für Online-Kanal (V1.3 Status-only)
+   Listet alle Sync-Sources mit Live-Preview-Card pro Source.
+   - Fingerprint identisch → Status-Buttons (↓ Status holen / ↑ Status schicken)
+   - Fingerprint abweichend → Buttons gesperrt, Verweis auf Data → Online
    Sources werden im Settings-Modal (Tab 'Sync-Sources') verwaltet.
    ========================================================================= */
 function renderSyncOnlineView(body, footer, headerHTML) {
   const sources = Sync.listSources();
-  const syncState = Sync.load();
 
-  let listHTML;
   if (sources.length === 0) {
-    listHTML = `
+    body.innerHTML = `
+      ${headerHTML}
+      <div class="sync-explain">${escapeHTML(t('sync.online_intro_v13'))}</div>
       <div class="sync-no-sources" style="margin-top: 8px;">
         ${escapeHTML(t('sync.online_no_sources'))}
       </div>
@@ -9700,49 +10274,270 @@ function renderSyncOnlineView(body, footer, headerHTML) {
         </button>
       </div>
     `;
-  } else {
-    listHTML = '<div class="sync-online-list">';
-    sources.forEach(s => {
-      const cfg = s.config || {};
-      const metaLine = (s.type === 'http') ? (cfg.url || '') : '';
-      const typeLabel = t('settings.sync_type_' + s.type) || s.type;
-      const isLastSource = syncState.lastSyncedSourceId === s.id && syncState.lastSyncedAt;
-      const lastSyncLine = isLastSource
-        ? `<div class="sync-online-last">${escapeHTML(t('sync.online_last_sync'))}: <code>v${syncState.lastSyncedVersion}</code> · ${escapeHTML(new Date(syncState.lastSyncedAt).toLocaleString())}</div>`
-        : '';
-      listHTML += `
-        <div class="sync-online-row">
-          <div class="sync-online-info">
-            <div class="sync-online-row-head">
-              <span class="sync-source-type-badge">${escapeHTML(typeLabel)}</span>
-              <span class="sync-source-label">${escapeHTML(s.label)}</span>
-            </div>
-            <div class="sync-source-meta">${escapeHTML(metaLine)}</div>
-            ${lastSyncLine}
-          </div>
-          <div class="sync-online-actions">
-            <button class="btn-secondary" data-action="sync-online-pull" data-source-id="${escapeHTML(s.id)}">↓ ${escapeHTML(t('sync.online_pull'))}</button>
-            <button class="btn-primary" data-action="sync-online-push" data-source-id="${escapeHTML(s.id)}">↑ ${escapeHTML(t('sync.online_push'))}</button>
-          </div>
-        </div>
-      `;
-    });
-    listHTML += '</div>';
+    footer.innerHTML = `<button class="btn-secondary" data-action="modal-close">${escapeHTML(t('btn.close'))}</button>`;
+    return;
   }
 
-  const errorBanner = syncState.lastError
-    ? `<div class="sync-online-error"><strong>${escapeHTML(t('sync.online_last_error'))}:</strong> ${escapeHTML(syncState.lastError)}</div>`
-    : '';
+  // Initial-Render mit Loading-Placeholdern; danach async pro Source previewen
+  const listHTML = sources.map(s => `
+    <div class="sync-online-card" id="sync-card-${escapeHTML(s.id)}" data-source-id="${escapeHTML(s.id)}">
+      <div class="sync-online-card-head">
+        <span class="sync-source-type-badge">${escapeHTML(t('settings.sync_type_' + s.type) || s.type)}</span>
+        <span class="sync-source-label">${escapeHTML(s.label)}</span>
+      </div>
+      <div class="sync-online-card-meta">${escapeHTML(syncSourceMetaLine(s))}</div>
+      <div class="sync-online-card-body" id="sync-card-body-${escapeHTML(s.id)}">
+        <div class="sync-card-loading">⏳ ${escapeHTML(t('sync.online_card_loading'))}</div>
+      </div>
+    </div>
+  `).join('');
 
   body.innerHTML = `
     ${headerHTML}
-    <div class="sync-explain">${escapeHTML(t('sync.online_intro'))}</div>
-    ${errorBanner}
-    ${listHTML}
+    <div class="sync-explain">${escapeHTML(t('sync.online_intro_v13'))}</div>
+    <div class="sync-online-list">${listHTML}</div>
   `;
-  footer.innerHTML = `
-    <button class="btn-secondary" data-action="modal-close">${escapeHTML(t('btn.close'))}</button>
+  footer.innerHTML = `<button class="btn-secondary" data-action="modal-close">${escapeHTML(t('btn.close'))}</button>`;
+
+  // Async: pro Source previewDiff anstossen und die Card neu rendern
+  sources.forEach(s => { refreshSyncOnlineCard(s.id); });
+}
+
+function syncSourceMetaLine(s) {
+  const cfg = s.config || {};
+  if (s.type === 'http')       return cfg.url || '';
+  if (s.type === 'fileSystem') return (cfg.dirName || '?') + '/' + (cfg.fileName || 'cram-sync.json');
+  return '';
+}
+
+async function refreshSyncOnlineCard(sourceId) {
+  const card = document.getElementById('sync-card-body-' + sourceId);
+  if (!card) return;
+  let preview;
+  try {
+    preview = await getCachedPreview(sourceId);
+  } catch (e) {
+    preview = { reachable: false, error: String(e.message || e) };
+  }
+  // Re-acquire (modal might have closed in the meantime)
+  const fresh = document.getElementById('sync-card-body-' + sourceId);
+  if (!fresh) return;
+  fresh.innerHTML = renderSyncOnlineCardBody(sourceId, preview);
+}
+
+function renderSyncOnlineCardBody(sourceId, preview) {
+  const src = Sync.getSource(sourceId);
+  if (!src) return '';
+
+  if (!preview || preview.reachable === false) {
+    return `
+      <div class="sync-card-status status-error">
+        <strong>✗ ${escapeHTML(t('sync.online_card_unreachable'))}</strong>
+        <div class="sync-card-meta">${escapeHTML(preview && preview.error ? preview.error : '')}</div>
+      </div>
+      <div class="sync-online-actions">
+        <button class="btn-secondary" data-action="sync-online-refresh-card" data-source-id="${escapeHTML(sourceId)}">↻ ${escapeHTML(t('sync.online_card_retry'))}</button>
+      </div>
+    `;
+  }
+
+  if (preview.empty) {
+    return `
+      <div class="sync-card-status status-ok">
+        <strong>○ ${escapeHTML(t('sync.online_card_empty'))}</strong>
+        <div class="sync-card-meta">${escapeHTML(t('sync.online_card_empty_hint'))}</div>
+      </div>
+      <div class="sync-online-actions">
+        <button class="btn-primary" data-action="sync-online-push-full" data-source-id="${escapeHTML(sourceId)}">↑ ${escapeHTML(t('sync.online_first_push'))}</button>
+      </div>
+    `;
+  }
+
+  if (preview.encrypted && !preview.decrypted && preview.needsPassphrase) {
+    return `
+      <div class="sync-card-status status-warn">
+        <strong>🔒 ${escapeHTML(t('sync.online_card_locked'))}</strong>
+        <div class="sync-card-meta">${escapeHTML(t('sync.online_card_locked_hint'))}</div>
+      </div>
+      <div class="sync-online-actions">
+        <button class="btn-secondary" data-action="sync-online-unlock-card" data-source-id="${escapeHTML(sourceId)}">🔑 ${escapeHTML(t('sync.online_card_unlock'))}</button>
+      </div>
+    `;
+  }
+
+  if (preview.encrypted && !preview.decrypted && preview.decryptError) {
+    return `
+      <div class="sync-card-status status-error">
+        <strong>🔒 ${escapeHTML(t('sync.online_card_decrypt_failed'))}</strong>
+        <div class="sync-card-meta">${escapeHTML(preview.decryptError)}</div>
+      </div>
+      <div class="sync-online-actions">
+        <button class="btn-secondary" data-action="sync-online-unlock-card" data-source-id="${escapeHTML(sourceId)}">🔑 ${escapeHTML(t('sync.online_card_unlock_retry'))}</button>
+      </div>
+    `;
+  }
+
+  // Decryption successful — voller Vergleich
+  const when = preview.timestamp
+    ? formatRelativeTime(preview.timestamp)
+    : '—';
+  const versionLine = `<code>v${escapeHTML(String(preview.version))}</code> · ${escapeHTML(when)}`;
+
+  if (preview.fingerprintMatches) {
+    // Konfig identisch → Status-Sync ist möglich
+    const sStats = preview.stats.server;
+    const lStats = preview.stats.local;
+    return `
+      <div class="sync-card-status status-ok">
+        <strong>🟢 ${escapeHTML(t('sync.online_card_match'))}</strong>
+        <div class="sync-card-meta">${escapeHTML(t('sync.online_card_fp_match', { fp: preview.fingerprint }))}</div>
+      </div>
+      <div class="sync-card-stats">
+        <div class="sync-card-stats-row">
+          <span class="sync-card-stats-label">${escapeHTML(t('sync.online_card_server'))}</span>
+          <span class="sync-card-stats-value">${versionLine}</span>
+        </div>
+        <div class="sync-card-stats-row">
+          <span class="sync-card-stats-label">${escapeHTML(t('sync.online_card_status_diff'))}</span>
+          <span class="sync-card-stats-value">${escapeHTML(t('sync.online_card_abs_diff', { server: sStats.absent, local: lStats.absent }))}</span>
+        </div>
+      </div>
+      <div class="sync-online-actions">
+        <button class="btn-secondary" data-action="sync-online-pull-status" data-source-id="${escapeHTML(sourceId)}">↓ ${escapeHTML(t('sync.online_pull_status'))}</button>
+        <button class="btn-primary" data-action="sync-online-push-status" data-source-id="${escapeHTML(sourceId)}">↑ ${escapeHTML(t('sync.online_push_status'))}</button>
+      </div>
+    `;
+  }
+
+  // Drift-Fall
+  const sStats = preview.stats.server;
+  const lStats = preview.stats.local;
+  const sumLines = [];
+  sumLines.push(escapeHTML(t('sync.online_card_summary_server', { persons: sStats.persons, levels: sStats.levels, roles: sStats.roles })));
+  sumLines.push(escapeHTML(t('sync.online_card_summary_local',  { persons: lStats.persons, levels: lStats.levels, roles: lStats.roles })));
+
+  return `
+    <div class="sync-card-status status-warn">
+      <strong>⚠ ${escapeHTML(t('sync.online_card_drift'))}</strong>
+      <div class="sync-card-meta">${escapeHTML(t('sync.online_card_fp_drift', { server: preview.fingerprint, local: preview.fingerprintLocal }))}</div>
+    </div>
+    <div class="sync-card-stats">
+      <div class="sync-card-stats-row">
+        <span class="sync-card-stats-label">${escapeHTML(t('sync.online_card_server'))}</span>
+        <span class="sync-card-stats-value">${versionLine}</span>
+      </div>
+      <div class="sync-card-stats-row">
+        <span class="sync-card-stats-value">${sumLines[0]}</span>
+      </div>
+      <div class="sync-card-stats-row">
+        <span class="sync-card-stats-value">${sumLines[1]}</span>
+      </div>
+    </div>
+    <div class="sync-card-drift-hint">${escapeHTML(t('sync.online_card_drift_hint'))}</div>
+    <div class="sync-online-actions">
+      <button class="btn-primary" data-action="sync-online-open-data" data-source-id="${escapeHTML(sourceId)}">⇵ ${escapeHTML(t('sync.online_card_open_data'))}</button>
+    </div>
   `;
+}
+
+async function syncOnlineRefreshCard(sourceId) {
+  clearPreviewCache(sourceId);
+  await refreshSyncOnlineCard(sourceId);
+}
+
+async function syncOnlineUnlockCard(sourceId) {
+  const src = Sync.getSource(sourceId);
+  if (!src) return;
+  const passphrase = await promptPassphrase(src);
+  if (!passphrase) { renderSyncModal(); return; }
+  try {
+    const saltB64 = (src.encryption || {}).salt || SyncCrypto.randomSaltB64();
+    if (!(src.encryption || {}).salt) {
+      Sync.updateSource(src.id, { encryption: Object.assign({}, src.encryption || {}, { enabled: true, salt: saltB64 }) });
+    }
+    const key = await SyncCrypto.deriveKey(passphrase, saltB64);
+    Sync.setKeyForSource(src.id, key);
+    Sync.setPassphraseForSource(src.id, passphrase);
+    clearPreviewCache(sourceId);
+    renderSyncModal();
+  } catch (e) {
+    showToast(t('settings.sync_err_key_derive', { msg: String(e.message || e) }), 'error');
+    renderSyncModal();
+  }
+}
+
+async function syncOnlinePullStatus(sourceId) {
+  const src = Sync.getSource(sourceId);
+  if (!src) return;
+  showToast(t('sync.online_pulling', { label: src.label }), 'info');
+  try {
+    const env = await withPassphraseRecovery(src, () => Sync.pull(sourceId, { mode: 'status' }));
+    if (env === null) {
+      showToast(t('sync.online_empty'), 'info');
+    } else {
+      showToast(t('sync.online_pulled_status', { version: env.version }), 'success');
+      render();
+    }
+  } catch (e) {
+    if (e && e.name === 'ConfigDriftError') {
+      showToast(t('sync.online_drift_blocked'), 'error');
+    } else {
+      showToast(t('sync.online_pull_failed', { msg: String(e.message || e) }), 'error');
+    }
+  }
+  clearPreviewCache(sourceId);
+  const backdrop = document.getElementById('modal-backdrop');
+  if (backdrop && backdrop.style.display === 'flex') renderSyncModal();
+}
+
+async function syncOnlinePushStatus(sourceId) {
+  const src = Sync.getSource(sourceId);
+  if (!src) return;
+  showToast(t('sync.online_pushing', { label: src.label }), 'info');
+  try {
+    const env = await withPassphraseRecovery(src, () => Sync.push(sourceId, { mode: 'status' }));
+    if (env !== null && env !== undefined) {
+      showToast(t('sync.online_pushed_status', { version: env.version }), 'success');
+    }
+  } catch (e) {
+    if (e && e.name === 'ConfigDriftError') {
+      showToast(t('sync.online_drift_blocked'), 'error');
+    } else {
+      showToast(t('sync.online_push_failed', { msg: String(e.message || e) }), 'error');
+    }
+  }
+  clearPreviewCache(sourceId);
+  const backdrop = document.getElementById('modal-backdrop');
+  if (backdrop && backdrop.style.display === 'flex') renderSyncModal();
+}
+
+// First-Push für eine leere Source — voller Initial-State.
+async function syncOnlinePushFullFromCard(sourceId) {
+  const src = Sync.getSource(sourceId);
+  if (!src) return;
+  showToast(t('sync.online_pushing', { label: src.label }), 'info');
+  try {
+    const env = await withPassphraseRecovery(src, () => Sync.push(sourceId, { mode: 'full' }));
+    showToast(t('sync.online_first_pushed', { version: env.version }), 'success');
+  } catch (e) {
+    showToast(t('sync.online_push_failed', { msg: String(e.message || e) }), 'error');
+  }
+  clearPreviewCache(sourceId);
+  const backdrop = document.getElementById('modal-backdrop');
+  if (backdrop && backdrop.style.display === 'flex') renderSyncModal();
+}
+
+// Drift erkannt → User soll zu Data-Tab wechseln, dort wird der Config-Drift
+// resolved. Wir merken uns die Quelle, damit das Data-Modal direkt drauf
+// scrollen kann (siehe nächster Commit).
+function syncOnlineOpenData(sourceId) {
+  closeModal();
+  setTimeout(() => {
+    openDataModal();
+    State.dataMode = 'online';
+    State.dataOnlineFocusSource = sourceId;
+    if (typeof renderDataModal === 'function') renderDataModal();
+  }, 0);
 }
 
 async function syncOnlinePull(sourceId) {
@@ -9750,7 +10545,10 @@ async function syncOnlinePull(sourceId) {
   if (!src) return;
   showToast(t('sync.online_pulling', { label: src.label }), 'info');
   try {
-    const env = await withPassphraseRecovery(src, () => Sync.pull(sourceId));
+    // V1.3: dieser Wrapper wird im nächsten Commit durch zwei Pfade ersetzt
+    // (Status-Pull im Sync-Modal, Full-Pull im Data-Modal). Übergangsweise
+    // mode='full' damit das alte Verhalten bis dahin erhalten bleibt.
+    const env = await withPassphraseRecovery(src, () => Sync.pull(sourceId, { mode: 'full' }));
     if (env === null) {
       showToast(t('sync.online_empty'), 'info');
     } else {
@@ -9773,7 +10571,8 @@ async function syncOnlinePush(sourceId) {
   if (!src) return;
   showToast(t('sync.online_pushing', { label: src.label }), 'info');
   try {
-    const env = await withPassphraseRecovery(src, () => Sync.push(sourceId));
+    // V1.3: siehe Anmerkung in syncOnlinePull — Übergangs-mode='full'.
+    const env = await withPassphraseRecovery(src, () => Sync.push(sourceId, { mode: 'full' }));
     if (env !== null && env !== undefined) {
       showToast(t('sync.online_pushed', { version: env.version }), 'success');
     }
@@ -9855,6 +10654,28 @@ function passphrasePromptOk() {
 
 function passphrasePromptCancel() {
   if (passphrasePromptState.resolver) passphrasePromptState.resolver(null);
+}
+
+/* V1.3: Helper, der den Diff zwischen Server und lokal in eine
+   für die UI darstellbare Form bringt. Die Sync-Modal-Card und das
+   Data-Modal-Online-Tab nutzen beide diese Funktion. Cached pro
+   Source, damit Re-Renders nicht jedes Mal HTTP-Requests auslösen.
+   Cache wird invalidiert nach Push/Pull. */
+const _previewCache = new Map();   // sourceId -> { result, fetchedAt }
+function clearPreviewCache(sourceId) {
+  if (sourceId) _previewCache.delete(sourceId); else _previewCache.clear();
+}
+async function getCachedPreview(sourceId, maxAgeMs) {
+  maxAgeMs = (typeof maxAgeMs === 'number') ? maxAgeMs : 30000;
+  const cached = _previewCache.get(sourceId);
+  if (cached && (Date.now() - cached.fetchedAt) < maxAgeMs) return cached.result;
+  try {
+    const result = await Sync.previewDiff(sourceId);
+    _previewCache.set(sourceId, { result, fetchedAt: Date.now() });
+    return result;
+  } catch (e) {
+    return { reachable: false, error: String(e.message || e) };
+  }
 }
 
 /* Helper: führt Pull oder Push aus, fängt PassphraseRequiredError und
@@ -11029,6 +11850,7 @@ function renderDataModal() {
   const body = document.getElementById('modal-body');
   const footer = document.getElementById('modal-footer');
 
+  // V1.3: dritter Tab "Online" für Config-Drift-Resolution.
   const tabsHTML = `
     <div class="sync-tabs">
       <button class="sync-tab" data-action="data-tab-export" ${mode === 'export' ? 'data-active="true"' : ''}>
@@ -11037,8 +11859,16 @@ function renderDataModal() {
       <button class="sync-tab" data-action="data-tab-import" ${mode === 'import' ? 'data-active="true"' : ''}>
         ${escapeHTML(t('data.tab_import'))}
       </button>
+      <button class="sync-tab" data-action="data-tab-online" ${mode === 'online' ? 'data-active="true"' : ''}>
+        ${escapeHTML(t('data.tab_online'))}
+      </button>
     </div>
   `;
+
+  if (mode === 'online') {
+    renderDataModalOnline(body, footer, tabsHTML);
+    return;
+  }
 
   if (mode === 'export') {
     const levels = State.config.levels.length;
@@ -11172,6 +12002,268 @@ function validateImportPayload(data) {
     if (!p.id || !p.name) throw new Error(`persons[${i}] incomplete`);
   });
   return true;
+}
+
+/* =========================================================================
+   DATA MODAL — ONLINE TAB (V1.3)
+   Konfigurations-Sync (volle Config + Runtime) gegen eine Online-Source.
+   Wird genutzt, um Konfig-Drifts zwischen Geräten zu lösen: entweder den
+   Server-Stand übernehmen oder den lokalen Stand durchsetzen. Beide
+   Operationen ersetzen die jeweilige Seite vollständig (config + runtime).
+   ========================================================================= */
+function renderDataModalOnline(body, footer, tabsHTML) {
+  const sources = Sync.listSources();
+
+  if (sources.length === 0) {
+    body.innerHTML = `
+      ${tabsHTML}
+      <div class="sync-explain">${escapeHTML(t('data.online_intro'))}</div>
+      <div class="sync-no-sources" style="margin-top: 8px;">
+        ${escapeHTML(t('data.online_no_sources'))}
+      </div>
+    `;
+    footer.innerHTML = `<button class="btn-secondary" data-action="modal-close">${escapeHTML(t('btn.close'))}</button>`;
+    return;
+  }
+
+  // Initial render mit Loading-Placeholders; danach pro Source previewDiff
+  const focusId = State.dataOnlineFocusSource;
+  const orderedSources = focusId
+    ? [sources.find(s => s.id === focusId)].filter(Boolean).concat(sources.filter(s => s.id !== focusId))
+    : sources;
+
+  const listHTML = orderedSources.map(s => `
+    <div class="sync-online-card" id="data-card-${escapeHTML(s.id)}"${s.id === focusId ? ' data-focused="true"' : ''}>
+      <div class="sync-online-card-head">
+        <span class="sync-source-type-badge">${escapeHTML(t('settings.sync_type_' + s.type) || s.type)}</span>
+        <span class="sync-source-label">${escapeHTML(s.label)}</span>
+      </div>
+      <div class="sync-online-card-meta">${escapeHTML(syncSourceMetaLine(s))}</div>
+      <div class="sync-online-card-body" id="data-card-body-${escapeHTML(s.id)}">
+        <div class="sync-card-loading">⏳ ${escapeHTML(t('sync.online_card_loading'))}</div>
+      </div>
+    </div>
+  `).join('');
+
+  body.innerHTML = `
+    ${tabsHTML}
+    <div class="sync-explain">${escapeHTML(t('data.online_intro'))}</div>
+    <div class="sync-online-list">${listHTML}</div>
+  `;
+  footer.innerHTML = `<button class="btn-secondary" data-action="modal-close">${escapeHTML(t('btn.close'))}</button>`;
+
+  // Clear focus marker once it's been used for ordering
+  State.dataOnlineFocusSource = null;
+
+  sources.forEach(s => { refreshDataOnlineCard(s.id); });
+}
+
+async function refreshDataOnlineCard(sourceId) {
+  const card = document.getElementById('data-card-body-' + sourceId);
+  if (!card) return;
+  let preview;
+  try { preview = await getCachedPreview(sourceId); }
+  catch (e) { preview = { reachable: false, error: String(e.message || e) }; }
+  const fresh = document.getElementById('data-card-body-' + sourceId);
+  if (!fresh) return;
+  fresh.innerHTML = renderDataOnlineCardBody(sourceId, preview);
+}
+
+function renderDataOnlineCardBody(sourceId, preview) {
+  const src = Sync.getSource(sourceId);
+  if (!src) return '';
+
+  if (!preview || preview.reachable === false) {
+    return `
+      <div class="sync-card-status status-error">
+        <strong>✗ ${escapeHTML(t('sync.online_card_unreachable'))}</strong>
+        <div class="sync-card-meta">${escapeHTML(preview && preview.error ? preview.error : '')}</div>
+      </div>
+      <div class="sync-online-actions">
+        <button class="btn-secondary" data-action="data-online-refresh" data-source-id="${escapeHTML(sourceId)}">↻ ${escapeHTML(t('sync.online_card_retry'))}</button>
+      </div>
+    `;
+  }
+
+  if (preview.empty) {
+    return `
+      <div class="sync-card-status status-ok">
+        <strong>○ ${escapeHTML(t('sync.online_card_empty'))}</strong>
+        <div class="sync-card-meta">${escapeHTML(t('data.online_empty_hint'))}</div>
+      </div>
+      <div class="sync-online-actions">
+        <button class="btn-primary" data-action="data-online-push" data-source-id="${escapeHTML(sourceId)}">↑ ${escapeHTML(t('data.online_first_push'))}</button>
+      </div>
+    `;
+  }
+
+  if (preview.encrypted && !preview.decrypted && preview.needsPassphrase) {
+    return `
+      <div class="sync-card-status status-warn">
+        <strong>🔒 ${escapeHTML(t('sync.online_card_locked'))}</strong>
+        <div class="sync-card-meta">${escapeHTML(t('sync.online_card_locked_hint'))}</div>
+      </div>
+      <div class="sync-online-actions">
+        <button class="btn-secondary" data-action="data-online-unlock" data-source-id="${escapeHTML(sourceId)}">🔑 ${escapeHTML(t('sync.online_card_unlock'))}</button>
+      </div>
+    `;
+  }
+
+  if (preview.encrypted && !preview.decrypted) {
+    return `
+      <div class="sync-card-status status-error">
+        <strong>🔒 ${escapeHTML(t('sync.online_card_decrypt_failed'))}</strong>
+        <div class="sync-card-meta">${escapeHTML(preview.decryptError || '')}</div>
+      </div>
+      <div class="sync-online-actions">
+        <button class="btn-secondary" data-action="data-online-unlock" data-source-id="${escapeHTML(sourceId)}">🔑 ${escapeHTML(t('sync.online_card_unlock_retry'))}</button>
+      </div>
+    `;
+  }
+
+  const sStats = preview.stats.server;
+  const lStats = preview.stats.local;
+  const when = preview.timestamp ? formatRelativeTime(preview.timestamp) : '—';
+
+  const statusBlock = preview.fingerprintMatches
+    ? `<div class="sync-card-status status-ok">
+         <strong>🟢 ${escapeHTML(t('sync.online_card_match'))}</strong>
+         <div class="sync-card-meta">${escapeHTML(t('data.online_match_hint'))}</div>
+       </div>`
+    : `<div class="sync-card-status status-warn">
+         <strong>⚠ ${escapeHTML(t('sync.online_card_drift'))}</strong>
+         <div class="sync-card-meta">${escapeHTML(t('sync.online_card_fp_drift', { server: preview.fingerprint, local: preview.fingerprintLocal }))}</div>
+       </div>`;
+
+  // Personen-Diff-Liste (auf 3 begrenzt, Rest als Count)
+  function formatNameList(arr) {
+    if (!arr || arr.length === 0) return '—';
+    const names = arr.map(p => p.name).slice(0, 3).join(', ');
+    return arr.length > 3 ? names + ', +' + (arr.length - 3) : names;
+  }
+
+  const personDiffLines = (preview.onlyLocal.length > 0 || preview.onlyServer.length > 0)
+    ? `
+      <div class="sync-card-stats-row">
+        <span class="sync-card-stats-label">${escapeHTML(t('data.online_diff_only_local'))}</span>
+        <span class="sync-card-stats-value">${escapeHTML(formatNameList(preview.onlyLocal))}</span>
+      </div>
+      <div class="sync-card-stats-row">
+        <span class="sync-card-stats-label">${escapeHTML(t('data.online_diff_only_server'))}</span>
+        <span class="sync-card-stats-value">${escapeHTML(formatNameList(preview.onlyServer))}</span>
+      </div>
+    `
+    : '';
+
+  return `
+    ${statusBlock}
+    <div class="sync-card-stats">
+      <div class="sync-card-stats-row">
+        <span class="sync-card-stats-label">${escapeHTML(t('sync.online_card_server'))}</span>
+        <span class="sync-card-stats-value"><code>v${escapeHTML(String(preview.version))}</code> · ${escapeHTML(when)} · ${escapeHTML(t('data.online_stats_brief', { persons: sStats.persons, roles: sStats.roles, levels: sStats.levels, absent: sStats.absent }))}</span>
+      </div>
+      <div class="sync-card-stats-row">
+        <span class="sync-card-stats-label">${escapeHTML(t('data.online_local'))}</span>
+        <span class="sync-card-stats-value">${escapeHTML(t('data.online_stats_brief', { persons: lStats.persons, roles: lStats.roles, levels: lStats.levels, absent: lStats.absent }))}</span>
+      </div>
+      ${personDiffLines}
+    </div>
+    <div class="data-online-actions">
+      <button class="btn-secondary" data-action="data-online-pull-full" data-source-id="${escapeHTML(sourceId)}">
+        ↓ ${escapeHTML(t('data.online_pull_full'))}
+      </button>
+      <button class="btn-secondary" data-action="data-online-push-full" data-source-id="${escapeHTML(sourceId)}">
+        ↑ ${escapeHTML(t('data.online_push_full'))}
+      </button>
+    </div>
+    <div class="data-online-action-hint">${escapeHTML(t('data.online_action_hint'))}</div>
+  `;
+}
+
+async function dataOnlineRefresh(sourceId) {
+  clearPreviewCache(sourceId);
+  await refreshDataOnlineCard(sourceId);
+}
+
+async function dataOnlineUnlock(sourceId) {
+  const src = Sync.getSource(sourceId);
+  if (!src) return;
+  const passphrase = await promptPassphrase(src);
+  if (!passphrase) { renderDataModal(); return; }
+  try {
+    const saltB64 = (src.encryption || {}).salt || SyncCrypto.randomSaltB64();
+    if (!(src.encryption || {}).salt) {
+      Sync.updateSource(src.id, { encryption: Object.assign({}, src.encryption || {}, { enabled: true, salt: saltB64 }) });
+    }
+    const key = await SyncCrypto.deriveKey(passphrase, saltB64);
+    Sync.setKeyForSource(src.id, key);
+    Sync.setPassphraseForSource(src.id, passphrase);
+    clearPreviewCache(sourceId);
+    renderDataModal();
+  } catch (e) {
+    showToast(t('settings.sync_err_key_derive', { msg: String(e.message || e) }), 'error');
+    renderDataModal();
+  }
+}
+
+async function dataOnlinePullFull(sourceId) {
+  const src = Sync.getSource(sourceId);
+  if (!src) return;
+  const preview = await getCachedPreview(sourceId);
+  if (!preview || preview.reachable === false || preview.empty) {
+    showToast(t('data.online_err_nothing_to_pull'), 'error');
+    return;
+  }
+
+  // Bestätigungsdialog mit Diff-Summary
+  const lines = [];
+  if (preview.stats) {
+    lines.push(t('data.online_confirm_pull_line_server', { persons: preview.stats.server.persons, roles: preview.stats.server.roles, levels: preview.stats.server.levels }));
+    lines.push(t('data.online_confirm_pull_line_local',  { persons: preview.stats.local.persons,  roles: preview.stats.local.roles,  levels: preview.stats.local.levels }));
+  }
+  const msg = t('data.online_confirm_pull', { label: src.label }) + '\n\n' + lines.join('\n') + '\n\n' + t('data.online_confirm_irreversible');
+  if (!window.confirm(msg)) return;
+
+  showToast(t('sync.online_pulling', { label: src.label }), 'info');
+  try {
+    await withPassphraseRecovery(src, () => Sync.pull(sourceId, { mode: 'full' }));
+    showToast(t('data.online_pulled_full', { label: src.label }), 'success');
+    render();
+  } catch (e) {
+    showToast(t('sync.online_pull_failed', { msg: String(e.message || e) }), 'error');
+  }
+  clearPreviewCache(sourceId);
+  const backdrop = document.getElementById('modal-backdrop');
+  if (backdrop && backdrop.style.display === 'flex') renderDataModal();
+}
+
+async function dataOnlinePushFull(sourceId) {
+  const src = Sync.getSource(sourceId);
+  if (!src) return;
+  const preview = await getCachedPreview(sourceId);
+
+  const lines = [];
+  if (preview && preview.stats) {
+    lines.push(t('data.online_confirm_push_line_local',  { persons: preview.stats.local.persons,  roles: preview.stats.local.roles,  levels: preview.stats.local.levels }));
+    if (!preview.empty) {
+      lines.push(t('data.online_confirm_push_line_server', { persons: preview.stats.server.persons, roles: preview.stats.server.roles, levels: preview.stats.server.levels }));
+    } else {
+      lines.push(t('data.online_confirm_push_line_empty'));
+    }
+  }
+  const msg = t('data.online_confirm_push', { label: src.label }) + '\n\n' + lines.join('\n') + '\n\n' + t('data.online_confirm_irreversible');
+  if (!window.confirm(msg)) return;
+
+  showToast(t('sync.online_pushing', { label: src.label }), 'info');
+  try {
+    await withPassphraseRecovery(src, () => Sync.push(sourceId, { mode: 'full' }));
+    showToast(t('data.online_pushed_full', { label: src.label }), 'success');
+  } catch (e) {
+    showToast(t('sync.online_push_failed', { msg: String(e.message || e) }), 'error');
+  }
+  clearPreviewCache(sourceId);
+  const backdrop = document.getElementById('modal-backdrop');
+  if (backdrop && backdrop.style.display === 'flex') renderDataModal();
 }
 
 function handleImportFileChange(e) {
@@ -12699,6 +13791,29 @@ async function syncImportApply() {
     }
     showToast(t('bundle.import_success', { label: result.source.label }), 'success');
     syncImportClose();
+
+    // V1.3 Onboarding-Auto-Pull: nach erfolgreichem Bundle-Import die
+    // Source einmal probehören. Wenn der Server bereits einen Stand hat,
+    // anbieten ihn direkt zu übernehmen — sonst muss der User erst über
+    // Daten → Online den Stand explizit holen, was eine zähe Onboarding-
+    // Erfahrung wäre.
+    setTimeout(async () => {
+      try {
+        const meta = await Sync.probeMeta(result.source.id);
+        if (!meta || !meta.reachable || meta.empty) return;
+        const msg = t('bundle.onboard_auto_pull_prompt', { label: result.source.label });
+        if (window.confirm(msg)) {
+          showToast(t('sync.online_pulling', { label: result.source.label }), 'info');
+          try {
+            await withPassphraseRecovery(result.source, () => Sync.pull(result.source.id, { mode: 'full' }));
+            showToast(t('bundle.onboard_auto_pull_done', { label: result.source.label }), 'success');
+            render();
+          } catch (e) {
+            showToast(t('sync.online_pull_failed', { msg: String(e.message || e) }), 'error');
+          }
+        }
+      } catch (e) { /* probe fehler ignorieren — User kann später manuell */ }
+    }, 200);
   } catch (e) {
     showToast(t('bundle.import_err_apply', { msg: String(e.message || e) }), 'error');
   }

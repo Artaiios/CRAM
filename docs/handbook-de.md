@@ -245,6 +245,23 @@ Damit Kollegen gegen dieselbe Source synchronisieren können, exportierst du ein
 
 **Browser-Hinweis:** Firefox unterstützt den „Lokales Verzeichnis"-Typ nicht, weil Mozilla die File-System-Access-API ablehnt. HTTP-Sources funktionieren in jedem Browser. Wenn Firefox erkannt wird, blendet CRAM einen entsprechenden Hinweis-Banner im Sync-Sources-Tab ein.
 
+### Sync vs. Data — was wann nutzen (V1.3)
+
+Ab V1.3 ist der Online-Sync in zwei klar getrennte Werkzeuge aufgeteilt:
+
+- **⇄ Sync → Online**: nur Status (Abwesenheiten + manuelle Zuweisungen) — die Daten, die sich im Krisenfall mehrfach pro Stunde ändern. Funktioniert **nur** bei identischer Stab-Konfiguration zwischen Server und lokal. Bei Mismatch sperrt die Sync-Action und verweist auf Data.
+- **⇵ Data → Online**: komplette Konfiguration + Status — die strukturellen Änderungen, die selten passieren (neue Rolle, umstrukturierter Stab, neue Person). Funktioniert immer, mit explizitem Bestätigungs-Dialog.
+
+Die Trennung ist Sicherheit: Status-Sync kann nicht versehentlich die Stab-Struktur überschreiben.
+
+**Praxisflows:**
+
+- *Routine im Krisenfall (Abwesenheiten ändern):* ⇄ Sync → Online → „Status holen" oder „Status schicken". Schnell, zwei Klicks.
+- *Strukturelle Stab-Änderung:* Im Edit-Mode die Konfiguration anpassen, dann ⇵ Data → Online → „Lokalen Stand auf Server schicken". Server-Stand wird mit Bestätigung überschrieben.
+- *Erstes Mal Bundle importieren:* Nach dem Import fragt CRAM: „Server hat bereits einen Stand — jetzt übernehmen?" → Ja drücken, fertig.
+
+**Awareness-Indikator (im Header):** Wenn nach einem Server-Probe (Sync- oder Data-Modal geöffnet) festgestellt wird, dass die Konfigurationen abweichen, wechselt der Indikator auf rotes „⚠ Konfig-Drift" — anklickbar, springt direkt zu Data → Online.
+
 ## Drucken
 
 CRAM hat drei Druckvorlagen für den Papieraushang, und alle drei funktionieren mit A4, A3 oder Letter in Hoch- und Querformat.

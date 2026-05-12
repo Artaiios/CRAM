@@ -245,6 +245,23 @@ To let colleagues sync against the same source, you export a **sync bundle**: a 
 
 **Browser note:** Firefox does not support the "Local directory" type because Mozilla rejects the File System Access API. HTTP sources work in every browser. When Firefox is detected, CRAM shows a hint banner in the Sync sources tab.
 
+### Sync vs. Data — what to use when (V1.3)
+
+Since V1.3 the online sync is split into two cleanly separated tools:
+
+- **⇄ Sync → Online**: status only (absences + manual assignments) — the data that changes many times per hour during a real incident. Works **only** when the stab configuration is identical between server and local. On mismatch the sync action is disabled and points you at Data.
+- **⇵ Data → Online**: full configuration + status — the structural changes that rarely happen (new role, restructured stab, new person). Works always, with explicit confirmation dialog.
+
+The split is a safety property: status sync cannot accidentally overwrite the stab structure.
+
+**Common workflows:**
+
+- *Incident routine (change absences):* ⇄ Sync → Online → "Pull status" or "Push status". Fast, two clicks.
+- *Structural stab change:* Edit mode → adjust the configuration → ⇵ Data → Online → "Send local state to server". Server is overwritten with a confirmation.
+- *First-time bundle import:* After import CRAM asks: "Server already has a state — take it now?" → click yes, done.
+
+**Awareness indicator (header):** when a server probe (Sync or Data modal opened) finds the configurations differ, the indicator switches to red "⚠ Config drift" — clickable, jumps directly to Data → Online.
+
 ## Printing
 
 CRAM has three print templates for paper copies, and all three work with A4, A3 or Letter in portrait or landscape.

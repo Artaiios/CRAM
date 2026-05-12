@@ -1,6 +1,6 @@
 # CRAM — Roadmap
 
-Stand: 12. Mai 2026 — V1.0 released, V1.2 fertig implementiert (Branch `v1-2-manual-sync`), Release-Tag steht noch aus.
+Stand: 13. Mai 2026 — V1.0, V1.2.0, V1.2.1 released. V1.3 implementiert (Branch `v1-3-sync-split`), Release-Tag steht noch aus.
 
 Lebende Liste. Prioritäten verschieben sich durch Praxis-Feedback. Liegt im Repo, damit Mitbenutzer nachvollziehen können, woran wir denken.
 
@@ -85,6 +85,27 @@ Praxistest mit rc1.2/rc1.3 hat keine Bugs oder strukturellen Probleme aufgezeigt
 **Detail-Spec:** [`docs/specs/v1.2-manual-sync.md`](docs/specs/v1.2-manual-sync.md).
 
 **Branch:** `v1-2-manual-sync`. **Aufwand:** geschätzt 4–6 Sessions inklusive Tests, UI-Anpassung, Doku-Update.
+
+---
+
+## V1.3 — Sync/Data-Split (Status vs. Konfiguration) ✓ implementiert
+
+**Ziel:** Sicherheitsproblem aus V1.2 lösen — Sync-Aktionen können nicht mehr versehentlich strukturelle Konfigurationen überschreiben. Mental-Model:
+
+- **⇄ Sync** ist ab V1.3 ausschließlich Status-Sync (Abwesenheiten + manuelle Zuweisungen), und nur bei identischem Fingerprint zwischen Server und lokal.
+- **⇵ Data** bekommt einen neuen Online-Tab für vollständige Konfigurations-Synchronisation (config + runtime), mit explizitem Bestätigungs-Dialog.
+
+**Was V1.3 dazubringt:**
+
+- Backend `Sync.push`/`Sync.pull` mode-aware (`'status'` | `'full'`), neue Error-Klasse `ConfigDriftError`
+- `Sync.probeMeta` und `Sync.previewDiff` für Server-Stand-Inspektion ohne Apply
+- Sync-Modal Online-Tab refactored: Preview-Cards mit fünf Zuständen (loading, unreachable, empty, locked, matches, drift)
+- Data-Modal neuer Online-Tab: Diff-Anzeige mit Personen-Namen-Liste, zwei Vollersatz-Buttons mit Confirm-Dialog
+- Awareness-Indikator neuer Zustand `config-drift` (⚠, rot, klickbar → springt zu Data → Online)
+- Onboarding-Auto-Pull nach Bundle-Import (Server hat schon Stand → Auto-Frage)
+- Vorbereitung für V2.0: Auto-Polling kann jetzt nur Status berühren
+
+**Branch:** `v1-3-sync-split`.
 
 ---
 
