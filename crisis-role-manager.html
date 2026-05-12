@@ -319,12 +319,64 @@ button:focus-visible,
 /* ---- Status banner ---- */
 .status-banner {
   display: flex;
-  gap: var(--space-5);
+  gap: var(--space-3);
   justify-content: center;
   align-items: center;
   font-family: var(--font-mono);
   font-size: 12px;
   letter-spacing: 0.02em;
+}
+.status-metrics {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+}
+
+/* ---- Sync-Indikator im Header (V1.2) ----
+   System-Status (Sync) links der Stab-Status-Pills, optisch durch
+   einen vertikalen Trenner abgesetzt. Vier sichtbare Zustände:
+   synced / syncing / out-of-sync / error. 'disabled' ist hidden. */
+.sync-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+  cursor: default;
+  user-select: none;
+}
+.sync-indicator[hidden] { display: none; }
+.sync-indicator-icon {
+  display: inline-block;
+  font-weight: 700;
+  font-size: 13px;
+  width: 14px;
+  text-align: center;
+  line-height: 1;
+}
+.sync-indicator-label {
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+}
+.sync-indicator[data-state="synced"]      { color: var(--status-ok); border-color: var(--status-ok-border); }
+.sync-indicator[data-state="syncing"]     { color: var(--status-warn); border-color: var(--status-warn-border); }
+.sync-indicator[data-state="syncing"] .sync-indicator-icon { animation: spin 1.2s linear infinite; }
+.sync-indicator[data-state="out-of-sync"] { color: var(--status-warn); border-color: var(--status-warn-border); }
+.sync-indicator[data-state="error"]       { color: var(--status-critical); border-color: var(--status-critical-border); }
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.sync-indicator + .status-metrics {
+  border-left: 1px solid var(--border-subtle);
+  padding-left: var(--space-5);
 }
 
 .status-metric {
@@ -3205,7 +3257,8 @@ button:focus-visible,
     </div>
 
     <div class="status-banner" id="status-banner">
-      <!-- populated by JS -->
+      <div class="sync-indicator" id="sync-indicator" hidden></div>
+      <div class="status-metrics" id="status-metrics"></div>
     </div>
 
     <div class="header-actions">
@@ -3422,6 +3475,13 @@ const Storage = (function() {
   function set(key, value) {
     try {
       localStorage.setItem(key, JSON.stringify(value));
+      // V1.2: Writes auf Config oder Runtime markieren den Sync-State als
+      // 'dirty' (= ungepushte Änderungen). Sync ist evtl. noch nicht
+      // ausgewertet, wenn dieses Modul zum ersten Mal lädt — daher typeof-Guard.
+      if ((key === KEY_CONFIG || key === KEY_RUNTIME) &&
+          typeof Sync !== 'undefined' && Sync.markDirty) {
+        Sync.markDirty();
+      }
       return true;
     } catch (e) {
       console.error('Storage write failed for', key, e);
@@ -3512,11 +3572,36 @@ const Sync = (function() {
     }
   }
 
+  // In-Memory: ist gerade eine Sync-Operation im Gange? Wird beim Pull/Push
+  // gesetzt, getrennt vom dirty-flag in localStorage. Optional callback
+  // benachrichtigt die UI (Awareness-Indikator) bei Änderung.
+  let _syncing = false;
+  let _suppressDirty = false;
+  let _onChange = null;
+
+  function isSyncing() { return _syncing; }
+
+  function onChange(fn) { _onChange = (typeof fn === 'function') ? fn : null; }
+
+  function _emitChange() {
+    if (typeof _onChange === 'function') {
+      try { _onChange(); } catch (e) { /* swallow UI errors */ }
+    }
+  }
+
+  function _setSyncing(v) {
+    if (_syncing === v) return;
+    _syncing = v;
+    _emitChange();
+  }
+
   function markDirty() {
+    if (_suppressDirty) return;
     const state = load();
     if (!state.dirty) {
       state.dirty = true;
       save(state);
+      _emitChange();
     }
   }
 
@@ -3555,6 +3640,7 @@ const Sync = (function() {
     };
     state.sources.push(source);
     save(state);
+    _emitChange();
     return source;
   }
 
@@ -3564,6 +3650,7 @@ const Sync = (function() {
     if (idx < 0) return null;
     state.sources[idx] = Object.assign({}, state.sources[idx], patch);
     save(state);
+    _emitChange();
     return state.sources[idx];
   }
 
@@ -3571,6 +3658,7 @@ const Sync = (function() {
     const state = load();
     state.sources = state.sources.filter(s => s.id !== id);
     save(state);
+    _emitChange();
   }
 
   /* ---- Backend factory registry ---- */
@@ -3638,11 +3726,17 @@ const Sync = (function() {
   async function pull(sourceId) {
     const source = getSource(sourceId);
     if (!source) throw new Error('Source not found: ' + sourceId);
+    _setSyncing(true);
     try {
       const client = createSourceClient(source);
       const envelope = await client.read();
       if (envelope === null) return null;
-      applyEnvelope(envelope);
+      // Während applyEnvelope wird Storage.saveConfig/saveRuntime
+      // aufgerufen — wir wollen den dirty-flag dabei NICHT setzen,
+      // weil der Stand vom Server ja gerade synchron ist.
+      _suppressDirty = true;
+      try { applyEnvelope(envelope); }
+      finally { _suppressDirty = false; }
       const state = load();
       state.lastSyncedVersion = envelope.version;
       state.lastSyncedAt = Date.now();
@@ -3656,12 +3750,16 @@ const Sync = (function() {
       state.lastError = String(e.message || e);
       save(state);
       throw e;
+    } finally {
+      _setSyncing(false);
+      _emitChange();
     }
   }
 
   async function push(sourceId) {
     const source = getSource(sourceId);
     if (!source) throw new Error('Source not found: ' + sourceId);
+    _setSyncing(true);
     try {
       const client = createSourceClient(source);
       const envelope = buildEnvelope();
@@ -3679,12 +3777,15 @@ const Sync = (function() {
       state.lastError = String(e.message || e);
       save(state);
       throw e;
+    } finally {
+      _setSyncing(false);
+      _emitChange();
     }
   }
 
   return {
     load, save,
-    markDirty, isDirty, getStatus,
+    markDirty, isDirty, isSyncing, getStatus, onChange,
     listSources, getSource, addSource, updateSource, removeSource,
     registerBackend, listBackendTypes, createSourceClient,
     buildEnvelope, applyEnvelope,
@@ -4130,6 +4231,15 @@ const TRANSLATIONS = {
     'header.cascade_tooltip': 'Aktive Vertretungen anzeigen',
     'toast.cascade_on': 'Vertretungslinien aktiviert',
     'toast.cascade_off': 'Vertretungslinien deaktiviert',
+    'header.sync_status_synced': 'Synchron',
+    'header.sync_status_syncing': 'Sync…',
+    'header.sync_status_out_of_sync': 'Änderungen',
+    'header.sync_status_error': 'Sync-Fehler',
+    'header.sync_tooltip_synced': 'Synchron mit {label} · v{version} · {when}',
+    'header.sync_tooltip_synced_never': 'Sync-Source konfiguriert, aber noch kein Push/Pull erfolgt.',
+    'header.sync_tooltip_syncing': 'Sync läuft…',
+    'header.sync_tooltip_out_of_sync': 'Lokale Änderungen warten auf Push. Letzter Stand: {label} · v{version} · {when}',
+    'header.sync_tooltip_error': 'Sync-Fehler: {msg}',
     'header.data': 'Daten',
     'header.data_tooltip': 'Import / Export',
     'header.print': 'Drucken',
@@ -4508,6 +4618,15 @@ const TRANSLATIONS = {
     'header.cascade_tooltip': 'Show active substitutions',
     'toast.cascade_on': 'Substitution lines enabled',
     'toast.cascade_off': 'Substitution lines disabled',
+    'header.sync_status_synced': 'Synced',
+    'header.sync_status_syncing': 'Syncing…',
+    'header.sync_status_out_of_sync': 'Changes',
+    'header.sync_status_error': 'Sync error',
+    'header.sync_tooltip_synced': 'Synced with {label} · v{version} · {when}',
+    'header.sync_tooltip_synced_never': 'Sync source configured, but no push/pull has happened yet.',
+    'header.sync_tooltip_syncing': 'Syncing…',
+    'header.sync_tooltip_out_of_sync': 'Local changes pending push. Last state: {label} · v{version} · {when}',
+    'header.sync_tooltip_error': 'Sync error: {msg}',
     'header.data': 'Data',
     'header.data_tooltip': 'Import / Export',
     'header.print': 'Print',
@@ -4885,6 +5004,15 @@ const TRANSLATIONS = {
     'header.cascade_tooltip': 'Mostrar sustituciones activas',
     'toast.cascade_on': 'Líneas de sustitución activadas',
     'toast.cascade_off': 'Líneas de sustitución desactivadas',
+    'header.sync_status_synced': 'Sincronizado',
+    'header.sync_status_syncing': 'Sync…',
+    'header.sync_status_out_of_sync': 'Cambios',
+    'header.sync_status_error': 'Error de sync',
+    'header.sync_tooltip_synced': 'Sincronizado con {label} · v{version} · {when}',
+    'header.sync_tooltip_synced_never': 'Fuente configurada, aún sin push/pull.',
+    'header.sync_tooltip_syncing': 'Sincronizando…',
+    'header.sync_tooltip_out_of_sync': 'Cambios locales pendientes de push. Último estado: {label} · v{version} · {when}',
+    'header.sync_tooltip_error': 'Error de sync: {msg}',
     'header.data': 'Datos',
     'header.data_tooltip': 'Importar / Exportar',
     'header.print': 'Imprimir',
@@ -5263,6 +5391,15 @@ const TRANSLATIONS = {
     'header.cascade_tooltip': 'Afficher les suppléances actives',
     'toast.cascade_on': 'Lignes de suppléance activées',
     'toast.cascade_off': 'Lignes de suppléance désactivées',
+    'header.sync_status_synced': 'Synchro',
+    'header.sync_status_syncing': 'Sync…',
+    'header.sync_status_out_of_sync': 'Modifs',
+    'header.sync_status_error': 'Erreur sync',
+    'header.sync_tooltip_synced': 'Synchronisé avec {label} · v{version} · {when}',
+    'header.sync_tooltip_synced_never': 'Source configurée, mais aucun push/pull encore.',
+    'header.sync_tooltip_syncing': 'Synchronisation…',
+    'header.sync_tooltip_out_of_sync': 'Modifications locales en attente. Dernier état : {label} · v{version} · {when}',
+    'header.sync_tooltip_error': 'Erreur sync : {msg}',
     'header.data': 'Données',
     'header.data_tooltip': 'Importer / Exporter',
     'header.print': 'Imprimer',
@@ -5641,6 +5778,15 @@ const TRANSLATIONS = {
     'header.cascade_tooltip': '显示当前替补关系',
     'toast.cascade_on': '已启用替补连线',
     'toast.cascade_off': '已关闭替补连线',
+    'header.sync_status_synced': '已同步',
+    'header.sync_status_syncing': '同步中…',
+    'header.sync_status_out_of_sync': '有变更',
+    'header.sync_status_error': '同步错误',
+    'header.sync_tooltip_synced': '与 {label} 同步 · v{version} · {when}',
+    'header.sync_tooltip_synced_never': '已配置同步源，但尚未推送/拉取。',
+    'header.sync_tooltip_syncing': '同步中…',
+    'header.sync_tooltip_out_of_sync': '本地变更待推送。上次状态：{label} · v{version} · {when}',
+    'header.sync_tooltip_error': '同步错误：{msg}',
     'header.data': '数据',
     'header.data_tooltip': '导入 / 导出',
     'header.print': '打印',
@@ -6104,6 +6250,7 @@ function uid(prefix) {
 function render() {
   State.occupancy = resolveOccupancy(State.config, State.runtime);
   renderStatusBanner();
+  renderSyncIndicator();
   renderOrgChart();
   renderSidePanel();
   renderCascadeLines();
@@ -6111,7 +6258,8 @@ function render() {
 
 /* ---- Status Banner ---- */
 function renderStatusBanner() {
-  const banner = document.getElementById('status-banner');
+  const banner = document.getElementById('status-metrics');
+  if (!banner) return;
   let totalRoles = 0;
   let primaryActive = 0;
   let substituteActive = 0;
@@ -6168,6 +6316,64 @@ function renderStatusBanner() {
   } else {
     mark.style.background = 'var(--status-ok)';
     mark.style.boxShadow = '0 0 8px var(--status-ok)';
+  }
+}
+
+/* ---- Sync-Awareness-Indikator (V1.2) ----
+   System-Status links der Stab-Status-Pills. Vier sichtbare Zustände:
+   synced / syncing / out-of-sync / error. 'disabled' = hidden.
+   Wird via Sync.onChange() bei jeder Sync-State-Mutation re-gerendert. */
+function renderSyncIndicator() {
+  const el = document.getElementById('sync-indicator');
+  if (!el) return;
+
+  const status = Sync.isSyncing() ? 'syncing' : Sync.getStatus();
+
+  if (status === 'disabled') {
+    el.hidden = true;
+    el.removeAttribute('data-state');
+    el.removeAttribute('title');
+    el.innerHTML = '';
+    return;
+  }
+
+  el.hidden = false;
+  el.setAttribute('data-state', status);
+
+  const state = Sync.load();
+  const tInfo = {};
+  if (state.lastSyncedSourceId) {
+    const src = Sync.getSource(state.lastSyncedSourceId);
+    if (src) tInfo.label = src.label;
+  }
+  tInfo.label = tInfo.label || '—';
+  tInfo.version = state.lastSyncedVersion || 0;
+  tInfo.when = state.lastSyncedAt ? formatRelativeTime(state.lastSyncedAt) : '—';
+  tInfo.msg = state.lastError || '';
+
+  let icon, labelKey, tooltipKey;
+  if (status === 'synced')          { icon = '✓'; labelKey = 'header.sync_status_synced';      tooltipKey = state.lastSyncedAt ? 'header.sync_tooltip_synced' : 'header.sync_tooltip_synced_never'; }
+  else if (status === 'syncing')    { icon = '↻'; labelKey = 'header.sync_status_syncing';     tooltipKey = 'header.sync_tooltip_syncing'; }
+  else if (status === 'out-of-sync'){ icon = '↑'; labelKey = 'header.sync_status_out_of_sync'; tooltipKey = 'header.sync_tooltip_out_of_sync'; }
+  else /* error */                  { icon = '✗'; labelKey = 'header.sync_status_error';       tooltipKey = 'header.sync_tooltip_error'; }
+
+  el.innerHTML =
+    '<span class="sync-indicator-icon">' + escapeHTML(icon) + '</span>' +
+    '<span class="sync-indicator-label">' + escapeHTML(t(labelKey)) + '</span>';
+  el.title = t(tooltipKey, tInfo);
+}
+
+function formatRelativeTime(timestamp) {
+  const diffMs = Date.now() - timestamp;
+  const absSec = Math.max(0, Math.round(diffMs / 1000));
+  try {
+    const rtf = new Intl.RelativeTimeFormat(State.language || 'de', { numeric: 'auto' });
+    if (absSec < 60)    return rtf.format(-absSec, 'second');
+    if (absSec < 3600)  return rtf.format(-Math.round(absSec / 60), 'minute');
+    if (absSec < 86400) return rtf.format(-Math.round(absSec / 3600), 'hour');
+    return rtf.format(-Math.round(absSec / 86400), 'day');
+  } catch (e) {
+    return absSec + 's';
   }
 }
 
@@ -10880,6 +11086,10 @@ function init() {
   setupTabs();
   setupKeyboard();
   setupPWA();
+
+  // Sync-Awareness-Indikator: bei jeder Sync-State-Mutation neu rendern
+  Sync.onChange(() => renderSyncIndicator());
+
   render();
 }
 
