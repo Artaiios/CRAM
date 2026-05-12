@@ -2640,6 +2640,24 @@ button:focus-visible,
   font-style: italic;
   padding: 4px 0;
 }
+.sync-online-card[data-focused="true"] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+/* Data-Modal Online-Tab (V1.3): zwei vertikale Buttons mit
+   begleitender Mini-Erklärung. */
+.data-online-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.data-online-action-hint {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-style: italic;
+  padding: 4px 0 0 0;
+}
 .sync-online-row {
   display: flex;
   align-items: center;
@@ -5360,6 +5378,30 @@ const TRANSLATIONS = {
     'data.title': 'Konfiguration sichern / einspielen',
     'data.tab_export': '↑ Export',
     'data.tab_import': '↓ Import',
+    'data.tab_online': '🌐 Online',
+    'data.online_intro': 'Komplette Konfiguration + Status mit einer Online-Source abgleichen. Nutze diesen Tab bei Konfigurations-Änderungen (neue Rolle, umstrukturierter Stab). Für routine Status-Updates: ⇄ Sync → Online.',
+    'data.online_no_sources': 'Keine Sync-Sources konfiguriert. Lege zuerst eine über Einstellungen → Sync-Sources an.',
+    'data.online_empty_hint': 'Noch nichts hochgeladen. Mit dem ersten Push wird die komplette Konfiguration und der Status als Initial-Stand gesetzt.',
+    'data.online_first_push': 'Erste Konfiguration hochladen',
+    'data.online_match_hint': 'Server und lokal sind identisch — Konfig-Sync ist nicht nötig. Für Status-Sync siehe ⇄ Sync → Online.',
+    'data.online_local': 'Lokal',
+    'data.online_stats_brief': '{persons} Personen · {roles} Rollen · {levels} Ebenen · {absent} abwesend',
+    'data.online_diff_only_local':  'Nur lokal',
+    'data.online_diff_only_server': 'Nur Server',
+    'data.online_pull_full':  'Server-Stand übernehmen (überschreibt lokal)',
+    'data.online_push_full':  'Lokalen Stand auf Server schicken (überschreibt Server)',
+    'data.online_action_hint': 'Beide Aktionen ersetzen die jeweils gegenseitige Seite vollständig — Konfiguration UND Status. Audit-Log dokumentiert die Änderung.',
+    'data.online_confirm_pull': 'Server-Stand von "{label}" wird übernommen.\nLokale Konfiguration + Status werden überschrieben.',
+    'data.online_confirm_pull_line_server': 'Server: {persons} Personen · {roles} Rollen · {levels} Ebenen',
+    'data.online_confirm_pull_line_local':  'Lokal:  {persons} Personen · {roles} Rollen · {levels} Ebenen',
+    'data.online_confirm_push': 'Lokaler Stand wird auf "{label}" geschickt.\nServer-Konfiguration + Status werden überschrieben.',
+    'data.online_confirm_push_line_local':  'Lokal sendet: {persons} Personen · {roles} Rollen · {levels} Ebenen',
+    'data.online_confirm_push_line_server': 'Server hat aktuell: {persons} Personen · {roles} Rollen · {levels} Ebenen',
+    'data.online_confirm_push_line_empty':  'Server ist leer — wird mit lokalem Stand initialisiert.',
+    'data.online_confirm_irreversible': 'Diese Aktion ist nicht rückgängig zu machen. Fortfahren?',
+    'data.online_pulled_full': 'Server-Stand von "{label}" übernommen.',
+    'data.online_pushed_full': 'Lokaler Stand auf "{label}" geschickt.',
+    'data.online_err_nothing_to_pull': 'Server hat noch keinen Stand — nichts zu holen.',
     'data.export_intro': 'Die komplette Konfiguration (Ebenen, Rollen, Personen) und optional der Laufzeitzustand (Abwesenheiten, manuelle Zuordnungen) werden als JSON-Datei heruntergeladen. Die Datei kann auf einem anderen Gerät wieder eingespielt werden.',
     'data.import_intro': 'JSON-Datei einspielen. Die aktuelle Konfiguration wird ersetzt — prüfe den Inhalt vor dem Übernehmen.',
     'data.include_runtime': 'Laufzeitzustand mitnehmen (Abwesenheiten, manuelle Zuordnungen)',
@@ -5852,6 +5894,30 @@ const TRANSLATIONS = {
     'data.title': 'Backup / restore configuration',
     'data.tab_export': '↑ Export',
     'data.tab_import': '↓ Import',
+    'data.tab_online': '🌐 Online',
+    'data.online_intro': 'Reconcile full configuration + status with an online source. Use this tab for configuration changes (new role, restructured stab). For routine status updates: ⇄ Sync → Online.',
+    'data.online_no_sources': 'No sync sources configured. Add one via Settings → Sync sources first.',
+    'data.online_empty_hint': 'Nothing uploaded yet. The first push seeds the server with the complete configuration and status as the initial state.',
+    'data.online_first_push': 'Upload initial configuration',
+    'data.online_match_hint': 'Server and local are identical — config sync is not needed. For status sync see ⇄ Sync → Online.',
+    'data.online_local': 'Local',
+    'data.online_stats_brief': '{persons} persons · {roles} roles · {levels} levels · {absent} absent',
+    'data.online_diff_only_local':  'Only local',
+    'data.online_diff_only_server': 'Only server',
+    'data.online_pull_full':  'Take server state (overwrites local)',
+    'data.online_push_full':  'Send local state to server (overwrites server)',
+    'data.online_action_hint': 'Both actions replace the other side completely — configuration AND status. Audit log records the change.',
+    'data.online_confirm_pull': 'Server state from "{label}" will be taken.\nLocal configuration + status will be overwritten.',
+    'data.online_confirm_pull_line_server': 'Server: {persons} persons · {roles} roles · {levels} levels',
+    'data.online_confirm_pull_line_local':  'Local:  {persons} persons · {roles} roles · {levels} levels',
+    'data.online_confirm_push': 'Local state will be sent to "{label}".\nServer configuration + status will be overwritten.',
+    'data.online_confirm_push_line_local':  'Local sends: {persons} persons · {roles} roles · {levels} levels',
+    'data.online_confirm_push_line_server': 'Server currently has: {persons} persons · {roles} roles · {levels} levels',
+    'data.online_confirm_push_line_empty':  'Server is empty — will be seeded with local state.',
+    'data.online_confirm_irreversible': 'This action cannot be undone. Continue?',
+    'data.online_pulled_full': 'Server state from "{label}" taken.',
+    'data.online_pushed_full': 'Local state sent to "{label}".',
+    'data.online_err_nothing_to_pull': 'Server has no state yet — nothing to pull.',
     'data.export_intro': 'The full configuration (levels, roles, persons) and optionally the runtime state (absences, manual assignments) are downloaded as a JSON file. The file can be imported on another device.',
     'data.import_intro': 'Import a JSON file. The current configuration will be replaced — review the content before applying.',
     'data.include_runtime': 'Include runtime state (absences, manual assignments)',
@@ -6343,6 +6409,30 @@ const TRANSLATIONS = {
     'data.title': 'Copia de seguridad / restaurar configuración',
     'data.tab_export': '↑ Exportar',
     'data.tab_import': '↓ Importar',
+    'data.tab_online': '🌐 Online',
+    'data.online_intro': 'Sincronizar configuración + estado completos con una fuente online. Usa este tab para cambios de configuración (nuevo rol, comité reestructurado). Para estado rutinario: ⇄ Sync → Online.',
+    'data.online_no_sources': 'Sin fuentes configuradas. Añade una vía Ajustes → Fuentes de sync.',
+    'data.online_empty_hint': 'Aún sin subida. El primer push inicializa el servidor con la configuración y estado actuales.',
+    'data.online_first_push': 'Subir configuración inicial',
+    'data.online_match_hint': 'Servidor y local son idénticos — no hace falta sync de config. Para sync de estado: ⇄ Sync → Online.',
+    'data.online_local': 'Local',
+    'data.online_stats_brief': '{persons} personas · {roles} roles · {levels} niveles · {absent} ausentes',
+    'data.online_diff_only_local':  'Solo local',
+    'data.online_diff_only_server': 'Solo servidor',
+    'data.online_pull_full':  'Tomar estado del servidor (sobrescribe local)',
+    'data.online_push_full':  'Enviar estado local al servidor (sobrescribe servidor)',
+    'data.online_action_hint': 'Ambas acciones reemplazan el otro lado por completo — configuración Y estado. El audit log registra el cambio.',
+    'data.online_confirm_pull': 'Estado servidor de "{label}" será tomado.\nConfiguración + estado locales serán sobrescritos.',
+    'data.online_confirm_pull_line_server': 'Servidor: {persons} personas · {roles} roles · {levels} niveles',
+    'data.online_confirm_pull_line_local':  'Local:    {persons} personas · {roles} roles · {levels} niveles',
+    'data.online_confirm_push': 'Estado local será enviado a "{label}".\nConfiguración + estado del servidor serán sobrescritos.',
+    'data.online_confirm_push_line_local':  'Local envía: {persons} personas · {roles} roles · {levels} niveles',
+    'data.online_confirm_push_line_server': 'Servidor tiene: {persons} personas · {roles} roles · {levels} niveles',
+    'data.online_confirm_push_line_empty':  'Servidor vacío — se inicializará con el estado local.',
+    'data.online_confirm_irreversible': 'Esta acción no se puede deshacer. ¿Continuar?',
+    'data.online_pulled_full': 'Estado servidor de "{label}" tomado.',
+    'data.online_pushed_full': 'Estado local enviado a "{label}".',
+    'data.online_err_nothing_to_pull': 'Servidor sin estado aún — nada que traer.',
     'data.export_intro': 'La configuración completa (niveles, roles, personas) y opcionalmente el estado en tiempo real (ausencias, asignaciones manuales) se descargan como archivo JSON. El archivo puede importarse en otro dispositivo.',
     'data.import_intro': 'Importe un archivo JSON. La configuración actual será reemplazada — revise el contenido antes de aplicar.',
     'data.include_runtime': 'Incluir estado en tiempo real (ausencias, asignaciones manuales)',
@@ -6835,6 +6925,30 @@ const TRANSLATIONS = {
     'data.title': 'Sauvegarder / restaurer la configuration',
     'data.tab_export': '↑ Exporter',
     'data.tab_import': '↓ Importer',
+    'data.tab_online': '🌐 Online',
+    'data.online_intro': 'Synchroniser la configuration + état complets avec une source online. Utilisez cet onglet pour les changements de configuration. Pour le statut routinier : ⇄ Sync → Online.',
+    'data.online_no_sources': 'Aucune source configurée. Ajoutez-en une via Paramètres → Sources de sync.',
+    'data.online_empty_hint': 'Rien envoyé encore. Le premier push amorce le serveur avec la configuration et l état actuels.',
+    'data.online_first_push': 'Téléverser la configuration initiale',
+    'data.online_match_hint': 'Serveur et local sont identiques — pas besoin de sync config. Pour la sync d état : ⇄ Sync → Online.',
+    'data.online_local': 'Local',
+    'data.online_stats_brief': '{persons} personnes · {roles} rôles · {levels} niveaux · {absent} absents',
+    'data.online_diff_only_local':  'Local seulement',
+    'data.online_diff_only_server': 'Serveur seulement',
+    'data.online_pull_full':  'Prendre l état serveur (écrase local)',
+    'data.online_push_full':  'Envoyer l état local au serveur (écrase serveur)',
+    'data.online_action_hint': 'Les deux actions remplacent complètement l autre côté — configuration ET état. Le journal d audit enregistre la modification.',
+    'data.online_confirm_pull': 'L état serveur de « {label} » sera pris.\nLa configuration + état locaux seront écrasés.',
+    'data.online_confirm_pull_line_server': 'Serveur : {persons} personnes · {roles} rôles · {levels} niveaux',
+    'data.online_confirm_pull_line_local':  'Local :   {persons} personnes · {roles} rôles · {levels} niveaux',
+    'data.online_confirm_push': 'L état local sera envoyé à « {label} ».\nLa configuration + état du serveur seront écrasés.',
+    'data.online_confirm_push_line_local':  'Local envoie : {persons} personnes · {roles} rôles · {levels} niveaux',
+    'data.online_confirm_push_line_server': 'Serveur a : {persons} personnes · {roles} rôles · {levels} niveaux',
+    'data.online_confirm_push_line_empty':  'Serveur vide — sera initialisé avec l état local.',
+    'data.online_confirm_irreversible': 'Cette action est irréversible. Continuer ?',
+    'data.online_pulled_full': 'État serveur de « {label} » pris.',
+    'data.online_pushed_full': 'État local envoyé à « {label} ».',
+    'data.online_err_nothing_to_pull': 'Serveur sans état encore — rien à récupérer.',
     'data.export_intro': 'La configuration complète (niveaux, rôles, personnes) et éventuellement l\u2019état runtime (absences, affectations manuelles) sont téléchargés dans un fichier JSON. Le fichier peut être importé sur un autre appareil.',
     'data.import_intro': 'Importer un fichier JSON. La configuration actuelle sera remplacée — vérifiez le contenu avant d\u2019appliquer.',
     'data.include_runtime': 'Inclure l\u2019état runtime (absences, affectations manuelles)',
@@ -7327,6 +7441,30 @@ const TRANSLATIONS = {
     'data.title': '备份 / 恢复配置',
     'data.tab_export': '↑ 导出',
     'data.tab_import': '↓ 导入',
+    'data.tab_online': '🌐 在线',
+    'data.online_intro': '与在线同步源进行完整配置 + 状态的同步。用于配置更改（新增角色、重组团队）。日常状态更新请使用 ⇄ 同步 → 在线。',
+    'data.online_no_sources': '尚未配置同步源。请先通过 设置 → 同步源 添加。',
+    'data.online_empty_hint': '尚未上传。首次推送将以当前配置和状态作为初始数据。',
+    'data.online_first_push': '上传初始配置',
+    'data.online_match_hint': '服务器和本地相同 — 无需配置同步。状态同步请用 ⇄ 同步 → 在线。',
+    'data.online_local': '本地',
+    'data.online_stats_brief': '{persons} 人 · {roles} 角色 · {levels} 层级 · {absent} 缺勤',
+    'data.online_diff_only_local':  '仅本地',
+    'data.online_diff_only_server': '仅服务器',
+    'data.online_pull_full':  '采用服务器状态（覆盖本地）',
+    'data.online_push_full':  '推送本地状态到服务器（覆盖服务器）',
+    'data.online_action_hint': '两个操作都会完全替换对方 — 配置和状态。审计日志会记录变更。',
+    'data.online_confirm_pull': '"{label}" 的服务器状态将被采用。\n本地配置 + 状态将被覆盖。',
+    'data.online_confirm_pull_line_server': '服务器：{persons} 人 · {roles} 角色 · {levels} 层级',
+    'data.online_confirm_pull_line_local':  '本地：  {persons} 人 · {roles} 角色 · {levels} 层级',
+    'data.online_confirm_push': '本地状态将发送到 "{label}"。\n服务器配置 + 状态将被覆盖。',
+    'data.online_confirm_push_line_local':  '本地发送：{persons} 人 · {roles} 角色 · {levels} 层级',
+    'data.online_confirm_push_line_server': '服务器当前：{persons} 人 · {roles} 角色 · {levels} 层级',
+    'data.online_confirm_push_line_empty':  '服务器为空 — 将以本地状态初始化。',
+    'data.online_confirm_irreversible': '此操作不可撤销。继续吗？',
+    'data.online_pulled_full': '已采用 "{label}" 的服务器状态。',
+    'data.online_pushed_full': '本地状态已发送到 "{label}"。',
+    'data.online_err_nothing_to_pull': '服务器尚无状态 — 无内容可获取。',
     'data.export_intro': '将完整配置（层级、角色、人员）以及可选的运行时状态（缺席、手动分配）下载为 JSON 文件。该文件可在另一台设备上导入。',
     'data.import_intro': '导入 JSON 文件。当前配置将被替换——请先检查内容再应用。',
     'data.include_runtime': '包含运行时状态（缺席、手动分配）',
@@ -8734,6 +8872,13 @@ const CLICK_HANDLERS = {
   // Data-Modal
   'data-tab-export':  () => { dataModalState.mode = 'export'; renderDataModal(); },
   'data-tab-import':  () => { dataModalState.mode = 'import'; renderDataModal(); },
+  'data-tab-online':  () => { dataModalState.mode = 'online'; renderDataModal(); },
+  // V1.3 Data-Online Cards
+  'data-online-refresh':    (el) => dataOnlineRefresh(el.dataset.sourceId),
+  'data-online-unlock':     (el) => dataOnlineUnlock(el.dataset.sourceId),
+  'data-online-pull-full':  (el) => dataOnlinePullFull(el.dataset.sourceId),
+  'data-online-push-full':  (el) => dataOnlinePushFull(el.dataset.sourceId),
+  'data-online-push':       (el) => dataOnlinePushFull(el.dataset.sourceId), // empty-server alias
   'data-download':    () => {
     const cb = document.getElementById('export-include-runtime');
     exportConfig(cb ? cb.checked : true);
@@ -11651,6 +11796,7 @@ function renderDataModal() {
   const body = document.getElementById('modal-body');
   const footer = document.getElementById('modal-footer');
 
+  // V1.3: dritter Tab "Online" für Config-Drift-Resolution.
   const tabsHTML = `
     <div class="sync-tabs">
       <button class="sync-tab" data-action="data-tab-export" ${mode === 'export' ? 'data-active="true"' : ''}>
@@ -11659,8 +11805,16 @@ function renderDataModal() {
       <button class="sync-tab" data-action="data-tab-import" ${mode === 'import' ? 'data-active="true"' : ''}>
         ${escapeHTML(t('data.tab_import'))}
       </button>
+      <button class="sync-tab" data-action="data-tab-online" ${mode === 'online' ? 'data-active="true"' : ''}>
+        ${escapeHTML(t('data.tab_online'))}
+      </button>
     </div>
   `;
+
+  if (mode === 'online') {
+    renderDataModalOnline(body, footer, tabsHTML);
+    return;
+  }
 
   if (mode === 'export') {
     const levels = State.config.levels.length;
@@ -11794,6 +11948,268 @@ function validateImportPayload(data) {
     if (!p.id || !p.name) throw new Error(`persons[${i}] incomplete`);
   });
   return true;
+}
+
+/* =========================================================================
+   DATA MODAL — ONLINE TAB (V1.3)
+   Konfigurations-Sync (volle Config + Runtime) gegen eine Online-Source.
+   Wird genutzt, um Konfig-Drifts zwischen Geräten zu lösen: entweder den
+   Server-Stand übernehmen oder den lokalen Stand durchsetzen. Beide
+   Operationen ersetzen die jeweilige Seite vollständig (config + runtime).
+   ========================================================================= */
+function renderDataModalOnline(body, footer, tabsHTML) {
+  const sources = Sync.listSources();
+
+  if (sources.length === 0) {
+    body.innerHTML = `
+      ${tabsHTML}
+      <div class="sync-explain">${escapeHTML(t('data.online_intro'))}</div>
+      <div class="sync-no-sources" style="margin-top: 8px;">
+        ${escapeHTML(t('data.online_no_sources'))}
+      </div>
+    `;
+    footer.innerHTML = `<button class="btn-secondary" data-action="modal-close">${escapeHTML(t('btn.close'))}</button>`;
+    return;
+  }
+
+  // Initial render mit Loading-Placeholders; danach pro Source previewDiff
+  const focusId = State.dataOnlineFocusSource;
+  const orderedSources = focusId
+    ? [sources.find(s => s.id === focusId)].filter(Boolean).concat(sources.filter(s => s.id !== focusId))
+    : sources;
+
+  const listHTML = orderedSources.map(s => `
+    <div class="sync-online-card" id="data-card-${escapeHTML(s.id)}"${s.id === focusId ? ' data-focused="true"' : ''}>
+      <div class="sync-online-card-head">
+        <span class="sync-source-type-badge">${escapeHTML(t('settings.sync_type_' + s.type) || s.type)}</span>
+        <span class="sync-source-label">${escapeHTML(s.label)}</span>
+      </div>
+      <div class="sync-online-card-meta">${escapeHTML(syncSourceMetaLine(s))}</div>
+      <div class="sync-online-card-body" id="data-card-body-${escapeHTML(s.id)}">
+        <div class="sync-card-loading">⏳ ${escapeHTML(t('sync.online_card_loading'))}</div>
+      </div>
+    </div>
+  `).join('');
+
+  body.innerHTML = `
+    ${tabsHTML}
+    <div class="sync-explain">${escapeHTML(t('data.online_intro'))}</div>
+    <div class="sync-online-list">${listHTML}</div>
+  `;
+  footer.innerHTML = `<button class="btn-secondary" data-action="modal-close">${escapeHTML(t('btn.close'))}</button>`;
+
+  // Clear focus marker once it's been used for ordering
+  State.dataOnlineFocusSource = null;
+
+  sources.forEach(s => { refreshDataOnlineCard(s.id); });
+}
+
+async function refreshDataOnlineCard(sourceId) {
+  const card = document.getElementById('data-card-body-' + sourceId);
+  if (!card) return;
+  let preview;
+  try { preview = await getCachedPreview(sourceId); }
+  catch (e) { preview = { reachable: false, error: String(e.message || e) }; }
+  const fresh = document.getElementById('data-card-body-' + sourceId);
+  if (!fresh) return;
+  fresh.innerHTML = renderDataOnlineCardBody(sourceId, preview);
+}
+
+function renderDataOnlineCardBody(sourceId, preview) {
+  const src = Sync.getSource(sourceId);
+  if (!src) return '';
+
+  if (!preview || preview.reachable === false) {
+    return `
+      <div class="sync-card-status status-error">
+        <strong>✗ ${escapeHTML(t('sync.online_card_unreachable'))}</strong>
+        <div class="sync-card-meta">${escapeHTML(preview && preview.error ? preview.error : '')}</div>
+      </div>
+      <div class="sync-online-actions">
+        <button class="btn-secondary" data-action="data-online-refresh" data-source-id="${escapeHTML(sourceId)}">↻ ${escapeHTML(t('sync.online_card_retry'))}</button>
+      </div>
+    `;
+  }
+
+  if (preview.empty) {
+    return `
+      <div class="sync-card-status status-ok">
+        <strong>○ ${escapeHTML(t('sync.online_card_empty'))}</strong>
+        <div class="sync-card-meta">${escapeHTML(t('data.online_empty_hint'))}</div>
+      </div>
+      <div class="sync-online-actions">
+        <button class="btn-primary" data-action="data-online-push" data-source-id="${escapeHTML(sourceId)}">↑ ${escapeHTML(t('data.online_first_push'))}</button>
+      </div>
+    `;
+  }
+
+  if (preview.encrypted && !preview.decrypted && preview.needsPassphrase) {
+    return `
+      <div class="sync-card-status status-warn">
+        <strong>🔒 ${escapeHTML(t('sync.online_card_locked'))}</strong>
+        <div class="sync-card-meta">${escapeHTML(t('sync.online_card_locked_hint'))}</div>
+      </div>
+      <div class="sync-online-actions">
+        <button class="btn-secondary" data-action="data-online-unlock" data-source-id="${escapeHTML(sourceId)}">🔑 ${escapeHTML(t('sync.online_card_unlock'))}</button>
+      </div>
+    `;
+  }
+
+  if (preview.encrypted && !preview.decrypted) {
+    return `
+      <div class="sync-card-status status-error">
+        <strong>🔒 ${escapeHTML(t('sync.online_card_decrypt_failed'))}</strong>
+        <div class="sync-card-meta">${escapeHTML(preview.decryptError || '')}</div>
+      </div>
+      <div class="sync-online-actions">
+        <button class="btn-secondary" data-action="data-online-unlock" data-source-id="${escapeHTML(sourceId)}">🔑 ${escapeHTML(t('sync.online_card_unlock_retry'))}</button>
+      </div>
+    `;
+  }
+
+  const sStats = preview.stats.server;
+  const lStats = preview.stats.local;
+  const when = preview.timestamp ? formatRelativeTime(preview.timestamp) : '—';
+
+  const statusBlock = preview.fingerprintMatches
+    ? `<div class="sync-card-status status-ok">
+         <strong>🟢 ${escapeHTML(t('sync.online_card_match'))}</strong>
+         <div class="sync-card-meta">${escapeHTML(t('data.online_match_hint'))}</div>
+       </div>`
+    : `<div class="sync-card-status status-warn">
+         <strong>⚠ ${escapeHTML(t('sync.online_card_drift'))}</strong>
+         <div class="sync-card-meta">${escapeHTML(t('sync.online_card_fp_drift', { server: preview.fingerprint, local: preview.fingerprintLocal }))}</div>
+       </div>`;
+
+  // Personen-Diff-Liste (auf 3 begrenzt, Rest als Count)
+  function formatNameList(arr) {
+    if (!arr || arr.length === 0) return '—';
+    const names = arr.map(p => p.name).slice(0, 3).join(', ');
+    return arr.length > 3 ? names + ', +' + (arr.length - 3) : names;
+  }
+
+  const personDiffLines = (preview.onlyLocal.length > 0 || preview.onlyServer.length > 0)
+    ? `
+      <div class="sync-card-stats-row">
+        <span class="sync-card-stats-label">${escapeHTML(t('data.online_diff_only_local'))}</span>
+        <span class="sync-card-stats-value">${escapeHTML(formatNameList(preview.onlyLocal))}</span>
+      </div>
+      <div class="sync-card-stats-row">
+        <span class="sync-card-stats-label">${escapeHTML(t('data.online_diff_only_server'))}</span>
+        <span class="sync-card-stats-value">${escapeHTML(formatNameList(preview.onlyServer))}</span>
+      </div>
+    `
+    : '';
+
+  return `
+    ${statusBlock}
+    <div class="sync-card-stats">
+      <div class="sync-card-stats-row">
+        <span class="sync-card-stats-label">${escapeHTML(t('sync.online_card_server'))}</span>
+        <span class="sync-card-stats-value"><code>v${escapeHTML(String(preview.version))}</code> · ${escapeHTML(when)} · ${escapeHTML(t('data.online_stats_brief', { persons: sStats.persons, roles: sStats.roles, levels: sStats.levels, absent: sStats.absent }))}</span>
+      </div>
+      <div class="sync-card-stats-row">
+        <span class="sync-card-stats-label">${escapeHTML(t('data.online_local'))}</span>
+        <span class="sync-card-stats-value">${escapeHTML(t('data.online_stats_brief', { persons: lStats.persons, roles: lStats.roles, levels: lStats.levels, absent: lStats.absent }))}</span>
+      </div>
+      ${personDiffLines}
+    </div>
+    <div class="data-online-actions">
+      <button class="btn-secondary" data-action="data-online-pull-full" data-source-id="${escapeHTML(sourceId)}">
+        ↓ ${escapeHTML(t('data.online_pull_full'))}
+      </button>
+      <button class="btn-secondary" data-action="data-online-push-full" data-source-id="${escapeHTML(sourceId)}">
+        ↑ ${escapeHTML(t('data.online_push_full'))}
+      </button>
+    </div>
+    <div class="data-online-action-hint">${escapeHTML(t('data.online_action_hint'))}</div>
+  `;
+}
+
+async function dataOnlineRefresh(sourceId) {
+  clearPreviewCache(sourceId);
+  await refreshDataOnlineCard(sourceId);
+}
+
+async function dataOnlineUnlock(sourceId) {
+  const src = Sync.getSource(sourceId);
+  if (!src) return;
+  const passphrase = await promptPassphrase(src);
+  if (!passphrase) { renderDataModal(); return; }
+  try {
+    const saltB64 = (src.encryption || {}).salt || SyncCrypto.randomSaltB64();
+    if (!(src.encryption || {}).salt) {
+      Sync.updateSource(src.id, { encryption: Object.assign({}, src.encryption || {}, { enabled: true, salt: saltB64 }) });
+    }
+    const key = await SyncCrypto.deriveKey(passphrase, saltB64);
+    Sync.setKeyForSource(src.id, key);
+    Sync.setPassphraseForSource(src.id, passphrase);
+    clearPreviewCache(sourceId);
+    renderDataModal();
+  } catch (e) {
+    showToast(t('settings.sync_err_key_derive', { msg: String(e.message || e) }), 'error');
+    renderDataModal();
+  }
+}
+
+async function dataOnlinePullFull(sourceId) {
+  const src = Sync.getSource(sourceId);
+  if (!src) return;
+  const preview = await getCachedPreview(sourceId);
+  if (!preview || preview.reachable === false || preview.empty) {
+    showToast(t('data.online_err_nothing_to_pull'), 'error');
+    return;
+  }
+
+  // Bestätigungsdialog mit Diff-Summary
+  const lines = [];
+  if (preview.stats) {
+    lines.push(t('data.online_confirm_pull_line_server', { persons: preview.stats.server.persons, roles: preview.stats.server.roles, levels: preview.stats.server.levels }));
+    lines.push(t('data.online_confirm_pull_line_local',  { persons: preview.stats.local.persons,  roles: preview.stats.local.roles,  levels: preview.stats.local.levels }));
+  }
+  const msg = t('data.online_confirm_pull', { label: src.label }) + '\n\n' + lines.join('\n') + '\n\n' + t('data.online_confirm_irreversible');
+  if (!window.confirm(msg)) return;
+
+  showToast(t('sync.online_pulling', { label: src.label }), 'info');
+  try {
+    await withPassphraseRecovery(src, () => Sync.pull(sourceId, { mode: 'full' }));
+    showToast(t('data.online_pulled_full', { label: src.label }), 'success');
+    render();
+  } catch (e) {
+    showToast(t('sync.online_pull_failed', { msg: String(e.message || e) }), 'error');
+  }
+  clearPreviewCache(sourceId);
+  const backdrop = document.getElementById('modal-backdrop');
+  if (backdrop && backdrop.style.display === 'flex') renderDataModal();
+}
+
+async function dataOnlinePushFull(sourceId) {
+  const src = Sync.getSource(sourceId);
+  if (!src) return;
+  const preview = await getCachedPreview(sourceId);
+
+  const lines = [];
+  if (preview && preview.stats) {
+    lines.push(t('data.online_confirm_push_line_local',  { persons: preview.stats.local.persons,  roles: preview.stats.local.roles,  levels: preview.stats.local.levels }));
+    if (!preview.empty) {
+      lines.push(t('data.online_confirm_push_line_server', { persons: preview.stats.server.persons, roles: preview.stats.server.roles, levels: preview.stats.server.levels }));
+    } else {
+      lines.push(t('data.online_confirm_push_line_empty'));
+    }
+  }
+  const msg = t('data.online_confirm_push', { label: src.label }) + '\n\n' + lines.join('\n') + '\n\n' + t('data.online_confirm_irreversible');
+  if (!window.confirm(msg)) return;
+
+  showToast(t('sync.online_pushing', { label: src.label }), 'info');
+  try {
+    await withPassphraseRecovery(src, () => Sync.push(sourceId, { mode: 'full' }));
+    showToast(t('data.online_pushed_full', { label: src.label }), 'success');
+  } catch (e) {
+    showToast(t('sync.online_push_failed', { msg: String(e.message || e) }), 'error');
+  }
+  clearPreviewCache(sourceId);
+  const backdrop = document.getElementById('modal-backdrop');
+  if (backdrop && backdrop.style.display === 'flex') renderDataModal();
 }
 
 function handleImportFileChange(e) {
