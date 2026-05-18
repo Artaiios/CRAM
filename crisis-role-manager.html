@@ -5734,6 +5734,19 @@ const SyncPoller = (function() {
       // bestätigt werden muss.
       if (persistedSource.authError) persistedSource.authError = null;
       try { Sync.save(post); } catch (e) { /* swallow */ }
+      // RC-Blocker (2026-05): Sync.pull() schreibt State.runtime (Status-Mode)
+      // bzw. State.config+runtime (Full-Mode), aber das Sync-IIFE ruft KEIN
+      // render(). Manual-Pull-Wrapper rufen render() selbst (siehe
+      // syncOnlinePullStatus/syncOnlinePull/dataOnlinePullFull) — der
+      // Auto-Tick hier nicht. Folge: gelb→grün-Flackern im Indikator (kommt
+      // aus Sync.onChange()-Hook für renderSyncIndicator()), aber Chart und
+      // Sidebar bleiben auf altem Stand bis User F5/Manual-Pull triggert.
+      // Fix: nach success-Pull explizit render() aufrufen. typeof-Guard für
+      // Test-Loader, die das Sync-IIFE ohne DOM ausführen.
+      if (typeof render === 'function') {
+        try { render(); }
+        catch (e) { console.warn('[SyncPoller] render() after pull threw:', e && e.message); }
+      }
       _scheduleNext(sourceId, persistedSource, runtime);
       return;
     }
@@ -6045,6 +6058,13 @@ const SyncPoller = (function() {
       (async () => {
         try {
           await Sync.pull(sourceId, { mode: POLL_MODE });
+          // RC-Blocker (2026-05): gleiche Re-Render-Lücke wie im _tick.
+          // Wenn der Concurrent-Pull tatsächlich neuen Remote-State holt,
+          // soll die UI das auch zeigen.
+          if (typeof render === 'function') {
+            try { render(); }
+            catch (e) { console.warn('[SyncPoller] render() after concurrent re-pull threw:', e && e.message); }
+          }
           // Re-schedule push without the 2s debounce — the user already
           // waited once.
           const rt = _runtime.get(sourceId);
