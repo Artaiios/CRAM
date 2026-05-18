@@ -4103,6 +4103,18 @@ const Sync = (function() {
       save(state);
       _emitChange();
     }
+    // V2.0 Schritt 4: Auto-Push-Hook. Pro Source debouncen — der Poller
+    // entscheidet selbst (autoMode, online, paused, authError,
+    // permissionRequired, _needsRecovery), ob er den Timer überhaupt
+    // aufsetzt. No-op wenn keine Source autoMode!='off' hat.
+    // typeof-Guard: SyncPoller-IIFE wird textuell NACH Sync definiert.
+    if (typeof SyncPoller !== 'undefined' && SyncPoller.scheduleAutoPush) {
+      const sources = state.sources || [];
+      for (const s of sources) {
+        try { SyncPoller.scheduleAutoPush(s.id, 'markDirty'); }
+        catch (e) { console.warn('scheduleAutoPush failed:', e && e.message); }
+      }
+    }
   }
 
   function isDirty() {
@@ -5048,14 +5060,22 @@ const SyncPoller = (function() {
   function _defaultRuntime(sourceId) {
     return {
       sourceId: sourceId,
-      timerId: null,             // setTimeout-Handle
+      timerId: null,             // setTimeout-Handle (Pull-Tick)
       consecutiveFailures: 0,    // Backoff-Counter
       errorDelayMs: 0,           // aktueller Backoff-Delay (RAM, nicht persistiert)
       lastTickAt: null,          // performance.now() Timestamp, Diagnose
       nextTickAt: null,          // Wand-Zeit-Timestamp (ms epoch) für getStats()
       inFlight: false,           // Re-Entrancy-Guard: kein Overlap pro Source
+      // V2.0 Schritt 4: Auto-Push-Debounce
+      _pushDebounceTimer: null,  // setTimeout-Handle für scheduleAutoPush
+      _pushInFlight: false,      // Re-Entrancy für Auto-Push
+      _needsRecovery: false,     // H3: gesetzt wenn pendingPush beim Boot vorlag
     };
   }
+
+  // V2.0 Schritt 4: Auto-Push-Debounce-Konstante. 2 Sekunden coalesce
+  // rapide Edits (mehrere Klicks/Tipps am Stück) zu einem einzigen Push.
+  const PUSH_DEBOUNCE_MS = 2000;
 
   // Globaler RAM-State: Lifecycle, Listener-Refs, Visibility, Online.
   const _global = {
@@ -5161,13 +5181,19 @@ const SyncPoller = (function() {
 
   function _shouldSkipTick(source) {
     // Reihenfolge: harte Blocker zuerst (paused/online),
-    // dann Source-spezifische (autoMode/permission/auth).
+    // dann Source-spezifische (autoMode/permission/auth/recovery).
     if (_global.paused) return 'paused';
     if (!_global.isOnline) return 'offline';
     if (!source) return 'no-source';
     if (source.autoMode === 'off') return 'auto-off';
     if (source.permissionRequired === true) return 'permission';
     if (source.authError && source.authError.acknowledged === false) return 'auth';
+    // V2.0 Schritt 4 (H3): solange pendingPush im Storage steht oder
+    // _needsRecovery im RAM gesetzt ist, weder push noch pull. Schritt 6
+    // bietet das Recovery-Modal.
+    if (source.pendingPush) return 'recovery';
+    const rt = _runtime.get(source.id);
+    if (rt && rt._needsRecovery === true) return 'recovery';
     return null;
   }
 
@@ -5198,7 +5224,8 @@ const SyncPoller = (function() {
       // Backoff-Variablen NICHT anfassen — H4: errorDelayMs überlebt
       // visibility/offline-Phasen. Wenn autoMode='off' oder permission/auth
       // blockieren: keinen neuen Timer planen (Hard-Pause der Source).
-      if (skipReason === 'auto-off' || skipReason === 'permission' || skipReason === 'auth') {
+      if (skipReason === 'auto-off' || skipReason === 'permission' ||
+          skipReason === 'auth' || skipReason === 'recovery') {
         return;
       }
       // Sonst (paused/offline): nächsten Timer einplanen, Backoff
@@ -5290,6 +5317,257 @@ const SyncPoller = (function() {
       console.warn('[SyncPoller] permission required for source', sourceId.slice(0, 8));
       // Kein Reschedule: Hard-Pause bis User-Aktion.
       return;
+    }
+  }
+
+  // ---- Auto-Push (Schritt 4) ----
+  //
+  // scheduleAutoPush(sourceId) wird von Sync.markDirty() aufgerufen, sobald
+  // der User lokal etwas ändert. Pro Source ein eigener Debounce-Timer
+  // (2 s). Bei Trigger: prüfen ob Push erlaubt ist, dann Sync.push(id,
+  // { mode: POLL_MODE }) — POLL_MODE ist hartcodiert 'status' (Watch-Point 7,
+  // gleiche Constraint wie Pull-Tick).
+  //
+  // pendingPush-Sentinel (H3): bevor wir den Push starten, schreiben wir
+  // pendingPush={startedAt, payloadHash, etag} nach localStorage. Bei
+  // erfolgreichem Push: clearen. Wenn der Tab mid-push crasht, bleibt
+  // pendingPush stehen — der nächste Boot detektiert das und hard-paust
+  // die Source bis User-Aktion (Recovery-Modal kommt Schritt 6).
+  //
+  // payloadHash ist ein 64-bit SHA-256-Präfix (16 hex chars). Reicht für
+  // Diagnose-Korrelation, kein Klartext im Storage (Security Watch 4).
+  // Hinweis: wir hashen den ENVELOPE-Stringify (= verschlüsselten Blob
+  // wenn Encryption an), nicht den Klartext-Payload. So sieht der Hash
+  // den Klartext nie — selbst wenn das nur kosmetisch ist, hält es die
+  // Architektur-Disziplin sauber.
+
+  async function _hashPayload(input) {
+    try {
+      const text = typeof input === 'string' ? input : JSON.stringify(input);
+      const buf = new TextEncoder().encode(text);
+      const digest = await crypto.subtle.digest('SHA-256', buf);
+      const hex = Array.from(new Uint8Array(digest))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+      return hex.slice(0, 16);  // 64 bit, reicht für Korrelation
+    } catch (e) {
+      // Hash darf den Push nicht blocken — fallback ist 'unhashed',
+      // Recovery-Logik prüft nur "pendingPush !== null", nicht den Wert.
+      return 'unhashed';
+    }
+  }
+
+  async function _writePendingPushSentinel(sourceId, envelope) {
+    let payloadHash = 'unhashed';
+    try {
+      payloadHash = await _hashPayload(envelope);
+    } catch (e) { /* swallow, payloadHash stays 'unhashed' */ }
+
+    const state = _loadState();
+    if (!state) return;
+    const source = _getSource(state, sourceId);
+    if (!source) return;
+    source.pendingPush = {
+      startedAt: new Date().toISOString(),
+      payloadHash: payloadHash,
+      etag: source.lastEtag || null,
+    };
+    try { Sync.save(state); } catch (e) { /* swallow */ }
+  }
+
+  function _clearPendingPushSentinel(sourceId) {
+    const state = _loadState();
+    if (!state) return;
+    const source = _getSource(state, sourceId);
+    if (!source) return;
+    if (source.pendingPush === null || source.pendingPush === undefined) return;
+    source.pendingPush = null;
+    try { Sync.save(state); } catch (e) { /* swallow */ }
+  }
+
+  function _shouldSkipPush(source) {
+    // Push-spezifische Skip-Kriterien. autoMode='pull' heißt: User will
+    // nur Server-Updates konsumieren, keine eigenen Edits hochschieben.
+    if (_global.paused) return 'paused';
+    if (!_global.isOnline) return 'offline';
+    if (!source) return 'no-source';
+    if (source.autoMode === 'off' || source.autoMode === 'pull') return 'push-disabled';
+    if (source.permissionRequired === true) return 'permission';
+    if (source.authError && source.authError.acknowledged === false) return 'auth';
+    if (source._needsRecovery === true) return 'recovery';  // H3 hard-pause
+    return null;
+  }
+
+  async function _pushTick(sourceId) {
+    const runtime = _runtime.get(sourceId);
+    if (!runtime) return;
+    runtime._pushDebounceTimer = null;
+
+    if (runtime._pushInFlight) {
+      // Re-Entrancy: anderer Push läuft schon. scheduleAutoPush() wird
+      // nach Abschluss durch den nächsten markDirty erneut greifen.
+      return;
+    }
+
+    const state = _loadState();
+    const source = _getSource(state, sourceId);
+    if (!source) return;
+
+    const skipReason = _shouldSkipPush(source);
+    if (skipReason) {
+      console.debug('[SyncPoller] auto-push skipped', sourceId.slice(0, 8),
+        'reason=' + skipReason);
+      return;
+    }
+
+    // Recovery-Check direkt aus der Persistenz: könnte sich zwischen
+    // _runtime-Flag und Storage unterscheiden, wenn die Source via
+    // pendingPush wiederhergestellt wurde.
+    if (source.pendingPush) {
+      runtime._needsRecovery = true;
+      console.warn('[SyncPoller] auto-push aborted, pendingPush already set',
+        sourceId.slice(0, 8));
+      return;
+    }
+
+    runtime._pushInFlight = true;
+    let envelope = null;
+    let resultClass = 'success';
+    let sanitizedError = null;
+
+    try {
+      // Envelope bauen (verschlüsselt wenn Encryption an). Wir bauen ihn
+      // *vor* dem Sentinel-Write, damit _hashPayload den verschlüsselten
+      // Blob sieht (Watch-Point 4: kein Klartext-Hash im Storage).
+      envelope = await Sync.buildEnvelopeForSource(source);
+      await _writePendingPushSentinel(sourceId, envelope);
+
+      // POLL_MODE-Constraint (Watch-Point 7): immer 'status', nie 'full'.
+      // Push mit mode='full' (Daten-Push) ist der Data-UI vorbehalten.
+      await Sync.push(sourceId, { mode: POLL_MODE });
+
+      // 2xx ok: Sentinel löschen.
+      _clearPendingPushSentinel(sourceId);
+    } catch (e) {
+      // PassphraseRequiredError: Passphrase-Cache leer (Tab-Reload).
+      // Wir behandeln das transient — der nächste markDirty triggert
+      // einen erneuten Versuch, oder der User entsperrt manuell.
+      if (e && e.name === 'PassphraseRequiredError') {
+        resultClass = 'transient';
+      } else {
+        resultClass = _classifyError(e);
+      }
+      sanitizedError = _sanitizeErrorForStorage(e, resultClass);
+
+      // Bei Fehler: pendingPush bleibt stehen — Boot-Recovery oder nächste
+      // erfolgreiche Push-Iteration räumt auf. Bei auth/permission ist das
+      // korrekt (User-Aktion nötig); bei transient räumt der nächste
+      // erfolgreiche Push auf.
+    } finally {
+      runtime._pushInFlight = false;
+    }
+
+    // State neu laden — push() schreibt selbst.
+    const post = _loadState();
+    const persistedSource = _getSource(post, sourceId);
+    if (!persistedSource) return;
+
+    if (resultClass === 'success') {
+      persistedSource.lastAutoPollAt = new Date().toISOString();
+      persistedSource.lastAutoPollError = null;
+      // Erfolgreicher Push deutet auf Server-Erreichbarkeit hin — Pull-
+      // Backoff-Counter resetten, damit der nächste Pull-Tick nicht
+      // unnötig auf den Strafdelay wartet.
+      runtime.consecutiveFailures = 0;
+      runtime.errorDelayMs = 0;
+      try { Sync.save(post); } catch (e) { /* swallow */ }
+      return;
+    }
+
+    if (resultClass === 'transient') {
+      persistedSource.lastAutoPollError = sanitizedError;
+      try { Sync.save(post); } catch (e) { /* swallow */ }
+      console.debug('[SyncPoller] auto-push transient failure', sourceId.slice(0, 8));
+      return;
+    }
+
+    if (resultClass === 'auth') {
+      // Gleiche Logik wie Pull-Tick: autoMode=off, authError setzen.
+      persistedSource.autoMode = 'off';
+      persistedSource.authError = {
+        timestamp: new Date().toISOString(),
+        code: sanitizedError ? sanitizedError.code : null,
+        acknowledged: false,
+      };
+      persistedSource.lastAutoPollError = sanitizedError;
+      try { Sync.save(post); } catch (e) { /* swallow */ }
+      console.warn('[SyncPoller] auto-push auth error -> autoMode=off for source',
+        sourceId.slice(0, 8));
+      return;
+    }
+
+    if (resultClass === 'permission') {
+      persistedSource.permissionRequired = true;
+      persistedSource.lastAutoPollError = sanitizedError;
+      try { Sync.save(post); } catch (e) { /* swallow */ }
+      console.warn('[SyncPoller] auto-push permission required for source',
+        sourceId.slice(0, 8));
+      return;
+    }
+  }
+
+  function scheduleAutoPush(sourceId, reason) {
+    if (!sourceId || typeof sourceId !== 'string') return;
+
+    // Source-Lookup vor Debounce-Setup: wenn die Source autoMode='off'
+    // oder 'pull' hat, kein Timer aufsetzen — vermeidet 2 s leerlaufenden
+    // Timer bei jedem markDirty mit nicht-push-fähigen Sources.
+    const state = _loadState();
+    const source = _getSource(state, sourceId);
+    if (!source) return;
+    if (source.autoMode === 'off' || source.autoMode === 'pull') return;
+
+    // _runtime-Eintrag muss existieren — registerSource() erstellt ihn.
+    // Wenn nicht (z.B. Poller noch nicht gestartet): lazy create, damit
+    // markDirty vor SyncPoller.start() nicht verloren geht.
+    let runtime = _runtime.get(sourceId);
+    if (!runtime) {
+      runtime = _defaultRuntime(sourceId);
+      _runtime.set(sourceId, runtime);
+    }
+
+    // Coalescing: läuft schon ein Timer, clearen und neu setzen — der
+    // letzte Edit gewinnt.
+    if (runtime._pushDebounceTimer !== null) {
+      clearTimeout(runtime._pushDebounceTimer);
+      runtime._pushDebounceTimer = null;
+    }
+
+    runtime._pushDebounceTimer = setTimeout(() => {
+      _pushTick(sourceId).catch(e => {
+        console.warn('[SyncPoller] _pushTick threw:', e && e.message);
+      });
+    }, PUSH_DEBOUNCE_MS);
+  }
+
+  // Boot-Recovery: beim start() schauen wir, ob eine Source mit
+  // pendingPush != null im Storage liegt — Anzeichen dafür, dass ein
+  // vorheriger Tab/Window mitten im Push gecrasht ist. Hard-Pause der
+  // Source, bis Schritt 6 den User per Modal befragt (Retry / Discard).
+  function _detectPendingPushOnBoot() {
+    const state = _loadState();
+    if (!state || !Array.isArray(state.sources)) return;
+    for (const src of state.sources) {
+      if (src.pendingPush) {
+        let runtime = _runtime.get(src.id);
+        if (!runtime) {
+          runtime = _defaultRuntime(src.id);
+          _runtime.set(src.id, runtime);
+        }
+        runtime._needsRecovery = true;
+        console.warn('[SyncPoller] boot-recovery: source has pendingPush, hard-paused',
+          src.id.slice(0, 8), 'startedAt=' + src.pendingPush.startedAt);
+      }
     }
   }
 
@@ -5385,6 +5663,13 @@ const SyncPoller = (function() {
       window.addEventListener('online', _global.onlineListener);
       window.addEventListener('offline', _global.offlineListener);
     }
+
+    // V2.0 Schritt 4 (H3): Boot-Recovery — Sources mit pendingPush != null
+    // im Storage werden hard-paused, bis Schritt 6 das Recovery-Modal
+    // rendert. _needsRecovery=true verhindert sowohl Auto-Push als auch
+    // Auto-Pull für diese Source.
+    try { _detectPendingPushOnBoot(); }
+    catch (e) { console.warn('[SyncPoller] boot-recovery failed:', e && e.message); }
   }
 
   function stop() {
@@ -5400,6 +5685,11 @@ const SyncPoller = (function() {
       if (rt.timerId !== null) {
         clearTimeout(rt.timerId);
         rt.timerId = null;
+      }
+      // V2.0 Schritt 4: Push-Debounce-Timer mitcancelen.
+      if (rt._pushDebounceTimer !== null) {
+        clearTimeout(rt._pushDebounceTimer);
+        rt._pushDebounceTimer = null;
       }
     });
     _runtime.clear();
@@ -5432,6 +5722,15 @@ const SyncPoller = (function() {
       if (rt.timerId !== null) {
         clearTimeout(rt.timerId);
         rt.timerId = null;
+      }
+      // V2.0 Schritt 4: Push-Debounce-Timer ebenfalls pausieren. resume()
+      // setzt ihn NICHT automatisch neu — dazu braucht's einen neuen
+      // markDirty (User-Edit). Pending User-Edits gehen also bei pause()
+      // verloren, aber dirty=true bleibt im Storage und der nächste Edit
+      // nach resume() pusht alles auf einen Schlag.
+      if (rt._pushDebounceTimer !== null) {
+        clearTimeout(rt._pushDebounceTimer);
+        rt._pushDebounceTimer = null;
       }
       rt.nextTickAt = null;
     });
@@ -5473,6 +5772,11 @@ const SyncPoller = (function() {
       clearTimeout(rt.timerId);
       rt.timerId = null;
     }
+    // V2.0 Schritt 4: Auto-Push-Debounce-Timer ebenfalls cancelen.
+    if (rt._pushDebounceTimer !== null) {
+      clearTimeout(rt._pushDebounceTimer);
+      rt._pushDebounceTimer = null;
+    }
     _runtime.delete(sourceId);
   }
 
@@ -5506,6 +5810,11 @@ const SyncPoller = (function() {
         lastAutoPollError: src.lastAutoPollError || null,
         authError: src.authError || null,
         permissionRequired: src.permissionRequired === true,
+        // V2.0 Schritt 4: Push/Recovery-Diagnose für Settings-UI (Schritt 5).
+        pendingPush: src.pendingPush || null,
+        needsRecovery: rt._needsRecovery === true,
+        pushDebouncePending: rt._pushDebounceTimer !== null,
+        pushInFlight: rt._pushInFlight === true,
         consecutiveFailures: rt.consecutiveFailures,
         errorDelayMs: rt.errorDelayMs,
         nextTickAt: rt.nextTickAt,
@@ -5524,6 +5833,7 @@ const SyncPoller = (function() {
     start, stop,
     pause, resume,
     registerSource, unregisterSource,
+    scheduleAutoPush,
     getStats,
     CONSTANTS: {
       POLL_MODE,
@@ -5532,6 +5842,7 @@ const SyncPoller = (function() {
       POLL_INTERVAL_MAX_SEC,
       POLL_INTERVAL_DEFAULT_SEC,
       BACKOFF_MAX_MULTIPLIER,
+      PUSH_DEBOUNCE_MS,
     },
   };
 })();
