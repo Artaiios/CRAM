@@ -4721,20 +4721,28 @@ const Sync = (function() {
       const client = createSourceClient(source);
       const envelope = await client.read();
       if (envelope === null) return null;
-      // V2.0 step 7: persist server ETag (S1 backend attaches __meta.etag).
-      // S5/file-backend has no ETag → meta missing → lastEtag stays as-is.
-      // We update the source-level field via updateSource() so the next push
-      // can send If-Match. Failures here are non-fatal — ETag is an
-      // optimisation, not a correctness requirement.
+      // V2.0 step 7 (QA-F2): read the server ETag into a local var first.
+      // Persist it only AFTER applyEnvelopeForSource succeeds, otherwise we
+      // would freeze lastEtag on a payload we never accepted (invalid envelope,
+      // ConfigDriftError in status mode, decrypt failure). That created a
+      // cache-poisoning vector: a malicious server / foreign writer could
+      // pin our lastEtag to garbage, and the next push would carry that
+      // If-Match and overwrite the bogus payload — a self-healing race we
+      // would rather not depend on.
+      // S5/file-backend has no ETag → serverEtag stays null → no-op.
+      let serverEtag = null;
       try {
         const etag = envelope && envelope.__meta && envelope.__meta.etag;
-        if (etag && typeof etag === 'string') {
-          updateSource(sourceId, { lastEtag: etag });
-        }
-      } catch (e) { /* ETag persistence is best-effort */ }
+        if (etag && typeof etag === 'string') serverEtag = etag;
+      } catch (e) { /* read-only access, never throws — defensive */ }
       _suppressDirty = true;
       try { await applyEnvelopeForSource(envelope, source, { mode }); }
       finally { _suppressDirty = false; }
+      // Apply succeeded: NOW persist the ETag so the next push can If-Match.
+      if (serverEtag) {
+        try { updateSource(sourceId, { lastEtag: serverEtag }); }
+        catch (e) { /* ETag persistence is best-effort */ }
+      }
       const state = load();
       state.lastSyncedVersion = envelope.version;
       state.lastSyncedAt = Date.now();
