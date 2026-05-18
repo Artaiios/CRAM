@@ -2,6 +2,81 @@
 
 All notable changes to CRAM are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0-rc1] — 2026-05-18
+
+Auto-Sync as a release candidate. V2.0 turns the V1.2/1.3 manual pull-push channel into a background poller that survives offline, hidden tabs, lost auth, lost permission, missing passphrase, and crash-mid-push — without ever silently replacing a stab configuration (V1.3 status/data split holds). Opt-in per source; default off.
+
+### Added — Auto-Sync (V2.0 core)
+
+- **SyncPoller (IIFE).** Per-source tick loop with `_register`/`_unregisterSource`. Visibility multiplier ×4 when the tab is hidden (D3). `online`/`offline` listeners suspend and resume the loop.
+- **3-class error model.** `transient` → exponential backoff up to 16× `baseInterval`. `auth` (401/403) → flips `autoMode=off` and surfaces a persistent badge. `permission` (`NotAllowedError`, S5) → hard-pause.
+- **Console classes.** `passphrase-required` (WP-16) and `concurrent` (412 retry cap) are tracked separately from the backoff variable so they cannot starve the recovery path.
+- **Auto-push hook.** `Sync.markDirty()` schedules a push 2 s after the last edit (debounce); early-returns while `_needsRecovery` or `_waitingForPassphrase` is set so the UI spinner stays consistent.
+- **`pendingPush` sentinel.** SHA-256 hash of the payload is persisted before the actual `PUT`. On boot, if the sentinel is still present, the recovery modal offers Retry or Discard (H3). The hash never appears in the UI and never leaves localStorage in plaintext form (WP-4).
+- **If-Match ETag header (S1).** Lost-update protection on the HTTP backend; pre-read fetches the current ETag, push sends `If-Match: <etag>`, 412 triggers a fingerprint-aware retry with a hard cap.
+- **Settings UI — Auto-Sync accordion.** Per-source: mode toggle (off / pull / push / bidirectional), polling-interval slider (30–300 s), live stats, four badges (`authError`, `permissionRequired`, `pendingPush`, `passphrase-required`).
+- **Toast system with dedup.** Catch-up on tab focus after a 401, recovery modal on boot, transient-error coalescing.
+- **Migration banner V1.3 → V2.** Opt-in per source, dismissible, idempotent (dual trigger: `schemaVersion < 2 || !state.auto`).
+
+### Added — Mobile (iPhone gate)
+
+- **iPhone Safari is a release-blocker platform.** Acceptance criteria M1–M3 in `docs/specs/v2.0-auto-sync.md`. New role `cram-mobile-qa-engineer`.
+- **PWA installable.** Manifest now ships 192×192 and 512×512 PNG icons (Lighthouse green).
+- **`env(safe-area-inset-top)` on `.app-header`** for Dynamic Island in PWA standalone mode.
+- **44×44 pt tap targets** on migration-banner buttons, settings accordion controls, toast actions, source-row actions, header buttons (across all three breakpoints).
+
+### Added — Spec & docs
+
+- `docs/specs/v2.0-auto-sync.md` extended with resilience acceptance criteria H1–H5 (crisis gate) and mobile M1–M3 (iPhone gate).
+- Structural consequences captured: 3-class error model, two independent backoff variables, hard-pause vs. soft-pause distinction.
+
+### Changed
+
+- `cram.sync.v1` schema bumped to version 2 (idempotent migration; dual-trigger on `schemaVersion < 2 || !state.auto`).
+- `POLL_INTERVAL_MIN_SEC` defensive floor raised from 15 s to 30 s (Security Watch-Point 3).
+- `Sync.addSource` / `Sync.removeSource` now call `SyncPoller._register` / `_unregisterSource` centrally — previously the wiring lived in UI wrappers and could be bypassed.
+- Browser-compat matrix (local CLAUDE.md) extended with a Safari iOS 15+ column.
+
+### Fixed
+
+- **V1.3 regression — docs(en).** `stab` → `committee` consistency in the Online-Sync chapter.
+- **Mobile F1 — Migration-banner buttons.** Raised from 23 px to 44 px on ≤600 px (HIG violation).
+- **Mobile F2 — Settings modal source-card.** Horizontal overflow on iPhone SE (470 px content in a 373 px viewport) eliminated.
+- **Mobile F3 — Header buttons.** 32/34/36 px → 44 px across all three breakpoints.
+- **Mobile F4 — Source-row action buttons.** Share / Edit / Delete raised from 25 px to 44 px.
+- **Step 4 polish — `scheduleAutoPush`.** Early-return on `_needsRecovery` and `_waitingForPassphrase` so the UI spinner does not flicker.
+- **F2 — `Sync.pull()`.** `lastEtag` is now persisted only *after* `applyEnvelopeForSource` succeeds. Previous order opened a cache-poisoning vector: a malformed envelope could update the ETag and then bail.
+- **F2b — `Sync.push()` pre-read.** Same pattern: persist `lastEtag` from the pre-read only after the local-vs-server fingerprint check passes.
+
+### Security
+
+- **WP-1 — `escapeHTML` discipline V1.3 → V2.** Call sites went from 485 to 530 (+45 for migration banner, accordion, toast surfaces).
+- **WP-2 — `_stripUrlsAndTokens`.** URL, `Bearer <token>`, and query-string `token=`/`access_token=` stripping before `lastAutoPollError` is persisted (step 3). Same stripping applied to the `_onOnline` / `_onOffline` console.warn paths (step 7, WP-9).
+- **WP-3 — `POLL_INTERVAL_MIN_SEC` defensive 30 s.** Resists tampered settings.
+- **WP-4 — `pendingPush.payloadHash`.** SHA-256 hash, never plaintext, never rendered in the UI (verified in step-5 and step-6 reviews, Watch-Point 13).
+- **WP-7 — `POLL_MODE='status'` constraint.** Enforced at every `Sync.pull` / `Sync.push` call inside the poller; full-mode is reachable only from the manual Data → Online tab.
+- **WP-16 — Passphrase-required as its own error class.** Cannot be swallowed by the transient-error backoff.
+- **25 Security Watch-Points** documented end-to-end across steps 1–7.
+
+### Compatibility
+
+V1.3 source configurations carry over without user action. AutoMode is **off** by default per source; users opt in explicitly. The wire envelope is unchanged. A V1.3 client running against a V2.0-pushed envelope behaves identically. V2.0 polling is status-only (V1.3 split holds) — a config drift is surfaced in the awareness indicator, never silently applied.
+
+### Deferred — out of scope for RC1, in scope for RC2 / GA
+
+- **S5 (File System Access) auto-push.** No ETag-equivalent API; lost-update protection there is left to user mitigation. Auto-pull on S5 works.
+- **iPad smoke.** Not actively tested.
+- **PDF handbooks.** Still reflect V1.0-rc1.3 content. Markdown handbooks under `docs/` are current.
+- **Real iPhone smoke against a physical device.** Web-Inspector against Safari iOS is the GA gate; deferred to RC2.
+- **WP-16 ZH-native review** of the passphrase-required i18n strings.
+- **dev-sync-backend.py — If-Match validation.** Currently the local dev server does not enforce ETag preconditions; nice-to-have for two-tab smoke testing.
+
+### Acceptance gates met
+
+- Resilience H1–H5 (owner: `cram-resilience-engineer`)
+- Mobile M1–M3 (owner: `cram-mobile-qa-engineer`)
+- Security reviews steps 1–7 all clean
+
 ## [1.3.0] — 2026-05-13
 
 Clean split between **Sync** (status-only, gated by configuration fingerprint match) and **Data** (full configuration + status, explicit confirm). Solves the silent-config-replacement risk that V1.2.1 worked around with an audit-log entry, and prepares the V2.0 auto-polling design so it can never accidentally overwrite a team's stab structure.

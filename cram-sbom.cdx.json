@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
-  "serialNumber": "urn:uuid:b74fa2cd-974d-4b09-b42a-a0e86db8fb3a",
+  "serialNumber": "urn:uuid:6fbf4217-da17-4620-87d3-1266c8e3501b",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-05-12T21:50:01Z",
+    "timestamp": "2026-05-18T21:42:03Z",
     "tools": [
       {
         "vendor": "CRAM project",
@@ -15,9 +15,9 @@
     ],
     "component": {
       "type": "application",
-      "bom-ref": "pkg:generic/cram@1.3.0",
+      "bom-ref": "pkg:generic/cram@2.0.0-rc1",
       "name": "CRAM",
-      "version": "1.3.0",
+      "version": "2.0.0-rc1",
       "description": "Crisis Role Availability Manager — single-file HTML tool for managing crisis committee roles and substitution chains",
       "licenses": [
         {
@@ -27,11 +27,11 @@
         }
       ],
       "copyright": "Copyright 2026 Patrick Zeller",
-      "purl": "pkg:generic/cram@1.3.0",
+      "purl": "pkg:generic/cram@2.0.0-rc1",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "d9561ff26dc244a5ce03f7683698c73b78a9bffe4a707e0b09e9128b4f8aaf3e"
+          "content": "cc81ea1d04a40e9f1bb756f52a837fca50ae0f613cc4bc13808c9f71028fe47b"
         }
       ],
       "externalReferences": [
@@ -144,7 +144,7 @@
   ],
   "dependencies": [
     {
-      "ref": "pkg:generic/cram@1.3.0",
+      "ref": "pkg:generic/cram@2.0.0-rc1",
       "dependsOn": [
         "pkg:npm/fflate@0.8.2",
         "pkg:npm/qrcode-generator@1.4.4"
