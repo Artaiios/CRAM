@@ -2580,12 +2580,15 @@ button:focus-visible,
   font-size: 11px;
 }
 
-/* ---- V2.0 step 1: Sync-Migration-Banner (V1.3 -> V2.0 informational) ---- */
+/* ---- V2.0 step 1: Sync-Migration-Banner (V1.3 -> V2.0 informational) ----
+   Uses --accent (neutral info blue) instead of --status-warn so the banner
+   doesn't visually compete with the Firefox browser-support banner above it,
+   which keeps yellow for a real limitation. */
 .sync-migration-banner {
   margin-bottom: 12px;
   padding: 10px 12px;
-  border-left: 3px solid var(--status-warn);
-  background: var(--status-warn-bg, rgba(255,180,0,0.05));
+  border-left: 3px solid var(--accent);
+  background: var(--accent-bg);
   border-radius: var(--radius-sm);
   font-size: 12px;
   color: var(--text-primary);
@@ -2603,10 +2606,25 @@ button:focus-visible,
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  align-items: center;
 }
 .sync-migration-banner-actions button {
   font-size: 11px;
   padding: 4px 10px;
+}
+/* Ghost variant for the dismiss action: visually weaker than btn-secondary
+   so the CTA reads as the primary action and "Got it" reads as "do nothing". */
+.sync-migration-banner-actions .btn-ghost {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-radius: var(--radius-sm);
+}
+.sync-migration-banner-actions .btn-ghost:hover {
+  color: var(--text-primary);
 }
 
 /* ---- Sync-Modal Online-Tab (V1.2 → V1.3 Karten-Layout) ---- */
@@ -5344,7 +5362,7 @@ const TRANSLATIONS = {
     'settings.sync_no_sources': 'Keine Sync-Sources konfiguriert.',
     'sync.migration_banner.title': 'Auto-Sync ist neu',
     'sync.migration_banner.body': 'CRAM kann Sync-Sources jetzt automatisch im Hintergrund abgleichen. Die Funktion ist pro Source deaktiviert und muss bewusst eingeschaltet werden. Bestehende Sources bleiben unverändert im manuellen Modus.',
-    'sync.migration_banner.cta_settings': 'Einstellungen öffnen',
+    'sync.migration_banner.cta_settings': 'Quellen anzeigen',
     'sync.migration_banner.dismiss': 'Verstanden',
     'settings.sync_add_http': 'Neue HTTP-Source',
     'settings.sync_form_add_title': 'Neue HTTP-Source anlegen',
@@ -5868,7 +5886,7 @@ const TRANSLATIONS = {
     'settings.sync_no_sources': 'No sync sources configured.',
     'sync.migration_banner.title': 'Auto-sync is new',
     'sync.migration_banner.body': 'CRAM can now reconcile sync sources automatically in the background. The feature is off per source and must be enabled deliberately. Existing sources remain in manual mode.',
-    'sync.migration_banner.cta_settings': 'Open settings',
+    'sync.migration_banner.cta_settings': 'Show sources',
     'sync.migration_banner.dismiss': 'Got it',
     'settings.sync_add_http': 'New HTTP source',
     'settings.sync_form_add_title': 'Add a new HTTP source',
@@ -6391,7 +6409,7 @@ const TRANSLATIONS = {
     'settings.sync_no_sources': 'Ninguna fuente configurada.',
     'sync.migration_banner.title': 'La sincronización automática es nueva',
     'sync.migration_banner.body': 'CRAM ahora puede reconciliar las fuentes de sincronización automáticamente en segundo plano. La función está desactivada por fuente y debe habilitarse de forma explícita. Las fuentes existentes permanecen en modo manual.',
-    'sync.migration_banner.cta_settings': 'Abrir ajustes',
+    'sync.migration_banner.cta_settings': 'Mostrar fuentes',
     'sync.migration_banner.dismiss': 'Entendido',
     'settings.sync_add_http': 'Nueva fuente HTTP',
     'settings.sync_form_add_title': 'Crear nueva fuente HTTP',
@@ -6915,7 +6933,7 @@ const TRANSLATIONS = {
     'settings.sync_no_sources': 'Aucune source configurée.',
     'sync.migration_banner.title': 'La synchronisation automatique est nouvelle',
     'sync.migration_banner.body': 'CRAM peut désormais réconcilier les sources de synchronisation automatiquement en arrière-plan. La fonction est désactivée par source et doit être activée délibérément. Les sources existantes restent en mode manuel.',
-    'sync.migration_banner.cta_settings': 'Ouvrir les paramètres',
+    'sync.migration_banner.cta_settings': 'Afficher les sources',
     'sync.migration_banner.dismiss': 'Compris',
     'settings.sync_add_http': 'Nouvelle source HTTP',
     'settings.sync_form_add_title': 'Ajouter une source HTTP',
@@ -7438,9 +7456,10 @@ const TRANSLATIONS = {
     'settings.sync_intro': '同步源是可以手动同步的端点。V1.2 支持 HTTP(S) 后端；后续会增加更多类型。',
     'settings.sync_no_sources': '未配置同步源。',
     /* V2.0 step 1: ZH translations are best-effort; needs a native speaker review (cram-ux-reviewer). */
+    // TODO V2.0-GA: native ZH-speaker review required for sync.migration_banner.* strings
     'sync.migration_banner.title': '自动同步是新功能',
     'sync.migration_banner.body': 'CRAM 现在可以在后台自动协调同步源。该功能默认按源关闭，需要手动启用。现有的同步源仍保持手动模式。',
-    'sync.migration_banner.cta_settings': '打开设置',
+    'sync.migration_banner.cta_settings': '显示源',
     'sync.migration_banner.dismiss': '知道了',
     'settings.sync_add_http': '新建 HTTP 源',
     'settings.sync_form_add_title': '添加新的 HTTP 源',
@@ -13170,7 +13189,7 @@ function renderSyncMigrationBanner() {
       <div class="sync-migration-banner-body">${escapeHTML(t('sync.migration_banner.body'))}</div>
       <div class="sync-migration-banner-actions">
         <button class="btn-secondary" data-action="sync-migration-open-settings">${escapeHTML(t('sync.migration_banner.cta_settings'))}</button>
-        <button class="btn-secondary" data-action="sync-migration-dismiss">${escapeHTML(t('sync.migration_banner.dismiss'))}</button>
+        <button class="btn-ghost" data-action="sync-migration-dismiss">${escapeHTML(t('sync.migration_banner.dismiss'))}</button>
       </div>
     </div>
   `;
@@ -13178,9 +13197,11 @@ function renderSyncMigrationBanner() {
 
 function renderSettingsSync() {
   const sources = Sync.listSources();
+  // Banner order (V2.0 step 1 polish): both hint boxes grouped at the top
+  // (migration -> browser-support), then the explanatory prose below.
   let html = renderSyncMigrationBanner();
-  html += `<div class="sync-explain">${escapeHTML(t('settings.sync_intro'))}</div>`;
   html += renderBrowserSupportBanner();
+  html += `<div class="sync-explain">${escapeHTML(t('settings.sync_intro'))}</div>`;
 
   if (settingsState.formMode) {
     html += '<div style="margin-top: 12px;">' + renderSyncForm() + '</div>';
