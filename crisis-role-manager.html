@@ -4120,6 +4120,15 @@ const Sync = (function() {
     state.sources.push(source);
     save(state);
     _emitChange();
+    // V2.0: Poller-Wiring zentral hier — alle Aufrufer (UI, Bundle-Restore,
+    // Tests, künftige API-Calls) registrieren automatisch beim Poller.
+    // typeof-Guard: SyncPoller-IIFE wird textuell NACH Sync definiert, also
+    // ist SyncPoller zur Sync-Definitionszeit undefined; zur Aufrufzeit von
+    // addSource() existiert er aber.
+    if (typeof SyncPoller !== 'undefined' && SyncPoller.registerSource) {
+      try { SyncPoller.registerSource(source.id); }
+      catch (e) { console.warn('SyncPoller.registerSource failed:', e && e.message); }
+    }
     return source;
   }
 
@@ -4134,6 +4143,12 @@ const Sync = (function() {
   }
 
   function removeSource(id) {
+    // V2.0: Poller VOR Sources-Array-Mutation abräumen, damit kein Timer auf
+    // einer gerade gelöschten Source weiterläuft. typeof-Guard wie addSource().
+    if (typeof SyncPoller !== 'undefined' && SyncPoller.unregisterSource) {
+      try { SyncPoller.unregisterSource(id); }
+      catch (e) { console.warn('SyncPoller.unregisterSource failed:', e && e.message); }
+    }
     const state = load();
     state.sources = state.sources.filter(s => s.id !== id);
     save(state);
@@ -4923,12 +4938,7 @@ const SyncBundle = (function() {
       config: cfgClone,
       encryption: encryptionForSrc,
     });
-
-    // V2.0: Bundle-Restore-Source ebenfalls beim Poller registrieren.
-    if (savedSource) {
-      try { SyncPoller.registerSource(savedSource.id); }
-      catch (e) { console.warn('SyncPoller.registerSource failed:', e && e.message); }
-    }
+    // Poller-Wiring nun zentral in Sync.addSource()
 
     if (bundle.type === 'fileSystem' && dirHandle) {
       await SyncFileStore.setHandle(savedSource.id, dirHandle);
@@ -13945,11 +13955,7 @@ async function syncFormSave() {
       config,
       encryption,
     });
-    // V2.0: neue Source im Poller eintragen (autoMode default 'off' → kein Tick)
-    if (savedSource) {
-      try { SyncPoller.registerSource(savedSource.id); }
-      catch (e) { console.warn('SyncPoller.registerSource failed:', e && e.message); }
-    }
+    // Poller-Wiring nun zentral in Sync.addSource()
     showToast(t('toast.sync_source_added'), 'success');
   }
 
@@ -13984,10 +13990,7 @@ async function syncDeleteSource(sourceId, label) {
   const msg = t('settings.sync_delete_confirm', { label: label || '' });
   if (!window.confirm(msg)) return;
   const src = Sync.getSource(sourceId);
-  // V2.0: Poller VOR Sync.removeSource() abräumen, damit kein Timer auf
-  // einer gerade gelöschten Source weiterläuft.
-  try { SyncPoller.unregisterSource(sourceId); }
-  catch (e) { console.warn('SyncPoller.unregisterSource failed:', e && e.message); }
+  // Poller-Wiring nun zentral in Sync.removeSource() (räumt vor Mutation auf)
   Sync.removeSource(sourceId);
   // Bei fileSystem: zusätzlich den DirectoryHandle aus IndexedDB entfernen.
   if (src && src.type === 'fileSystem') {
