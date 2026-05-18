@@ -4995,15 +4995,30 @@ const SyncBundle = (function() {
 })();
 
 /* =========================================================================
-   SYNC POLLER — V2.0 AUTO-SYNC SKELETON (Schritt 2)
+   SYNC POLLER — V2.0 AUTO-SYNC (Schritt 3: Backoff + 3-Class Errors + Tick)
    --------------------------------------------------------------------------
-   Verantwortet das Polling von Sync-Quellen im 'status'-Modus. Schritt 2
-   liefert nur das Skeleton: API-Surface, RAM-Runtime, globale Listener
-   für Visibility (D3) und Online/Offline (H1). KEINE Timer, KEIN fetch(),
-   KEIN Backoff — das kommt in Schritt 3.
+   Verantwortet das aktive Polling von Sync-Quellen im 'status'-Modus. Auf
+   dem Skeleton aus Schritt 2 (API-Surface, RAM-Runtime, Visibility/Online-
+   Listener) sitzt jetzt der Tick-Loop:
 
-   Mode-Constraint: SyncPoller ruft ausschließlich mit mode='status' auf
-   (POLL_MODE-Konstante). 'full' bleibt der Data-UI vorbehalten.
+     - Pro Source rekursiver setTimeout mit effektivem Intervall
+         max(base * visibilityMultiplier, errorDelayMs)
+     - Drei-Klassen-Fehler-Modell (transient | auth | permission)
+         transient   -> exponential backoff (Cap 16× baseInterval)
+         auth        -> autoMode='off' für diese Source + authError-Flag
+         permission  -> permissionRequired=true, hard-pause der Source
+     - visibilitychange -> visible: nur visibilityMultiplier reset, kein
+       errorDelayMs-Reset (H4-Akzeptanzkriterium)
+     - online-event: direkter Tick aller aktiven Sources (H1)
+     - lastAutoPollError ist sanitized (status + stripped message + iso +
+       class); KEIN Response-Body, KEIN WWW-Authenticate, KEIN Token-Bleed
+
+   Mode-Constraint (Security Watch 7): Auto-Polling ruft ausschließlich
+   Sync.pull(id, { mode: POLL_MODE='status' }). 'full' bleibt der Data-UI
+   vorbehalten.
+
+   Toast-System für authError/permissionRequired kommt in Schritt 6;
+   hier nur console.warn als Platzhalter.
 
    Konstanten sind als SyncPoller.CONSTANTS exportiert — Settings-UI in
    Schritt 5 konsumiert daraus die Min/Max/Default-Werte.
@@ -5014,9 +5029,15 @@ const SyncPoller = (function() {
   // ---- Constants (Single-Source-of-Truth, von Settings-UI konsumiert) ----
   const POLL_MODE = 'status';              // immer status, nie data (Mode-Constraint)
   const VISIBILITY_HIDDEN_MULTIPLIER = 4;  // D3: Tab hidden -> Intervall × 4
-  const POLL_INTERVAL_MIN_SEC = 15;        // Spec-Floor
+  // Security-Reviewer Watch-Point 3: konservativer Floor 30s statt 15s.
+  // V2.0 führt zum ersten Mal automatisches Polling ein — defensiver Floor
+  // schützt gegen versehentliche Last (Spec-Bug, korrupte Persistenz,
+  // Settings-UI-Bug). Power-User-Override wäre ein separates Future-Feature
+  // mit explizitem Opt-In.
+  const POLL_INTERVAL_MIN_SEC = 30;
   const POLL_INTERVAL_MAX_SEC = 300;       // Spec-Cap
   const POLL_INTERVAL_DEFAULT_SEC = 90;    // Spec-Default
+  const BACKOFF_MAX_MULTIPLIER = 16;       // Spec: errorDelay <= 16× baseInterval
 
   // ---- RAM-only Runtime-State (NIE persistiert) ----
   // Map<sourceId, RuntimeState>. Verschwindet beim Tab-Reload — das ist
@@ -5027,11 +5048,12 @@ const SyncPoller = (function() {
   function _defaultRuntime(sourceId) {
     return {
       sourceId: sourceId,
-      timerId: null,             // setTimeout-Handle (Schritt 3)
-      consecutiveFailures: 0,    // Backoff-Counter (Schritt 3)
-      errorDelayMs: 0,           // aktueller Backoff-Delay (Schritt 3)
+      timerId: null,             // setTimeout-Handle
+      consecutiveFailures: 0,    // Backoff-Counter
+      errorDelayMs: 0,           // aktueller Backoff-Delay (RAM, nicht persistiert)
       lastTickAt: null,          // performance.now() Timestamp, Diagnose
       nextTickAt: null,          // Wand-Zeit-Timestamp (ms epoch) für getStats()
+      inFlight: false,           // Re-Entrancy-Guard: kein Overlap pro Source
     };
   }
 
@@ -5048,25 +5070,271 @@ const SyncPoller = (function() {
     offlineListener: null,
   };
 
+  // ---- Helpers: Sync-State lookup ----
+
+  function _loadState() {
+    try { return Sync.load(); }
+    catch (e) { return null; }
+  }
+
+  function _getSource(state, sourceId) {
+    if (!state || !Array.isArray(state.sources)) return null;
+    for (const s of state.sources) if (s.id === sourceId) return s;
+    return null;
+  }
+
+  // ---- Helpers: Error sanitization (Security Watch 2) ----
+  //
+  // lastAutoPollError landet in localStorage. Wir geben NUR weiter:
+  //   - status/code (numerisch)
+  //   - sanitized message (max 200 chars, URLs/Tokens entfernt)
+  //   - ISO timestamp
+  //   - Klassifikation
+  // KEIN Response-Body, KEIN WWW-Authenticate-Header, KEINE Query-Strings,
+  // keine Passphrase-Bestandteile.
+
+  function _stripUrlsAndTokens(s) {
+    if (typeof s !== 'string') return '';
+    return s
+      .replace(/https?:\/\/\S+/gi, '[url]')
+      .replace(/Bearer\s+\S+/gi, 'Bearer [token]')
+      .replace(/[?&](token|password|passphrase|secret|key|auth)=\S+/gi, '?[redacted]');
+  }
+
+  function _sanitizeErrorForStorage(error, errorClass) {
+    const code = (error && (error.code != null ? error.code : error.status));
+    const rawMessage = error && error.message ? String(error.message) : '';
+    return {
+      code: typeof code === 'number' ? code : null,
+      message: _stripUrlsAndTokens(rawMessage).slice(0, 200),
+      at: new Date().toISOString(),
+      class: errorClass,
+    };
+  }
+
+  // ---- Helpers: Error classification (3-Klassen-Modell) ----
+
+  function _classifyError(error) {
+    if (!error) return 'transient';
+    const code = (error.code != null ? error.code : error.status);
+    if (code === 401 || code === 403) return 'auth';
+    if (error.name === 'NotAllowedError' || error.name === 'NotFoundError') return 'permission';
+    // PassphraseRequiredError aus dem V1.3-Sync-Modul ist KEIN auth-Fehler
+    // im Sinne des Polls — Passphrase ist clientseitig und kommt durch
+    // Cache-Verlust beim Reload. Behandeln wir transient: das Settings-UI
+    // (Schritt 5) wird Passphrase-Prompts beim Resume separat surfaceisieren.
+    // ConfigDriftError -> transient, weil das passend ist (User pushed
+    // gerade einen neuen Config-Stand, Drift löst sich beim nächsten
+    // Status-Pull auf, kein autoMode-Wechsel nötig).
+    return 'transient';
+  }
+
+  // ---- Tick loop ----
+
+  function _baseMs(source) {
+    const sec = (source && typeof source.pollIntervalSec === 'number')
+      ? source.pollIntervalSec
+      : POLL_INTERVAL_DEFAULT_SEC;
+    // Clamp gegen Floor und Cap, damit eine korrupte/alte Persistenz uns
+    // nicht unter 30s drückt (Security Watch 3 defensiv).
+    const clamped = Math.min(Math.max(sec, POLL_INTERVAL_MIN_SEC), POLL_INTERVAL_MAX_SEC);
+    return clamped * 1000;
+  }
+
+  function _effectiveDelayMs(source, runtime) {
+    const baseMs = _baseMs(source);
+    const visibilityAdjusted = baseMs * _global.visibilityMultiplier;
+    return Math.max(visibilityAdjusted, runtime.errorDelayMs || 0);
+  }
+
+  function _scheduleNext(sourceId, source, runtime, overrideDelayMs) {
+    if (runtime.timerId !== null) {
+      clearTimeout(runtime.timerId);
+      runtime.timerId = null;
+    }
+    const delay = (typeof overrideDelayMs === 'number')
+      ? overrideDelayMs
+      : _effectiveDelayMs(source, runtime);
+    runtime.nextTickAt = Date.now() + delay;
+    runtime.timerId = setTimeout(() => _tick(sourceId), delay);
+  }
+
+  function _shouldSkipTick(source) {
+    // Reihenfolge: harte Blocker zuerst (paused/online),
+    // dann Source-spezifische (autoMode/permission/auth).
+    if (_global.paused) return 'paused';
+    if (!_global.isOnline) return 'offline';
+    if (!source) return 'no-source';
+    if (source.autoMode === 'off') return 'auto-off';
+    if (source.permissionRequired === true) return 'permission';
+    if (source.authError && source.authError.acknowledged === false) return 'auth';
+    return null;
+  }
+
+  async function _tick(sourceId) {
+    const runtime = _runtime.get(sourceId);
+    if (!runtime) return;
+    runtime.timerId = null;
+
+    // Re-Entrancy: ein laufender Tick darf nicht überlappt werden.
+    // Sollte durch sauberes Scheduling nie passieren, aber Defense-in-Depth.
+    if (runtime.inFlight) {
+      const state = _loadState();
+      const source = _getSource(state, sourceId);
+      if (source) _scheduleNext(sourceId, source, runtime);
+      return;
+    }
+
+    const state = _loadState();
+    const source = _getSource(state, sourceId);
+    if (!source) {
+      // Source verschwand — kein neuer Timer. unregisterSource() entfernt
+      // den runtime-Eintrag separat.
+      return;
+    }
+
+    const skipReason = _shouldSkipTick(source);
+    if (skipReason) {
+      // Backoff-Variablen NICHT anfassen — H4: errorDelayMs überlebt
+      // visibility/offline-Phasen. Wenn autoMode='off' oder permission/auth
+      // blockieren: keinen neuen Timer planen (Hard-Pause der Source).
+      if (skipReason === 'auto-off' || skipReason === 'permission' || skipReason === 'auth') {
+        return;
+      }
+      // Sonst (paused/offline): nächsten Timer einplanen, Backoff
+      // läuft weiter.
+      _scheduleNext(sourceId, source, runtime);
+      return;
+    }
+
+    runtime.inFlight = true;
+    runtime.lastTickAt = (typeof performance !== 'undefined' && performance.now)
+      ? performance.now()
+      : Date.now();
+
+    let resultClass = 'success';
+    let sanitizedError = null;
+
+    try {
+      // POLL_MODE-Constraint (Security Watch 7): hartcodiert 'status'.
+      // Sync.pull respektiert opts.mode (V1.3-API). Auto-Polling darf
+      // NIE 'full' triggern — das ist der Data-UI vorbehalten.
+      await Sync.pull(sourceId, { mode: POLL_MODE });
+    } catch (e) {
+      resultClass = _classifyError(e);
+      sanitizedError = _sanitizeErrorForStorage(e, resultClass);
+    } finally {
+      runtime.inFlight = false;
+    }
+
+    // State neu laden — pull() könnte selbst geschrieben haben.
+    const post = _loadState();
+    const persistedSource = _getSource(post, sourceId);
+    if (!persistedSource) {
+      // Source wurde währenddessen entfernt.
+      return;
+    }
+
+    if (resultClass === 'success') {
+      runtime.consecutiveFailures = 0;
+      runtime.errorDelayMs = 0;
+      persistedSource.lastAutoPollAt = new Date().toISOString();
+      persistedSource.lastAutoPollError = null;
+      // H2: bei erfolgreicher Antwort einen ggf. ausstehenden authError
+      // automatisch löschen (Recovery-Pfad). permissionRequired bleibt,
+      // weil ein erfolgreicher pull nach FS-Re-Grant separat in der UI
+      // bestätigt werden muss.
+      if (persistedSource.authError) persistedSource.authError = null;
+      try { Sync.save(post); } catch (e) { /* swallow */ }
+      _scheduleNext(sourceId, persistedSource, runtime);
+      return;
+    }
+
+    if (resultClass === 'transient') {
+      runtime.consecutiveFailures += 1;
+      // Exponential: 2^n bis Cap 16×.
+      const baseMs = _baseMs(persistedSource);
+      const factor = Math.min(Math.pow(2, runtime.consecutiveFailures), BACKOFF_MAX_MULTIPLIER);
+      runtime.errorDelayMs = baseMs * factor;
+      persistedSource.lastAutoPollError = sanitizedError;
+      try { Sync.save(post); } catch (e) { /* swallow */ }
+      // Watch-Point 6: console.debug ohne URLs/Tokens. sourceId.slice(0,8)
+      // ist eine random ID — kein PII.
+      console.debug('[SyncPoller] transient failure', sourceId.slice(0, 8),
+        'fails=' + runtime.consecutiveFailures, 'delayMs=' + runtime.errorDelayMs);
+      _scheduleNext(sourceId, persistedSource, runtime);
+      return;
+    }
+
+    if (resultClass === 'auth') {
+      // H2: autoMode='off' für DIESE Source. Toast kommt in Schritt 6.
+      persistedSource.autoMode = 'off';
+      persistedSource.authError = {
+        timestamp: new Date().toISOString(),
+        code: sanitizedError ? sanitizedError.code : null,
+        acknowledged: false,
+      };
+      persistedSource.lastAutoPollError = sanitizedError;
+      try { Sync.save(post); } catch (e) { /* swallow */ }
+      console.warn('[SyncPoller] auth error -> autoMode=off for source', sourceId.slice(0, 8));
+      // Kein Reschedule: Hard-Pause bis User-Aktion.
+      return;
+    }
+
+    if (resultClass === 'permission') {
+      // H5: FS-Handle verlor User-Activation. Settings-UI bietet
+      // "Re-grant" Button (Schritt 5/6). Hier nur Flag setzen.
+      persistedSource.permissionRequired = true;
+      persistedSource.lastAutoPollError = sanitizedError;
+      try { Sync.save(post); } catch (e) { /* swallow */ }
+      console.warn('[SyncPoller] permission required for source', sourceId.slice(0, 8));
+      // Kein Reschedule: Hard-Pause bis User-Aktion.
+      return;
+    }
+  }
+
+  function _rescheduleAllActive(directTick) {
+    const state = _loadState();
+    if (!state || !Array.isArray(state.sources)) return;
+    const sourcesById = {};
+    for (const s of state.sources) sourcesById[s.id] = s;
+
+    _runtime.forEach((runtime, sourceId) => {
+      const source = sourcesById[sourceId];
+      if (!source) return;
+      if (source.autoMode === 'off') return;
+      if (source.permissionRequired === true) return;
+      if (source.authError && source.authError.acknowledged === false) return;
+      if (directTick) {
+        // Sofort-Tick: 0ms delay. Falls schon inFlight, _tick() blockt
+        // durch den Re-Entrancy-Guard.
+        _scheduleNext(sourceId, source, runtime, 0);
+      } else {
+        _scheduleNext(sourceId, source, runtime);
+      }
+    });
+  }
+
   // ---- Listener-Handler ----
 
   function _onVisibilityChange() {
     const hidden = (typeof document !== 'undefined') && document.hidden === true;
     _global.visibilityMultiplier = hidden ? VISIBILITY_HIDDEN_MULTIPLIER : 1;
     if (!hidden) {
-      // D3: Tab wieder sichtbar — Schritt 3 wird hier den direkten Tick
-      // anstoßen, damit der User nicht auf das nächste Intervall wartet.
-      console.debug('[SyncPoller] visibility -> visible (skeleton: no tick yet)');
+      // H4-Akzeptanzkriterium: NUR visibilityMultiplier resetten,
+      // errorDelayMs bleibt unangetastet. Sources mit aktivem Backoff
+      // erholen sich weiterhin gemäß ihrer eigenen Kurve.
+      console.debug('[SyncPoller] visibility -> visible');
+      _rescheduleAllActive(/*directTick*/ false);
     } else {
-      console.debug('[SyncPoller] visibility -> hidden (multiplier ×' + VISIBILITY_HIDDEN_MULTIPLIER + ')');
+      console.debug('[SyncPoller] visibility -> hidden (multiplier x' + VISIBILITY_HIDDEN_MULTIPLIER + ')');
+      _rescheduleAllActive(/*directTick*/ false);
     }
   }
 
   function _onOnline() {
     _global.isOnline = true;
     // H1: offlineSince zurücksetzen, sobald wir wieder online sind.
-    // Wir schreiben nur, wenn auch tatsächlich ein Wert gesetzt war —
-    // unnötige save()-Roundtrips vermeiden.
     try {
       const state = Sync.load();
       if (state && state.auto && state.auto.offlineSince !== null) {
@@ -5076,15 +5344,14 @@ const SyncPoller = (function() {
     } catch (e) {
       console.warn('[SyncPoller] online handler: Sync.load/save failed:', e && e.message);
     }
-    // Schritt 3: hier wird ein direkter Tick pro Source mit autoMode!='off'
-    // angestoßen, damit User sofort frische Daten sehen.
-    console.debug('[SyncPoller] online (skeleton: no tick yet)');
+    // H1: Direkter Tick für alle aktiven Sources — User soll nicht auf
+    // das nächste Intervall warten müssen.
+    console.debug('[SyncPoller] online -> direct tick for active sources');
+    _rescheduleAllActive(/*directTick*/ true);
   }
 
   function _onOffline() {
     _global.isOnline = false;
-    // H1: offlineSince stempeln, aber NUR wenn noch kein Wert existiert.
-    // Das schützt die Anzeige "offline seit X" gegen Flapping.
     try {
       const state = Sync.load();
       if (state && state.auto && state.auto.offlineSince === null) {
@@ -5094,9 +5361,8 @@ const SyncPoller = (function() {
     } catch (e) {
       console.warn('[SyncPoller] offline handler: Sync.load/save failed:', e && e.message);
     }
-    // Schritt 3: hier werden laufende Fetches abgebrochen — Schritt 2 hat
-    // noch keine Fetches im Spiel.
     console.debug('[SyncPoller] offline');
+    // Ticks werden in _shouldSkipTick() abgewiesen, Timer laufen weiter.
   }
 
   // ---- Lifecycle ----
@@ -5105,8 +5371,6 @@ const SyncPoller = (function() {
     if (_global.started) return;
     _global.started = true;
 
-    // Initialen Visibility-Zustand übernehmen (Tab könnte beim Boot
-    // schon hidden sein).
     if (typeof document !== 'undefined') {
       _global.visibilityMultiplier = document.hidden === true
         ? VISIBILITY_HIDDEN_MULTIPLIER
@@ -5126,15 +5390,19 @@ const SyncPoller = (function() {
   function stop() {
     if (!_global.started) return;
 
-    // Alle Timer in _runtime stoppen — Schritt 3 setzt timerId; in
-    // Schritt 2 ist timerId immer null, der Loop ist dennoch korrekt.
+    // Watch-Point 5: stop() ist vollständiger Lifecycle-Reset (z.B. Tab-
+    // Cleanup, Source-Komplettentfernung). Wir leeren _runtime hier,
+    // damit ein späteres start() mit sauberen Backoff-Countern startet.
+    // pause() hingegen behält die Counter, weil pause() für User-Wartung
+    // gedacht ist und der Backoff sich nur durch echten Erfolg auflösen
+    // soll.
     _runtime.forEach((rt) => {
       if (rt.timerId !== null) {
         clearTimeout(rt.timerId);
         rt.timerId = null;
       }
-      rt.nextTickAt = null;
     });
+    _runtime.clear();
 
     if (_global.visibilityListener && typeof document !== 'undefined') {
       document.removeEventListener('visibilitychange', _global.visibilityListener);
@@ -5153,15 +5421,27 @@ const SyncPoller = (function() {
   }
 
   function pause() {
+    if (_global.paused) return;
     _global.paused = true;
-    // Schritt 3: laufende Timer werden hier deaktiviert; Skeleton hat
-    // noch keine.
+    // Watch-Point 5: laufende Timer cancelen, aber _runtime behalten.
+    // consecutiveFailures und errorDelayMs überleben resume() — bewusste
+    // Entscheidung: wenn Backend tot war und User während der Wartung
+    // pausiert/resumed, soll der Backoff sich erst durch echten Erfolg
+    // (success-Branch in _tick) auflösen.
+    _runtime.forEach((rt) => {
+      if (rt.timerId !== null) {
+        clearTimeout(rt.timerId);
+        rt.timerId = null;
+      }
+      rt.nextTickAt = null;
+    });
   }
 
   function resume() {
+    if (!_global.paused) return;
     _global.paused = false;
-    // Schritt 3: hier werden Timer wieder gestartet für alle Sources mit
-    // autoMode!='off'.
+    // Alle aktiven Sources mit ihrem aktuellen errorDelayMs neu planen.
+    _rescheduleAllActive(/*directTick*/ false);
   }
 
   // ---- Source-Registrierung ----
@@ -5169,10 +5449,20 @@ const SyncPoller = (function() {
   function registerSource(sourceId) {
     if (!sourceId || typeof sourceId !== 'string') return;
     if (_runtime.has(sourceId)) return;        // idempotent
-    _runtime.set(sourceId, _defaultRuntime(sourceId));
-    // Schritt 3: hier wird der erste Timer gestartet, sofern
-    // started === true und autoMode !== 'off'. In Schritt 2 bleibt
-    // timerId null — sauberer Eintrag ohne Tick.
+    const runtime = _defaultRuntime(sourceId);
+    _runtime.set(sourceId, runtime);
+
+    // Wenn Poller schon läuft UND die Source autoMode!=='off' hat:
+    // ersten Timer aufsetzen. Sonst (autoMode='off' oder Poller noch
+    // nicht gestartet) bleibt timerId null — sauberer Eintrag ohne Tick.
+    if (!_global.started) return;
+    const state = _loadState();
+    const source = _getSource(state, sourceId);
+    if (!source) return;
+    if (source.autoMode === 'off') return;
+    if (source.permissionRequired === true) return;
+    if (source.authError && source.authError.acknowledged === false) return;
+    _scheduleNext(sourceId, source, runtime);
   }
 
   function unregisterSource(sourceId) {
@@ -5214,8 +5504,12 @@ const SyncPoller = (function() {
           : POLL_INTERVAL_DEFAULT_SEC,
         lastAutoPollAt: src.lastAutoPollAt || null,
         lastAutoPollError: src.lastAutoPollError || null,
+        authError: src.authError || null,
+        permissionRequired: src.permissionRequired === true,
         consecutiveFailures: rt.consecutiveFailures,
+        errorDelayMs: rt.errorDelayMs,
         nextTickAt: rt.nextTickAt,
+        inFlight: rt.inFlight === true,
         isOnline: _global.isOnline,
         isPaused: _global.paused,
         visibilityMultiplier: _global.visibilityMultiplier,
@@ -5237,6 +5531,7 @@ const SyncPoller = (function() {
       POLL_INTERVAL_MIN_SEC,
       POLL_INTERVAL_MAX_SEC,
       POLL_INTERVAL_DEFAULT_SEC,
+      BACKOFF_MAX_MULTIPLIER,
     },
   };
 })();
