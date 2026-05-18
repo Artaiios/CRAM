@@ -2432,6 +2432,215 @@ button:focus-visible,
   }
 }
 
+/* V2.0 Schritt 5: per-source Auto-Sync-Akkordeon im Settings-Sync-Tab.
+   Klappbarer Bereich unterhalb der Source-Row. State pro Source nur im RAM
+   (settingsState.expandedAccordions Set). */
+.sync-source-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.sync-auto-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-top: none;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  width: 100%;
+}
+.sync-auto-toggle:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+.sync-auto-toggle-caret {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  transition: transform 0.15s ease;
+}
+.sync-auto-toggle[data-expanded="true"] .sync-auto-toggle-caret {
+  transform: rotate(90deg);
+}
+.sync-auto-mode-summary {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+}
+.sync-auto-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--accent);
+  border-top: none;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+}
+.sync-auto-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sync-auto-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
+.sync-auto-mode-radios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.sync-auto-mode-radios label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.sync-auto-mode-radios label:hover {
+  border-color: var(--text-secondary);
+  color: var(--text-primary);
+}
+.sync-auto-mode-radios input[type="radio"] {
+  margin: 0;
+  cursor: pointer;
+}
+.sync-auto-mode-radios input[type="radio"]:checked + span {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.sync-auto-interval-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sync-auto-interval-row input[type="range"] {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.sync-auto-interval-value {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-primary);
+  min-width: 80px;
+  text-align: right;
+}
+.sync-auto-stats {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 12px;
+  font-size: 12px;
+}
+.sync-auto-stats-label {
+  color: var(--text-secondary);
+}
+.sync-auto-stats-value {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  word-break: break-word;
+}
+.sync-auto-stats-value.is-error {
+  color: var(--status-critical);
+}
+.sync-auto-badge {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  border: 1px solid;
+}
+.sync-auto-badge.is-auth {
+  background: var(--status-critical-bg);
+  border-color: var(--status-critical-border);
+  color: var(--status-critical);
+}
+.sync-auto-badge.is-permission {
+  background: var(--status-warn-bg);
+  border-color: var(--status-warn-border);
+  color: var(--status-warn);
+}
+.sync-auto-badge.is-recovery {
+  background: var(--status-warn-deep-bg);
+  border-color: var(--status-warn-deep-border);
+  color: var(--status-warn-deep);
+}
+.sync-auto-badge-text {
+  flex: 1;
+  min-width: 0;
+}
+.sync-auto-badge-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.sync-auto-badge button {
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-family: inherit;
+}
+.sync-auto-badge button:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+@media (max-width: 600px) {
+  .sync-auto-accordion {
+    padding: 12px;
+  }
+  .sync-auto-accordion button,
+  .sync-auto-accordion input[type="range"],
+  .sync-auto-accordion select {
+    min-height: 44px;
+  }
+  .sync-auto-mode-radios label {
+    min-height: 44px;
+    box-sizing: border-box;
+  }
+  .sync-auto-toggle {
+    min-height: 44px;
+  }
+  .sync-auto-stats {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+  .sync-auto-stats-label {
+    margin-top: 4px;
+  }
+  .sync-auto-interval-row {
+    flex-wrap: wrap;
+  }
+  .sync-auto-interval-value {
+    text-align: left;
+    width: 100%;
+  }
+}
+
 /* Form für Add/Edit HTTP-Source */
 .sync-form {
   display: flex;
@@ -6263,6 +6472,28 @@ const TRANSLATIONS = {
     'sync.migration_banner.body': 'CRAM kann Sync-Sources jetzt automatisch im Hintergrund abgleichen. Die Funktion ist pro Source deaktiviert und muss bewusst eingeschaltet werden. Bestehende Sources bleiben unverändert im manuellen Modus.',
     'sync.migration_banner.cta_settings': 'Quellen anzeigen',
     'sync.migration_banner.dismiss': 'Verstanden',
+    // V2.0 Schritt 5: per-source Auto-Sync-Akkordeon
+    'sync.auto.section_title': 'Auto-Sync',
+    'sync.auto.mode_label': 'Modus',
+    'sync.auto.mode_off': 'Aus',
+    'sync.auto.mode_pull': 'Nur Pull',
+    'sync.auto.mode_push': 'Nur Push',
+    'sync.auto.mode_bidirectional': 'Bidirektional',
+    'sync.auto.interval_label': 'Polling-Intervall',
+    'sync.auto.interval_unit': 'Sek.',
+    'sync.auto.stats_section_title': 'Status',
+    'sync.auto.stats_last_poll': 'Letzter Auto-Poll',
+    'sync.auto.stats_last_error': 'Letzter Fehler',
+    'sync.auto.stats_consecutive_failures': 'Aufeinanderfolgende Fehler',
+    'sync.auto.stats_never': 'nie',
+    'sync.auto.stats_none': 'kein',
+    'sync.auto.badge_auth': 'Authentifizierung abgelaufen — neu anmelden',
+    'sync.auto.badge_permission': 'Dateizugriff erneut bestätigen',
+    'sync.auto.badge_recovery': 'Push hängt — Recovery nötig',
+    'sync.auto.btn_grant_access': 'Zugriff gewähren',
+    'sync.auto.btn_retry_push': 'Erneut versuchen',
+    'sync.auto.btn_discard_push': 'Verwerfen',
+    'sync.auto.grant_no_handle': 'Kein Verzeichnis-Handle gespeichert. Bitte Quelle bearbeiten und Verzeichnis neu auswählen.',
     'settings.sync_add_http': 'Neue HTTP-Source',
     'settings.sync_form_add_title': 'Neue HTTP-Source anlegen',
     'settings.sync_form_edit_title': 'HTTP-Source bearbeiten',
@@ -6787,6 +7018,28 @@ const TRANSLATIONS = {
     'sync.migration_banner.body': 'CRAM can now reconcile sync sources automatically in the background. The feature is off per source and must be enabled deliberately. Existing sources remain in manual mode.',
     'sync.migration_banner.cta_settings': 'Show sources',
     'sync.migration_banner.dismiss': 'Got it',
+    // V2.0 step 5: per-source auto-sync accordion
+    'sync.auto.section_title': 'Auto-sync',
+    'sync.auto.mode_label': 'Mode',
+    'sync.auto.mode_off': 'Off',
+    'sync.auto.mode_pull': 'Pull only',
+    'sync.auto.mode_push': 'Push only',
+    'sync.auto.mode_bidirectional': 'Bidirectional',
+    'sync.auto.interval_label': 'Polling interval',
+    'sync.auto.interval_unit': 'sec',
+    'sync.auto.stats_section_title': 'Status',
+    'sync.auto.stats_last_poll': 'Last auto-poll',
+    'sync.auto.stats_last_error': 'Last error',
+    'sync.auto.stats_consecutive_failures': 'Consecutive failures',
+    'sync.auto.stats_never': 'never',
+    'sync.auto.stats_none': 'none',
+    'sync.auto.badge_auth': 'Authentication expired — sign in again',
+    'sync.auto.badge_permission': 'File access needs confirmation',
+    'sync.auto.badge_recovery': 'Push stuck — recovery needed',
+    'sync.auto.btn_grant_access': 'Grant access',
+    'sync.auto.btn_retry_push': 'Retry',
+    'sync.auto.btn_discard_push': 'Discard',
+    'sync.auto.grant_no_handle': 'No directory handle stored. Please edit the source and pick the directory again.',
     'settings.sync_add_http': 'New HTTP source',
     'settings.sync_form_add_title': 'Add a new HTTP source',
     'settings.sync_form_edit_title': 'Edit HTTP source',
@@ -7310,6 +7563,28 @@ const TRANSLATIONS = {
     'sync.migration_banner.body': 'CRAM ahora puede reconciliar las fuentes de sincronización automáticamente en segundo plano. La función está desactivada por fuente y debe habilitarse de forma explícita. Las fuentes existentes permanecen en modo manual.',
     'sync.migration_banner.cta_settings': 'Mostrar fuentes',
     'sync.migration_banner.dismiss': 'Entendido',
+    // V2.0 paso 5: acordeón de sincronización automática por fuente
+    'sync.auto.section_title': 'Sincronización automática',
+    'sync.auto.mode_label': 'Modo',
+    'sync.auto.mode_off': 'Desactivado',
+    'sync.auto.mode_pull': 'Solo recepción',
+    'sync.auto.mode_push': 'Solo envío',
+    'sync.auto.mode_bidirectional': 'Bidireccional',
+    'sync.auto.interval_label': 'Intervalo de sondeo',
+    'sync.auto.interval_unit': 'seg',
+    'sync.auto.stats_section_title': 'Estado',
+    'sync.auto.stats_last_poll': 'Último sondeo automático',
+    'sync.auto.stats_last_error': 'Último error',
+    'sync.auto.stats_consecutive_failures': 'Errores consecutivos',
+    'sync.auto.stats_never': 'nunca',
+    'sync.auto.stats_none': 'ninguno',
+    'sync.auto.badge_auth': 'Autenticación expirada — iniciar sesión nuevamente',
+    'sync.auto.badge_permission': 'Confirmar acceso al archivo nuevamente',
+    'sync.auto.badge_recovery': 'Envío atascado — se necesita recuperación',
+    'sync.auto.btn_grant_access': 'Otorgar acceso',
+    'sync.auto.btn_retry_push': 'Reintentar',
+    'sync.auto.btn_discard_push': 'Descartar',
+    'sync.auto.grant_no_handle': 'No hay identificador de directorio guardado. Edita la fuente y vuelve a seleccionar el directorio.',
     'settings.sync_add_http': 'Nueva fuente HTTP',
     'settings.sync_form_add_title': 'Crear nueva fuente HTTP',
     'settings.sync_form_edit_title': 'Editar fuente HTTP',
@@ -7834,6 +8109,28 @@ const TRANSLATIONS = {
     'sync.migration_banner.body': 'CRAM peut désormais réconcilier les sources de synchronisation automatiquement en arrière-plan. La fonction est désactivée par source et doit être activée délibérément. Les sources existantes restent en mode manuel.',
     'sync.migration_banner.cta_settings': 'Afficher les sources',
     'sync.migration_banner.dismiss': 'Compris',
+    // V2.0 étape 5: accordéon de synchronisation automatique par source
+    'sync.auto.section_title': 'Synchronisation automatique',
+    'sync.auto.mode_label': 'Mode',
+    'sync.auto.mode_off': 'Désactivé',
+    'sync.auto.mode_pull': 'Réception seule',
+    'sync.auto.mode_push': 'Envoi seul',
+    'sync.auto.mode_bidirectional': 'Bidirectionnel',
+    'sync.auto.interval_label': 'Intervalle de sondage',
+    'sync.auto.interval_unit': 'sec',
+    'sync.auto.stats_section_title': 'Statut',
+    'sync.auto.stats_last_poll': 'Dernier sondage automatique',
+    'sync.auto.stats_last_error': 'Dernière erreur',
+    'sync.auto.stats_consecutive_failures': 'Échecs consécutifs',
+    'sync.auto.stats_never': 'jamais',
+    'sync.auto.stats_none': 'aucun',
+    'sync.auto.badge_auth': 'Authentification expirée — se reconnecter',
+    'sync.auto.badge_permission': 'Confirmer à nouveau l\'accès au fichier',
+    'sync.auto.badge_recovery': 'Envoi bloqué — récupération nécessaire',
+    'sync.auto.btn_grant_access': 'Accorder l\'accès',
+    'sync.auto.btn_retry_push': 'Réessayer',
+    'sync.auto.btn_discard_push': 'Abandonner',
+    'sync.auto.grant_no_handle': 'Aucun identifiant de répertoire enregistré. Modifiez la source et sélectionnez à nouveau le répertoire.',
     'settings.sync_add_http': 'Nouvelle source HTTP',
     'settings.sync_form_add_title': 'Ajouter une source HTTP',
     'settings.sync_form_edit_title': 'Modifier la source HTTP',
@@ -8360,6 +8657,29 @@ const TRANSLATIONS = {
     'sync.migration_banner.body': 'CRAM 现在可以在后台自动协调同步源。该功能默认按源关闭，需要手动启用。现有的同步源仍保持手动模式。',
     'sync.migration_banner.cta_settings': '显示源',
     'sync.migration_banner.dismiss': '知道了',
+    // V2.0 step 5: per-source auto-sync accordion
+    // TODO V2.0-GA: native ZH-speaker review required for sync.auto.* strings
+    'sync.auto.section_title': '自动同步',
+    'sync.auto.mode_label': '模式',
+    'sync.auto.mode_off': '关闭',
+    'sync.auto.mode_pull': '仅拉取',
+    'sync.auto.mode_push': '仅推送',
+    'sync.auto.mode_bidirectional': '双向',
+    'sync.auto.interval_label': '轮询间隔',
+    'sync.auto.interval_unit': '秒',
+    'sync.auto.stats_section_title': '状态',
+    'sync.auto.stats_last_poll': '上次自动轮询',
+    'sync.auto.stats_last_error': '上次错误',
+    'sync.auto.stats_consecutive_failures': '连续失败次数',
+    'sync.auto.stats_never': '从未',
+    'sync.auto.stats_none': '无',
+    'sync.auto.badge_auth': '认证已过期 — 请重新登录',
+    'sync.auto.badge_permission': '需要重新确认文件访问权限',
+    'sync.auto.badge_recovery': '推送卡住 — 需要恢复',
+    'sync.auto.btn_grant_access': '授予访问权限',
+    'sync.auto.btn_retry_push': '重试',
+    'sync.auto.btn_discard_push': '丢弃',
+    'sync.auto.grant_no_handle': '未保存目录句柄。请编辑源并重新选择目录。',
     'settings.sync_add_http': '新建 HTTP 源',
     'settings.sync_form_add_title': '添加新的 HTTP 源',
     'settings.sync_form_edit_title': '编辑 HTTP 源',
@@ -10033,6 +10353,17 @@ const CLICK_HANDLERS = {
   'bundle-import-file':     () => syncImportFromFile(),
   'bundle-import-apply':    () => syncImportApply(),
   'bundle-import-close':    () => syncImportClose(),
+
+  // V2.0 Schritt 5: Per-Source Auto-Sync-Akkordeon.
+  // Hinweis: -mode-change / -interval-change kommen vom change/input-Event
+  // (siehe renderSettingsModal-Bindings), nicht vom Click-Dispatcher — die
+  // Einträge hier dienen vor allem als Keyboard-Fallback und Dokumentation.
+  'sync-auto-toggle-accordion': (el) => syncAutoToggleAccordion(el.dataset.sourceId),
+  'sync-auto-mode-change':      (el) => syncAutoModeChange(el.dataset.sourceId, el.value),
+  'sync-auto-interval-change':  (el) => syncAutoIntervalChange(el.dataset.sourceId, el.value),
+  'sync-auto-grant-access':     (el) => syncAutoGrantAccess(el.dataset.sourceId),
+  'sync-auto-retry-push':       (el) => syncAutoRetryPush(el.dataset.sourceId),
+  'sync-auto-discard-push':     (el) => syncAutoDiscardPush(el.dataset.sourceId),
 };
 
 function handleGlobalClick(e) {
@@ -13919,11 +14250,15 @@ let settingsState = {
   editingSourceId: null,
   formMode: null,         // 'add' | 'edit' | null
   formSourceType: null,   // 'http' | 'fileSystem'
+  // V2.0 Schritt 5: expandedAccordions ist nur RAM, nicht persistiert.
+  // Set<sourceId>: welche Auto-Sync-Akkordeons sind aktuell aufgeklappt.
+  expandedAccordions: new Set(),
 };
 
 function openSettingsModal() {
   settingsState = {
     activeTab: 'general', editingSourceId: null, formMode: null, formSourceType: null,
+    expandedAccordions: new Set(),
   };
   renderSettingsModal();
 }
@@ -14001,6 +14336,22 @@ function renderSettingsModal() {
       const labelEl = document.getElementById('sync-form-label');
       if (labelEl) labelEl.focus();
     }, 50);
+  } else if (settingsState.activeTab === 'sync' && !settingsState.formMode) {
+    // V2.0 Schritt 5: Bindings für expanded Auto-Sync-Akkordeons.
+    // - radio:change → Mode-Wechsel
+    // - range:input  → Live-Label, debounced save (in syncAutoIntervalChange)
+    document.querySelectorAll('input[type="radio"][data-action="sync-auto-mode-change"]')
+      .forEach((el) => {
+        el.addEventListener('change', () => {
+          if (el.checked) syncAutoModeChange(el.dataset.sourceId, el.value);
+        });
+      });
+    document.querySelectorAll('input[type="range"][data-action="sync-auto-interval-change"]')
+      .forEach((el) => {
+        el.addEventListener('input', () => {
+          syncAutoIntervalChange(el.dataset.sourceId, el.value);
+        });
+      });
   }
 }
 
@@ -14123,18 +14474,33 @@ function renderSettingsSync() {
         metaLine = '';
       }
       const typeLabel = t('settings.sync_type_' + s.type) || s.type;
+      const expanded = settingsState.expandedAccordions
+        && settingsState.expandedAccordions.has(s.id);
+      const mode = s.autoMode || 'off';
+      const modeSummaryKey = 'sync.auto.mode_' + mode;
       html += `
-        <div class="sync-source-row">
-          <span class="sync-source-type-badge">${escapeHTML(typeLabel)}</span>
-          <div class="sync-source-info">
-            <div class="sync-source-label">${escapeHTML(s.label)}</div>
-            <div class="sync-source-meta">${escapeHTML(metaLine)}</div>
+        <div class="sync-source-card">
+          <div class="sync-source-row">
+            <span class="sync-source-type-badge">${escapeHTML(typeLabel)}</span>
+            <div class="sync-source-info">
+              <div class="sync-source-label">${escapeHTML(s.label)}</div>
+              <div class="sync-source-meta">${escapeHTML(metaLine)}</div>
+            </div>
+            <div class="sync-source-actions">
+              <button data-action="sync-share-source" data-source-id="${escapeHTML(s.id)}">${escapeHTML(t('settings.sync_btn_share'))}</button>
+              <button data-action="sync-edit-source" data-source-id="${escapeHTML(s.id)}">${escapeHTML(t('settings.sync_btn_edit'))}</button>
+              <button class="danger" data-action="sync-delete-source" data-source-id="${escapeHTML(s.id)}" data-label="${escapeHTML(s.label)}">${escapeHTML(t('settings.sync_btn_delete'))}</button>
+            </div>
           </div>
-          <div class="sync-source-actions">
-            <button data-action="sync-share-source" data-source-id="${escapeHTML(s.id)}">${escapeHTML(t('settings.sync_btn_share'))}</button>
-            <button data-action="sync-edit-source" data-source-id="${escapeHTML(s.id)}">${escapeHTML(t('settings.sync_btn_edit'))}</button>
-            <button class="danger" data-action="sync-delete-source" data-source-id="${escapeHTML(s.id)}" data-label="${escapeHTML(s.label)}">${escapeHTML(t('settings.sync_btn_delete'))}</button>
-          </div>
+          <button class="sync-auto-toggle"
+                  data-action="sync-auto-toggle-accordion"
+                  data-source-id="${escapeHTML(s.id)}"
+                  data-expanded="${expanded ? 'true' : 'false'}"
+                  aria-expanded="${expanded ? 'true' : 'false'}">
+            <span><span class="sync-auto-toggle-caret">▶</span> ${escapeHTML(t('sync.auto.section_title'))}</span>
+            <span class="sync-auto-mode-summary">${escapeHTML(t(modeSummaryKey))}</span>
+          </button>
+          ${expanded ? renderSyncAutoAccordion(s) : ''}
         </div>
       `;
     });
@@ -14153,6 +14519,145 @@ function renderSettingsSync() {
   }
 
   return html;
+}
+
+/* V2.0 Schritt 5: Auto-Sync-Akkordeon pro Source.
+   Drei Sektionen: Mode-Radios, Polling-Slider, Stats + Badges.
+   SECURITY: jede dynamische String-Interpolation in innerHTML MUSS durch
+   escapeHTML(). lastAutoPollError ist im Poller-Schritt 3 bereits sanitized,
+   aber escapeHTML hier ist Defense-in-Depth (Watch-Point 11). */
+function renderSyncAutoAccordion(source) {
+  const sid = source.id;
+  const mode = source.autoMode || 'off';
+  // Defensiver Floor (Schritt 3 Watch-Point 3): Slider darf nie unter
+  // POLL_INTERVAL_MIN_SEC=30 fallen. Default und Clamping passieren auch
+  // im Poller, aber hier setzen wir den UI-Wert konsistent.
+  const POLL_MIN = (typeof SyncPoller !== 'undefined' && SyncPoller.CONSTANTS)
+    ? SyncPoller.CONSTANTS.POLL_INTERVAL_MIN_SEC : 30;
+  const POLL_MAX = (typeof SyncPoller !== 'undefined' && SyncPoller.CONSTANTS)
+    ? SyncPoller.CONSTANTS.POLL_INTERVAL_MAX_SEC : 300;
+  const POLL_DEFAULT = (typeof SyncPoller !== 'undefined' && SyncPoller.CONSTANTS)
+    ? SyncPoller.CONSTANTS.POLL_INTERVAL_DEFAULT_SEC : 90;
+  let interval = (typeof source.pollIntervalSec === 'number')
+    ? source.pollIntervalSec : POLL_DEFAULT;
+  if (interval < POLL_MIN) interval = POLL_MIN;
+  if (interval > POLL_MAX) interval = POLL_MAX;
+
+  // Stats aus Poller-RAM (read-only Snapshot). Wenn der Poller die Source
+  // nicht (mehr) kennt, getStats() liefert leeres Array — wir fallen auf
+  // source-persisted Felder zurück.
+  let stats = null;
+  if (typeof SyncPoller !== 'undefined' && typeof SyncPoller.getStats === 'function') {
+    try {
+      const all = SyncPoller.getStats();
+      stats = all.find(x => x.sourceId === sid) || null;
+    } catch (e) { stats = null; }
+  }
+  const lastPoll = (stats && stats.lastAutoPollAt) || source.lastAutoPollAt || null;
+  const lastErr  = (stats && stats.lastAutoPollError) || source.lastAutoPollError || null;
+  const fails    = stats ? (stats.consecutiveFailures | 0) : 0;
+  const authErr  = (stats && stats.authError) || source.authError || null;
+  const permReq  = stats ? !!stats.permissionRequired : !!source.permissionRequired;
+  const pending  = (stats && stats.pendingPush) || source.pendingPush || null;
+  const recover  = stats ? !!stats.needsRecovery : false;
+
+  const radio = (val, key) => `
+    <label>
+      <input type="radio" name="sync-auto-mode-${escapeHTML(sid)}" value="${escapeHTML(val)}"
+             data-action="sync-auto-mode-change" data-source-id="${escapeHTML(sid)}"
+             ${mode === val ? 'checked' : ''} />
+      <span>${escapeHTML(t(key))}</span>
+    </label>
+  `;
+
+  // Stats-Werte mit escapeHTML — auch wenn sanitized, gilt Watch-Point 11.
+  const lastPollText = lastPoll
+    ? escapeHTML(formatDateTime(lastPoll))
+    : escapeHTML(t('sync.auto.stats_never'));
+  let lastErrText;
+  if (lastErr) {
+    const cls = lastErr.class || lastErr.code || '';
+    const msg = lastErr.message || '';
+    const combined = (cls ? cls + ': ' : '') + msg;
+    // Defense-in-Depth: explizit escapeHTML, obwohl Poller-Schritt 3 schon
+    // sanitized hat.
+    lastErrText = `<span class="is-error">${escapeHTML(combined)}</span>`;
+  } else {
+    lastErrText = escapeHTML(t('sync.auto.stats_none'));
+  }
+
+  // Badges (Watch-Point 11: alle Strings escaped).
+  let badges = '';
+  if (authErr) {
+    badges += `
+      <div class="sync-auto-badge is-auth" role="alert">
+        <span class="sync-auto-badge-text">${escapeHTML(t('sync.auto.badge_auth'))}</span>
+      </div>
+    `;
+  }
+  if (permReq) {
+    badges += `
+      <div class="sync-auto-badge is-permission" role="alert">
+        <span class="sync-auto-badge-text">${escapeHTML(t('sync.auto.badge_permission'))}</span>
+        <span class="sync-auto-badge-actions">
+          <button data-action="sync-auto-grant-access" data-source-id="${escapeHTML(sid)}">${escapeHTML(t('sync.auto.btn_grant_access'))}</button>
+        </span>
+      </div>
+    `;
+  }
+  if (pending || recover) {
+    badges += `
+      <div class="sync-auto-badge is-recovery" role="alert">
+        <span class="sync-auto-badge-text">${escapeHTML(t('sync.auto.badge_recovery'))}</span>
+        <span class="sync-auto-badge-actions">
+          <button data-action="sync-auto-retry-push" data-source-id="${escapeHTML(sid)}">${escapeHTML(t('sync.auto.btn_retry_push'))}</button>
+          <button data-action="sync-auto-discard-push" data-source-id="${escapeHTML(sid)}">${escapeHTML(t('sync.auto.btn_discard_push'))}</button>
+        </span>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="sync-auto-accordion" data-source-id="${escapeHTML(sid)}">
+      ${badges}
+
+      <div class="sync-auto-section">
+        <div class="sync-auto-section-title">${escapeHTML(t('sync.auto.mode_label'))}</div>
+        <div class="sync-auto-mode-radios">
+          ${radio('off',           'sync.auto.mode_off')}
+          ${radio('pull',          'sync.auto.mode_pull')}
+          ${radio('push',          'sync.auto.mode_push')}
+          ${radio('bidirectional', 'sync.auto.mode_bidirectional')}
+        </div>
+      </div>
+
+      <div class="sync-auto-section">
+        <div class="sync-auto-section-title">${escapeHTML(t('sync.auto.interval_label'))}</div>
+        <div class="sync-auto-interval-row">
+          <input type="range"
+                 id="sync-auto-interval-${escapeHTML(sid)}"
+                 data-action="sync-auto-interval-change"
+                 data-source-id="${escapeHTML(sid)}"
+                 min="${POLL_MIN}" max="${POLL_MAX}" step="15"
+                 value="${interval}" />
+          <div class="sync-auto-interval-value"
+               id="sync-auto-interval-label-${escapeHTML(sid)}">${interval} ${escapeHTML(t('sync.auto.interval_unit'))}</div>
+        </div>
+      </div>
+
+      <div class="sync-auto-section">
+        <div class="sync-auto-section-title">${escapeHTML(t('sync.auto.stats_section_title'))}</div>
+        <div class="sync-auto-stats">
+          <span class="sync-auto-stats-label">${escapeHTML(t('sync.auto.stats_last_poll'))}</span>
+          <span class="sync-auto-stats-value">${lastPollText}</span>
+          <span class="sync-auto-stats-label">${escapeHTML(t('sync.auto.stats_last_error'))}</span>
+          <span class="sync-auto-stats-value">${lastErrText}</span>
+          <span class="sync-auto-stats-label">${escapeHTML(t('sync.auto.stats_consecutive_failures'))}</span>
+          <span class="sync-auto-stats-value">${fails}</span>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 function renderSyncForm() {
@@ -14631,6 +15136,174 @@ async function syncDeleteSource(sourceId, label) {
     try { await SyncFileStore.removeHandle(sourceId); } catch (e) { /* ignore */ }
   }
   showToast(t('toast.sync_source_deleted'), 'success');
+  renderSettingsModal();
+}
+
+/* =========================================================================
+   V2.0 Schritt 5: Auto-Sync-Akkordeon Action-Handler.
+   - Toggle: rein UI-State (settingsState.expandedAccordions Set)
+   - Mode-Change: persistiert, ruft Poller register/unregister je nach mode
+   - Interval-Change: debounced 300ms save, Live-Label-Update sofort
+   - Grant-Access: S5 FS-Permission neu anfordern (handle aus IndexedDB)
+   - Retry/Discard-Push: räumt pendingPush/_needsRecovery auf
+   Toast-System (Schritt 6) ist noch nicht da → showToast existiert bereits
+   global, aber per Spec wird hier auf Inline-Badges + console.warn gesetzt
+   für Fehlerpfade.
+   ========================================================================= */
+
+function syncAutoToggleAccordion(sourceId) {
+  if (!sourceId) return;
+  if (!settingsState.expandedAccordions) {
+    settingsState.expandedAccordions = new Set();
+  }
+  if (settingsState.expandedAccordions.has(sourceId)) {
+    settingsState.expandedAccordions.delete(sourceId);
+  } else {
+    settingsState.expandedAccordions.add(sourceId);
+  }
+  renderSettingsModal();
+}
+
+function syncAutoModeChange(sourceId, newMode) {
+  if (!sourceId) return;
+  const valid = ['off', 'pull', 'push', 'bidirectional'];
+  if (valid.indexOf(newMode) < 0) {
+    console.warn('[settings] invalid autoMode', newMode);
+    return;
+  }
+  const src = Sync.getSource(sourceId);
+  if (!src) return;
+  const wasActive = src.autoMode && src.autoMode !== 'off';
+  const willActive = newMode !== 'off';
+  Sync.updateSource(sourceId, { autoMode: newMode });
+
+  // Poller-Wiring: bei off->aktiv registrieren, bei aktiv->off unregistrieren.
+  // Idempotent — gleichbleibender Zustand ist no-op.
+  if (typeof SyncPoller !== 'undefined') {
+    try {
+      if (!wasActive && willActive && SyncPoller.registerSource) {
+        SyncPoller.registerSource(sourceId);
+      } else if (wasActive && !willActive && SyncPoller.unregisterSource) {
+        SyncPoller.unregisterSource(sourceId);
+      }
+      // Bei aktiv-zu-aktiv-Wechsel (z.B. pull -> bidirectional) reicht das
+      // updateSource(); der Timer-Tick liest autoMode jeden Cycle frisch.
+    } catch (e) {
+      console.warn('[settings] SyncPoller wiring failed:', e && e.message);
+    }
+  }
+  renderSettingsModal();
+}
+
+// Debounce-Map pro Source-ID, damit Slider-Drag nicht jedem Pixel ein save()
+// auslöst. 300ms gemäß Spec.
+const _syncAutoIntervalDebounce = new Map();
+
+function syncAutoIntervalChange(sourceId, rawValue) {
+  if (!sourceId) return;
+  const POLL_MIN = (typeof SyncPoller !== 'undefined' && SyncPoller.CONSTANTS)
+    ? SyncPoller.CONSTANTS.POLL_INTERVAL_MIN_SEC : 30;
+  const POLL_MAX = (typeof SyncPoller !== 'undefined' && SyncPoller.CONSTANTS)
+    ? SyncPoller.CONSTANTS.POLL_INTERVAL_MAX_SEC : 300;
+  let val = parseInt(rawValue, 10);
+  if (!isFinite(val)) return;
+  if (val < POLL_MIN) val = POLL_MIN;
+  if (val > POLL_MAX) val = POLL_MAX;
+
+  // Live-Label-Update sofort (ohne Re-Render).
+  const labelEl = document.getElementById('sync-auto-interval-label-' + sourceId);
+  if (labelEl) {
+    // textContent → kein HTML-Pfad, kein escapeHTML nötig, aber wir nutzen
+    // t() ohnehin für die Einheit.
+    labelEl.textContent = val + ' ' + t('sync.auto.interval_unit');
+  }
+
+  // Save mit 300ms Debounce.
+  const prev = _syncAutoIntervalDebounce.get(sourceId);
+  if (prev) clearTimeout(prev);
+  const timer = setTimeout(() => {
+    _syncAutoIntervalDebounce.delete(sourceId);
+    try {
+      Sync.updateSource(sourceId, { pollIntervalSec: val });
+    } catch (e) {
+      console.warn('[settings] save interval failed:', e && e.message);
+    }
+  }, 300);
+  _syncAutoIntervalDebounce.set(sourceId, timer);
+}
+
+async function syncAutoGrantAccess(sourceId) {
+  if (!sourceId) return;
+  const src = Sync.getSource(sourceId);
+  if (!src || src.type !== 'fileSystem') {
+    console.warn('[settings] grant-access only valid for fileSystem source');
+    return;
+  }
+  try {
+    const handle = await SyncFileStore.getHandle(sourceId);
+    if (!handle) {
+      console.warn('[settings] no handle in IndexedDB for', sourceId.slice(0, 8));
+      // Toast-System (Schritt 6) wird das ersetzen. Vorerst:
+      window.alert(t('sync.auto.grant_no_handle'));
+      return;
+    }
+    if (!handle.requestPermission) {
+      console.warn('[settings] FS handle has no requestPermission()');
+      return;
+    }
+    // Wichtig: requestPermission() MUSS in der User-Activation-Kette laufen.
+    // Da wir hier direkt im Click-Handler sind, ist das gegeben.
+    const res = await handle.requestPermission({ mode: 'readwrite' });
+    if (res === 'granted') {
+      Sync.updateSource(sourceId, { permissionRequired: false });
+      // Poller wieder anwerfen, falls die Source jetzt wieder pollen darf.
+      if (typeof SyncPoller !== 'undefined' && SyncPoller.registerSource) {
+        try { SyncPoller.registerSource(sourceId); }
+        catch (e) { console.warn('[settings] re-register failed:', e && e.message); }
+      }
+    } else {
+      console.warn('[settings] permission denied:', res);
+    }
+  } catch (e) {
+    console.warn('[settings] grant-access failed:', e && e.message);
+  }
+  renderSettingsModal();
+}
+
+function syncAutoRetryPush(sourceId) {
+  if (!sourceId) return;
+  const src = Sync.getSource(sourceId);
+  if (!src) return;
+  // pendingPush + recovery-Flag löschen, dann frischen Push einplanen.
+  Sync.updateSource(sourceId, { pendingPush: null });
+  if (typeof SyncPoller !== 'undefined') {
+    try {
+      // _needsRecovery liegt im Poller-RAM; scheduleAutoPush(reset=true)
+      // existiert noch nicht — wir umgehen das, indem wir die Source kurz
+      // unregistrieren und neu registrieren (clean state).
+      if (SyncPoller.unregisterSource) SyncPoller.unregisterSource(sourceId);
+      if (SyncPoller.registerSource)   SyncPoller.registerSource(sourceId);
+      if (SyncPoller.scheduleAutoPush) SyncPoller.scheduleAutoPush(sourceId, 'retry');
+    } catch (e) {
+      console.warn('[settings] retry-push wiring failed:', e && e.message);
+    }
+  }
+  renderSettingsModal();
+}
+
+function syncAutoDiscardPush(sourceId) {
+  if (!sourceId) return;
+  // Bewusster User-Decline: pendingPush vergessen, RAM-Recovery aufheben
+  // durch unregister/re-register (clean RAM-State).
+  Sync.updateSource(sourceId, { pendingPush: null });
+  if (typeof SyncPoller !== 'undefined') {
+    try {
+      if (SyncPoller.unregisterSource) SyncPoller.unregisterSource(sourceId);
+      if (SyncPoller.registerSource)   SyncPoller.registerSource(sourceId);
+    } catch (e) {
+      console.warn('[settings] discard-push wiring failed:', e && e.message);
+    }
+  }
   renderSettingsModal();
 }
 
