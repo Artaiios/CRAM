@@ -382,6 +382,16 @@ button:focus-visible,
   padding-left: var(--space-5);
 }
 
+/* RC-feature: Mobile-Tap-Area ≥44pt wenn der Indikator klickbar ist
+   (config-drift-State). Live-Countdown ist nicht klickbar, deshalb nur
+   für den drift-Fall vergrößert. */
+@media (max-width: 600px) {
+  .sync-indicator[data-state="config-drift"] {
+    min-height: 44px;
+    padding: 8px 12px;
+  }
+}
+
 .status-metric {
   display: flex;
   align-items: center;
@@ -7099,6 +7109,13 @@ const TRANSLATIONS = {
     'header.sync_tooltip_error': 'Sync-Fehler: {msg}',
     'header.sync_status_config_drift': 'Konfig-Drift',
     'header.sync_tooltip_config_drift': 'Server hat eine andere Konfiguration. Klick öffnet Daten → Online für den Abgleich.',
+    // RC-feature: Live-Countdown im Header-Status-Indikator. Wird einmal pro
+    // Sekunde via _updateSyncStatusLabel aktualisiert, ersetzt das statische
+    // "Synced"-Label nur im 'synced'-State.
+    'sync.auto.status_synced_ago': 'Synced vor {n}s',
+    'sync.auto.status_next_in': 'nächster in {n}s',
+    'sync.auto.status_never_synced': 'Nicht synchronisiert',
+    'sync.auto.status_separator': ' · ',
     'header.data': 'Daten',
     'header.data_tooltip': 'Import / Export',
     'header.print': 'Drucken',
@@ -7667,6 +7684,10 @@ const TRANSLATIONS = {
     'header.sync_tooltip_error': 'Sync error: {msg}',
     'header.sync_status_config_drift': 'Config drift',
     'header.sync_tooltip_config_drift': 'Server has a different configuration. Click opens Data → Online to reconcile.',
+    'sync.auto.status_synced_ago': 'Synced {n}s ago',
+    'sync.auto.status_next_in': 'next in {n}s',
+    'sync.auto.status_never_synced': 'Not synced',
+    'sync.auto.status_separator': ' · ',
     'header.data': 'Data',
     'header.data_tooltip': 'Import / Export',
     'header.print': 'Print',
@@ -8234,6 +8255,10 @@ const TRANSLATIONS = {
     'header.sync_tooltip_error': 'Error de sync: {msg}',
     'header.sync_status_config_drift': 'Config diferente',
     'header.sync_tooltip_config_drift': 'El servidor tiene otra configuración. Click abre Datos → Online para reconciliar.',
+    'sync.auto.status_synced_ago': 'Sincronizado hace {n}s',
+    'sync.auto.status_next_in': 'próximo en {n}s',
+    'sync.auto.status_never_synced': 'No sincronizado',
+    'sync.auto.status_separator': ' · ',
     'header.data': 'Datos',
     'header.data_tooltip': 'Importar / Exportar',
     'header.print': 'Imprimir',
@@ -8802,6 +8827,10 @@ const TRANSLATIONS = {
     'header.sync_tooltip_error': 'Erreur sync : {msg}',
     'header.sync_status_config_drift': 'Drift config',
     'header.sync_tooltip_config_drift': 'Le serveur a une configuration différente. Cliquer ouvre Données → Online pour réconcilier.',
+    'sync.auto.status_synced_ago': 'Synchro il y a {n}s',
+    'sync.auto.status_next_in': 'prochain dans {n}s',
+    'sync.auto.status_never_synced': 'Pas synchronisé',
+    'sync.auto.status_separator': ' · ',
     'header.data': 'Données',
     'header.data_tooltip': 'Importer / Exporter',
     'header.print': 'Imprimer',
@@ -9370,6 +9399,11 @@ const TRANSLATIONS = {
     'header.sync_tooltip_error': '同步错误：{msg}',
     'header.sync_status_config_drift': '配置不同',
     'header.sync_tooltip_config_drift': '服务器配置不同。点击打开 数据 → 在线 进行同步。',
+    // TODO(i18n): ZH translation best-effort, review by native speaker pending.
+    'sync.auto.status_synced_ago': '{n}秒前已同步',
+    'sync.auto.status_next_in': '{n}秒后再次同步',
+    'sync.auto.status_never_synced': '未同步',
+    'sync.auto.status_separator': ' / ',
     'header.data': '数据',
     'header.data_tooltip': '导入 / 导出',
     'header.print': '打印',
@@ -10139,9 +10173,23 @@ function renderSyncIndicator() {
   else if (status === 'config-drift'){ icon = '⚠'; labelKey = 'header.sync_status_config_drift'; tooltipKey = 'header.sync_tooltip_config_drift'; }
   else /* error */                  { icon = '✗'; labelKey = 'header.sync_status_error';         tooltipKey = 'header.sync_tooltip_error'; }
 
+  // RC-feature: Live-Countdown im Header. Im 'synced'-Zustand ersetzen wir
+  // das statische "Synced"-Label durch ein dynamisches "Synced vor Xs ·
+  // nächster in Ys" (Auto-Mode) bzw. "Synced vor Xs" (Manual-Mode). Der
+  // Tick-Timer (setInterval, 1s) aktualisiert NUR den textContent dieses
+  // einen Spans — kein voller renderSyncIndicator(), sonst flackern Tooltips
+  // und der klickbare State. Error-States (syncing/out-of-sync/config-drift/
+  // error) zeigen weiterhin ihr statisches Label.
+  let labelText = t(labelKey);
+  if (status === 'synced') {
+    const liveStatus = _formatAutoSyncStatus();
+    const liveText = _renderAutoSyncLabel(liveStatus, labelText);
+    if (liveText) labelText = liveText;
+  }
+
   el.innerHTML =
     '<span class="sync-indicator-icon">' + escapeHTML(icon) + '</span>' +
-    '<span class="sync-indicator-label">' + escapeHTML(t(labelKey)) + '</span>';
+    '<span class="sync-indicator-label" data-sync-status-label>' + escapeHTML(labelText) + '</span>';
   el.title = t(tooltipKey, tInfo);
   // Im config-drift-Zustand wird der Indikator klickbar und öffnet
   // das dedizierte Drift-Modal. Sonst kein onclick.
@@ -10150,6 +10198,100 @@ function renderSyncIndicator() {
   } else {
     el.removeAttribute('data-action');
   }
+}
+
+/* RC-feature: Live-Countdown Helper.
+   Liefert einen Snapshot der Auto-Sync-Statistik aus dem SyncPoller:
+   - mode: 'auto' wenn mindestens eine Source autoMode!='off' hat
+   - mode: 'manual' sonst (alle Sources autoMode='off')
+   - lastSec: Sekunden seit letztem erfolgreichen Poll (über ALLE Sources),
+              null wenn noch nie ein Poll erfolgreich war
+   - nextSec: Sekunden bis nächster Auto-Tick (Minimum über Auto-Sources),
+              null im Manual-Mode oder wenn kein Tick geplant
+   Gibt null zurück wenn SyncPoller nicht verfügbar oder keine Sources
+   registriert sind — Caller fällt dann auf das statische Label zurück. */
+function _formatAutoSyncStatus() {
+  try {
+    if (typeof SyncPoller === 'undefined' || typeof SyncPoller.getStats !== 'function') {
+      return null;
+    }
+    const stats = SyncPoller.getStats();
+    if (!stats || stats.length === 0) return null;
+
+    const now = Date.now();
+    let lastSuccessMs = 0;
+    for (const s of stats) {
+      if (s.lastAutoPollAt) {
+        const ms = Date.parse(s.lastAutoPollAt);
+        if (!isNaN(ms) && ms > lastSuccessMs) lastSuccessMs = ms;
+      }
+    }
+    const lastSec = lastSuccessMs > 0 ? Math.max(0, Math.floor((now - lastSuccessMs) / 1000)) : null;
+
+    const autoSources = stats.filter(s => s.autoMode !== 'off');
+    if (autoSources.length === 0) {
+      return { mode: 'manual', lastSec: lastSec, nextSec: null };
+    }
+
+    let nextTickAt = Infinity;
+    for (const s of autoSources) {
+      if (typeof s.nextTickAt === 'number' && s.nextTickAt < nextTickAt) {
+        nextTickAt = s.nextTickAt;
+      }
+    }
+    const nextSec = isFinite(nextTickAt) ? Math.max(0, Math.floor((nextTickAt - now) / 1000)) : null;
+    return { mode: 'auto', lastSec: lastSec, nextSec: nextSec };
+  } catch (e) { /* swallow — indicator must never throw */ }
+  return null;
+}
+
+/* RC-feature: Live-Label-Builder.
+   Wandelt das _formatAutoSyncStatus-Ergebnis in den Anzeige-String um.
+   Fallback (status==null oder lastSec==null im Auto-Mode ohne nextSec):
+   gibt fallbackText zurück (statisches "Synced"-Label aus i18n). */
+function _renderAutoSyncLabel(status, fallbackText) {
+  if (!status) return null;
+  if (status.mode === 'auto') {
+    if (status.lastSec === null && status.nextSec === null) return fallbackText;
+    if (status.lastSec === null) {
+      // Noch nie synchronisiert, aber Auto-Mode aktiv mit geplantem Tick
+      return t('sync.auto.status_never_synced') + t('sync.auto.status_separator') +
+             t('sync.auto.status_next_in', { n: status.nextSec || 0 });
+    }
+    if (status.nextSec === null) {
+      return t('sync.auto.status_synced_ago', { n: status.lastSec });
+    }
+    return t('sync.auto.status_synced_ago', { n: status.lastSec }) +
+           t('sync.auto.status_separator') +
+           t('sync.auto.status_next_in', { n: status.nextSec });
+  }
+  if (status.mode === 'manual') {
+    if (status.lastSec === null) return t('sync.auto.status_never_synced');
+    return t('sync.auto.status_synced_ago', { n: status.lastSec });
+  }
+  return fallbackText;
+}
+
+/* RC-feature: 1s-Tick-Update.
+   Aktualisiert NUR den textContent des Live-Labels innerhalb des bestehenden
+   Indikator-DOM. Kein voller Re-Render — wir wollen weder die Tooltip-Position
+   noch das data-action-Attribut auf jedem Tick neu schreiben. Wenn der
+   Indikator nicht im 'synced'-State ist (Error/Syncing/Drift/Out-of-sync),
+   No-op: das statische Label bleibt stehen. */
+function _updateSyncStatusLabel() {
+  try {
+    const indicator = document.getElementById('sync-indicator');
+    if (!indicator || indicator.hidden) return;
+    const state = indicator.getAttribute('data-state');
+    if (state !== 'synced') return;
+    const labelEl = indicator.querySelector('[data-sync-status-label]');
+    if (!labelEl) return;
+    const liveStatus = _formatAutoSyncStatus();
+    const liveText = _renderAutoSyncLabel(liveStatus, t('header.sync_status_synced'));
+    if (liveText && labelEl.textContent !== liveText) {
+      labelEl.textContent = liveText;
+    }
+  } catch (e) { /* swallow — tick must never throw */ }
 }
 
 /* RC-feature: Drift-Modal.
@@ -16953,6 +17095,13 @@ function init() {
 
   // Sync-Awareness-Indikator: bei jeder Sync-State-Mutation neu rendern
   Sync.onChange(() => renderSyncIndicator());
+
+  // RC-feature: Live-Countdown im Header. 1s-Tick aktualisiert NUR den
+  // textContent des Live-Labels (Defense-in-Depth: kein voller Re-Render,
+  // sonst flackern Tooltips und das data-action-Attribut wird auf jedem
+  // Tick neu geschrieben). Im Error/Drift/Syncing/Out-of-sync-State ist
+  // _updateSyncStatusLabel ein No-op.
+  setInterval(_updateSyncStatusLabel, 1000);
 
   // V2.0 Auto-Sync Poller: globale Listener registrieren (Visibility, Online/
   // Offline) und alle existierenden Sources eintragen. Default autoMode='off'
