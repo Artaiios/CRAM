@@ -2580,6 +2580,35 @@ button:focus-visible,
   font-size: 11px;
 }
 
+/* ---- V2.0 step 1: Sync-Migration-Banner (V1.3 -> V2.0 informational) ---- */
+.sync-migration-banner {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--status-warn);
+  background: var(--status-warn-bg, rgba(255,180,0,0.05));
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--text-primary);
+}
+.sync-migration-banner strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+.sync-migration-banner-body {
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+.sync-migration-banner-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.sync-migration-banner-actions button {
+  font-size: 11px;
+  padding: 4px 10px;
+}
+
 /* ---- Sync-Modal Online-Tab (V1.2 → V1.3 Karten-Layout) ---- */
 .sync-online-list {
   display: flex;
@@ -3852,7 +3881,11 @@ const SyncCrypto = (function() {
    ========================================================================= */
 const Sync = (function() {
   const KEY = 'cram.sync.v1';
-  const SCHEMA_VERSION = 1;
+  // V2.0 step 1: schema bumped from 1 -> 2 to introduce per-source AutoMode
+  // fields and a global 'auto' block (offline tracker + migration banner).
+  // _migrate() is idempotent and runs on load() when either schemaVersion < 2
+  // or the auto block is missing (guards against V2->V1.3->V2 cycles).
+  const SCHEMA_VERSION = 2;
 
   const DEFAULT_STATE = {
     schemaVersion: SCHEMA_VERSION,
@@ -3862,13 +3895,85 @@ const Sync = (function() {
     dirty: false,
     lastError: null,
     sources: [],
+    // V2.0 auto-sync globals. offlineSince tracks the start of an offline
+    // window (H1). migrationBannerDismissed persists the user's "Got it"
+    // click on the V1.3 -> V2.0 informational banner. migratedAt is set the
+    // first time _migrate() touches an existing source set; for fresh
+    // installs it stays null so no banner ever appears.
+    auto: {
+      offlineSince: null,
+      migrationBannerDismissed: false,
+      migratedAt: null,
+    },
   };
+
+  // Per-source defaults applied by _migrate(). Kept here so addSource()
+  // and _migrate() stay in sync; if you add a field, touch both call sites.
+  const SOURCE_AUTO_DEFAULTS = {
+    autoMode: 'off',          // D1: opt-in. Default 'off' for ALL sources,
+                              // including ones newly created in V2.0.
+    pollIntervalSec: 90,
+    lastAutoPollAt: null,
+    lastAutoPollError: null,
+    authError: null,          // H2: surfaced when a 401/403 happens.
+    pendingPush: null,        // H3: queued push waiting for online.
+    permissionRequired: false, // H5: FS handle lost user-activation gesture.
+  };
+
+  function _migrate(state) {
+    // Idempotent guard: a fully-migrated state passes through unchanged.
+    if (state && state.schemaVersion >= SCHEMA_VERSION && state.auto) {
+      return state;
+    }
+    // Defensive: never mutate the input. Build a shallow clone.
+    const next = Object.assign({}, state || {});
+    next.sources = Array.isArray(state && state.sources) ? state.sources.slice() : [];
+
+    // Apply per-source defaults without overwriting existing values.
+    next.sources = next.sources.map(src => {
+      const merged = Object.assign({}, src);
+      for (const k of Object.keys(SOURCE_AUTO_DEFAULTS)) {
+        if (merged[k] === undefined) merged[k] = SOURCE_AUTO_DEFAULTS[k];
+      }
+      return merged;
+    });
+
+    // Global auto block. Preserve any caller-supplied fields.
+    const hadAuto = !!(state && state.auto);
+    const prevAuto = hadAuto ? state.auto : {};
+    next.auto = {
+      offlineSince: prevAuto.offlineSince !== undefined ? prevAuto.offlineSince : null,
+      migrationBannerDismissed: prevAuto.migrationBannerDismissed === true,
+      // migratedAt only fires for upgrades from a state with existing sources.
+      // Fresh installs (sources.length === 0) keep migratedAt = null so the
+      // banner stays hidden. Once stamped, never overwritten.
+      migratedAt: (prevAuto.migratedAt !== undefined && prevAuto.migratedAt !== null)
+        ? prevAuto.migratedAt
+        : (next.sources.length > 0 ? new Date().toISOString() : null),
+    };
+
+    next.schemaVersion = SCHEMA_VERSION;
+    return next;
+  }
 
   function load() {
     try {
       const raw = localStorage.getItem(KEY);
       if (!raw) return Object.assign({}, DEFAULT_STATE);
-      return Object.assign({}, DEFAULT_STATE, JSON.parse(raw));
+      const parsed = JSON.parse(raw);
+      // Run migration first so downstream Object.assign sees v2 shape.
+      // If anything changed, persist immediately so the next load is a
+      // no-op pass through the idempotent guard.
+      const needsMigration = !parsed || parsed.schemaVersion !== SCHEMA_VERSION || !parsed.auto;
+      const migrated = needsMigration ? _migrate(parsed) : parsed;
+      if (needsMigration) {
+        try {
+          localStorage.setItem(KEY, JSON.stringify(migrated));
+        } catch (e) {
+          console.warn('Sync state migration write failed:', e);
+        }
+      }
+      return Object.assign({}, DEFAULT_STATE, migrated);
     } catch (e) {
       console.warn('Sync state read failed, using default:', e);
       return Object.assign({}, DEFAULT_STATE);
@@ -3977,14 +4082,21 @@ const Sync = (function() {
   function addSource(input) {
     if (!input || !input.type) throw new Error('Source must have a type');
     const state = load();
-    const source = {
-      id: uid('src'),
-      type: input.type,
-      label: input.label || 'Unnamed source',
-      config: input.config || {},
-      encryption: Object.assign({ enabled: true }, input.encryption || {}),
-      createdAt: new Date().toISOString(),
-    };
+    // V2.0 D1: even brand-new sources start with autoMode='off'. The user
+    // turns auto-sync on explicitly per source after creation. SOURCE_AUTO_DEFAULTS
+    // is the single source of truth — Object.assign order ensures caller
+    // input (if ever provided) can override, but normal callers pass none.
+    const source = Object.assign(
+      {
+        id: uid('src'),
+        type: input.type,
+        label: input.label || 'Unnamed source',
+        config: input.config || {},
+        encryption: Object.assign({ enabled: true }, input.encryption || {}),
+        createdAt: new Date().toISOString(),
+      },
+      SOURCE_AUTO_DEFAULTS
+    );
     state.sources.push(source);
     save(state);
     _emitChange();
@@ -5230,6 +5342,10 @@ const TRANSLATIONS = {
     'settings.tab_about': 'Info',
     'settings.sync_intro': 'Sync-Sources sind Endpunkte, gegen die manuell synchronisiert werden kann. V1.2 unterstützt HTTP(S)-Backends; weitere Backend-Typen folgen.',
     'settings.sync_no_sources': 'Keine Sync-Sources konfiguriert.',
+    'sync.migration_banner.title': 'Auto-Sync ist neu',
+    'sync.migration_banner.body': 'CRAM kann Sync-Sources jetzt automatisch im Hintergrund abgleichen. Die Funktion ist pro Source deaktiviert und muss bewusst eingeschaltet werden. Bestehende Sources bleiben unverändert im manuellen Modus.',
+    'sync.migration_banner.cta_settings': 'Einstellungen öffnen',
+    'sync.migration_banner.dismiss': 'Verstanden',
     'settings.sync_add_http': 'Neue HTTP-Source',
     'settings.sync_form_add_title': 'Neue HTTP-Source anlegen',
     'settings.sync_form_edit_title': 'HTTP-Source bearbeiten',
@@ -5750,6 +5866,10 @@ const TRANSLATIONS = {
     'settings.tab_about': 'About',
     'settings.sync_intro': 'Sync sources are endpoints you can manually synchronise against. V1.2 supports HTTP(S) backends; more backend types follow.',
     'settings.sync_no_sources': 'No sync sources configured.',
+    'sync.migration_banner.title': 'Auto-sync is new',
+    'sync.migration_banner.body': 'CRAM can now reconcile sync sources automatically in the background. The feature is off per source and must be enabled deliberately. Existing sources remain in manual mode.',
+    'sync.migration_banner.cta_settings': 'Open settings',
+    'sync.migration_banner.dismiss': 'Got it',
     'settings.sync_add_http': 'New HTTP source',
     'settings.sync_form_add_title': 'Add a new HTTP source',
     'settings.sync_form_edit_title': 'Edit HTTP source',
@@ -6269,6 +6389,10 @@ const TRANSLATIONS = {
     'settings.tab_about': 'Acerca de',
     'settings.sync_intro': 'Las fuentes de sincronización son endpoints contra los que puede sincronizar manualmente. V1.2 admite backends HTTP(S); seguirán más tipos.',
     'settings.sync_no_sources': 'Ninguna fuente configurada.',
+    'sync.migration_banner.title': 'La sincronización automática es nueva',
+    'sync.migration_banner.body': 'CRAM ahora puede reconciliar las fuentes de sincronización automáticamente en segundo plano. La función está desactivada por fuente y debe habilitarse de forma explícita. Las fuentes existentes permanecen en modo manual.',
+    'sync.migration_banner.cta_settings': 'Abrir ajustes',
+    'sync.migration_banner.dismiss': 'Entendido',
     'settings.sync_add_http': 'Nueva fuente HTTP',
     'settings.sync_form_add_title': 'Crear nueva fuente HTTP',
     'settings.sync_form_edit_title': 'Editar fuente HTTP',
@@ -6789,6 +6913,10 @@ const TRANSLATIONS = {
     'settings.tab_about': 'À propos',
     'settings.sync_intro': 'Les sources de synchronisation sont des points d’accès contre lesquels vous pouvez synchroniser manuellement. La V1.2 prend en charge les backends HTTP(S); d’autres types suivront.',
     'settings.sync_no_sources': 'Aucune source configurée.',
+    'sync.migration_banner.title': 'La synchronisation automatique est nouvelle',
+    'sync.migration_banner.body': 'CRAM peut désormais réconcilier les sources de synchronisation automatiquement en arrière-plan. La fonction est désactivée par source et doit être activée délibérément. Les sources existantes restent en mode manuel.',
+    'sync.migration_banner.cta_settings': 'Ouvrir les paramètres',
+    'sync.migration_banner.dismiss': 'Compris',
     'settings.sync_add_http': 'Nouvelle source HTTP',
     'settings.sync_form_add_title': 'Ajouter une source HTTP',
     'settings.sync_form_edit_title': 'Modifier la source HTTP',
@@ -7309,6 +7437,11 @@ const TRANSLATIONS = {
     'settings.tab_about': '关于',
     'settings.sync_intro': '同步源是可以手动同步的端点。V1.2 支持 HTTP(S) 后端；后续会增加更多类型。',
     'settings.sync_no_sources': '未配置同步源。',
+    /* V2.0 step 1: ZH translations are best-effort; needs a native speaker review (cram-ux-reviewer). */
+    'sync.migration_banner.title': '自动同步是新功能',
+    'sync.migration_banner.body': 'CRAM 现在可以在后台自动协调同步源。该功能默认按源关闭，需要手动启用。现有的同步源仍保持手动模式。',
+    'sync.migration_banner.cta_settings': '打开设置',
+    'sync.migration_banner.dismiss': '知道了',
     'settings.sync_add_http': '新建 HTTP 源',
     'settings.sync_form_add_title': '添加新的 HTTP 源',
     'settings.sync_form_edit_title': '编辑 HTTP 源',
@@ -8948,6 +9081,26 @@ const CLICK_HANDLERS = {
   'settings-tab':           (el) => switchSettingsTab(el.dataset.tab),
   'sync-add-http':          () => syncFormShowAddHttp(),
   'sync-add-fs':            () => syncFormShowAddFs(),
+  // V2.0 step 1: migration-banner buttons. Dismiss persists in Sync state
+  // so reload won't show it again. open-settings is a placeholder scroll
+  // for now (TODO step 5: scroll to / open the per-source AutoMode accordion).
+  'sync-migration-dismiss': () => {
+    const state = Sync.load();
+    if (state.auto) {
+      state.auto.migrationBannerDismissed = true;
+      Sync.save(state);
+    }
+    renderSettingsModal();
+  },
+  'sync-migration-open-settings': () => {
+    // TODO V2.0 step 5: target the AutoMode accordion of the first source
+    // instead of just scrolling the list into view.
+    const list = document.querySelector('.sync-source-list')
+              || document.querySelector('.sync-no-sources');
+    if (list && typeof list.scrollIntoView === 'function') {
+      list.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  },
   'sync-edit-source':       (el) => syncFormShowEdit(el.dataset.sourceId),
   'sync-share-source':      (el) => openSyncShareModal(el.dataset.sourceId),
   'sync-delete-source':     (el) => syncDeleteSource(el.dataset.sourceId, el.dataset.label),
@@ -13000,9 +13153,33 @@ function renderBrowserSupportBanner() {
   `;
 }
 
+/* V2.0 step 1: informational banner shown to V1.3 upgraders once.
+   - Triggers when state.auto.migratedAt is set (set by Sync._migrate() on
+     first load with existing sources) AND not yet dismissed.
+   - Fresh installs never see it because migratedAt stays null.
+   - Returns '' when not applicable so it can be inlined unconditionally. */
+function renderSyncMigrationBanner() {
+  // Read through the public API. load() is safe because _migrate is
+  // idempotent — calling it during a render is cheap.
+  const s = (typeof Sync.load === 'function') ? Sync.load() : null;
+  const auto = s && s.auto ? s.auto : null;
+  if (!auto || !auto.migratedAt || auto.migrationBannerDismissed) return '';
+  return `
+    <div class="sync-migration-banner" role="status">
+      <strong>${escapeHTML(t('sync.migration_banner.title'))}</strong>
+      <div class="sync-migration-banner-body">${escapeHTML(t('sync.migration_banner.body'))}</div>
+      <div class="sync-migration-banner-actions">
+        <button class="btn-secondary" data-action="sync-migration-open-settings">${escapeHTML(t('sync.migration_banner.cta_settings'))}</button>
+        <button class="btn-secondary" data-action="sync-migration-dismiss">${escapeHTML(t('sync.migration_banner.dismiss'))}</button>
+      </div>
+    </div>
+  `;
+}
+
 function renderSettingsSync() {
   const sources = Sync.listSources();
-  let html = `<div class="sync-explain">${escapeHTML(t('settings.sync_intro'))}</div>`;
+  let html = renderSyncMigrationBanner();
+  html += `<div class="sync-explain">${escapeHTML(t('settings.sync_intro'))}</div>`;
   html += renderBrowserSupportBanner();
 
   if (settingsState.formMode) {
