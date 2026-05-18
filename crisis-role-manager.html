@@ -6066,6 +6066,22 @@ const SyncPoller = (function() {
       _runtime.set(sourceId, runtime);
     }
 
+    // Hard-Pause-aware: kein Debounce-Timer wenn Source in Recovery oder
+    // Passphrase-Wartezustand. Sonst flackert pushDebouncePending in
+    // getStats() true -> false (Timer setzt, _pushTick aborted via
+    // _shouldSkipPush), und das Settings-UI zeigt einen Spinner für einen
+    // Push, der nie stattfindet.
+    if (runtime._needsRecovery) {
+      console.debug('[SyncPoller] scheduleAutoPush skipped, needsRecovery',
+        sourceId.slice(0, 8));
+      return;
+    }
+    if (runtime._waitingForPassphrase) {
+      console.debug('[SyncPoller] scheduleAutoPush skipped, waitingForPassphrase',
+        sourceId.slice(0, 8));
+      return;
+    }
+
     // Coalescing: läuft schon ein Timer, clearen und neu setzen — der
     // letzte Edit gewinnt.
     if (runtime._pushDebounceTimer !== null) {
