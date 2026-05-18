@@ -4716,6 +4716,17 @@ const Sync = (function() {
       const client = createSourceClient(source);
       const envelope = await client.read();
       if (envelope === null) return null;
+      // V2.0 step 7: persist server ETag (S1 backend attaches __meta.etag).
+      // S5/file-backend has no ETag → meta missing → lastEtag stays as-is.
+      // We update the source-level field via updateSource() so the next push
+      // can send If-Match. Failures here are non-fatal — ETag is an
+      // optimisation, not a correctness requirement.
+      try {
+        const etag = envelope && envelope.__meta && envelope.__meta.etag;
+        if (etag && typeof etag === 'string') {
+          updateSource(sourceId, { lastEtag: etag });
+        }
+      } catch (e) { /* ETag persistence is best-effort */ }
       _suppressDirty = true;
       try { await applyEnvelopeForSource(envelope, source, { mode }); }
       finally { _suppressDirty = false; }
@@ -4756,7 +4767,10 @@ const Sync = (function() {
     try {
       const client = createSourceClient(source);
 
-      // Status-mode pre-check: server muss gleiche Config haben
+      // Status-mode pre-check: server muss gleiche Config haben.
+      // Side effect (V2.0 step 7): a successful pre-read also refreshes
+      // source.lastEtag so the immediately-following write() can send
+      // a current If-Match — closing the obvious race for status pushes.
       if (mode === 'status') {
         let serverEnvelope = null;
         try { serverEnvelope = await client.read(); } catch (e) {
@@ -4764,6 +4778,12 @@ const Sync = (function() {
           // write() bringt dann den richtigen Fehler.
         }
         if (serverEnvelope) {
+          try {
+            const etag = serverEnvelope.__meta && serverEnvelope.__meta.etag;
+            if (etag && typeof etag === 'string') {
+              updateSource(sourceId, { lastEtag: etag });
+            }
+          } catch (e) { /* best-effort */ }
           const localFp = computeConfigHash(State.config);
           const remoteFp = serverEnvelope.fingerprint || '';
           if (remoteFp && remoteFp !== localFp) {
@@ -4772,8 +4792,34 @@ const Sync = (function() {
         }
       }
 
-      const envelope = await buildEnvelopeForSource(source);
-      await client.write(envelope);
+      // Re-fetch source to pick up lastEtag that may have been written by the
+      // pre-read above. (getSource returns the persisted snapshot.)
+      const sourceForPush = getSource(sourceId) || source;
+      const envelope = await buildEnvelopeForSource(sourceForPush);
+      // V2.0 step 7: send If-Match if we have an ETag from a prior read.
+      // First push (lastEtag === null) goes without If-Match → server treats
+      // as Create. S5 backend ignores opts.ifMatch (no ETag concept).
+      const writeOpts = sourceForPush.lastEtag
+        ? { ifMatch: sourceForPush.lastEtag }
+        : {};
+      let writeResult;
+      try {
+        writeResult = await client.write(envelope, writeOpts);
+      } catch (e) {
+        // 412: server's state moved since our last read. Annotate the error so
+        // the auto-push tick can pick a no-backoff "re-pull then retry" path.
+        if (e && (e.name === 'ConcurrentUpdateError' || e.code === 412 || e.status === 412)) {
+          if (!e.name) e.name = 'ConcurrentUpdateError';
+          if (!e.code) e.code = 412;
+        }
+        throw e;
+      }
+      // Persist the new ETag the server returned for the PUT (RFC 9110
+      // recommends servers return ETag of the new resource state).
+      if (writeResult && writeResult.etag && typeof writeResult.etag === 'string') {
+        try { updateSource(sourceId, { lastEtag: writeResult.etag }); }
+        catch (e) { /* best-effort */ }
+      }
       const state = load();
       state.lastSyncedVersion = envelope.version;
       state.lastSyncedAt = Date.now();
@@ -4783,7 +4829,7 @@ const Sync = (function() {
       save(state);
       return envelope;
     } catch (e) {
-      if (e && (e.name === 'PassphraseRequiredError' || e.name === 'ConfigDriftError')) {
+      if (e && (e.name === 'PassphraseRequiredError' || e.name === 'ConfigDriftError' || e.name === 'ConcurrentUpdateError')) {
         throw e;
       }
       const state = load();
@@ -4956,6 +5002,10 @@ const Sync = (function() {
     if (!cfg.url) throw new Error('HTTP source requires config.url');
 
     return {
+      // read() — returns either null (404 / empty body) or the parsed envelope.
+      // Additionally attaches a non-enumerable __meta.etag if the server sent one,
+      // so the Sync layer can persist it for optimistic-concurrency control on push.
+      // (S5 backend has no equivalent; the Sync layer treats missing meta as "no etag".)
       async read() {
         const res = await fetch(cfg.url, {
           method: 'GET',
@@ -4968,22 +5018,59 @@ const Sync = (function() {
         }
         const text = await res.text();
         if (!text) return null;
-        return JSON.parse(text);
+        const envelope = JSON.parse(text);
+        const etag = res.headers.get('ETag');
+        if (etag && envelope && typeof envelope === 'object') {
+          try {
+            Object.defineProperty(envelope, '__meta', {
+              value: { etag: etag },
+              enumerable: false,
+              configurable: true,
+              writable: true,
+            });
+          } catch (e) { /* envelope frozen/sealed: meta is best-effort only */ }
+        }
+        return envelope;
       },
 
-      async write(envelope) {
+      // write(envelope, opts) — sends PUT with optional If-Match header.
+      // opts.ifMatch: ETag string from a prior read; enables lost-update protection.
+      // First push (no prior read => no ifMatch) goes without If-Match: server
+      // treats this as a Create. Subsequent pushes carry the last-seen ETag.
+      // On HTTP 412 (Precondition Failed) we throw a ConcurrentUpdateError; the
+      // caller (Sync.push / _pushTick) re-pulls and retries.
+      // Returns { etag } so the Sync layer can persist the new ETag from the
+      // 2xx response (RFC 9110: PUT response SHOULD include ETag of the new state).
+      async write(envelope, opts) {
+        opts = opts || {};
         const headers = Object.assign(
           { 'Content-Type': 'application/json' },
           buildAuthHeader(cfg)
         );
+        if (opts.ifMatch) {
+          // Defensive: only string ETags, ignore '*' (we want strict create-vs-update
+          // semantics, not "exists or not"). Strip control chars to keep header valid.
+          const ifMatch = String(opts.ifMatch).replace(/[\r\n]/g, '').trim();
+          if (ifMatch && ifMatch !== '*') {
+            headers['If-Match'] = ifMatch;
+          }
+        }
         const res = await fetch(cfg.url, {
           method: 'PUT',
           headers,
           body: JSON.stringify(envelope),
         });
+        if (res.status === 412) {
+          const err = new Error('PUT ' + cfg.url + ' failed: 412 Precondition Failed (concurrent update)');
+          err.name = 'ConcurrentUpdateError';
+          err.code = 412;
+          err.status = 412;
+          throw err;
+        }
         if (!res.ok) {
           throw new Error('PUT ' + cfg.url + ' failed: ' + res.status + ' ' + res.statusText);
         }
+        return { etag: res.headers.get('ETag') || null };
       },
 
       async probe() {
@@ -5125,7 +5212,14 @@ const SyncFileStore = (function() {
         return JSON.parse(text);
       },
 
-      async write(envelope) {
+      // write(envelope, opts) — opts.ifMatch is accepted for API symmetry with
+      // the S1 (HTTP) backend but ignored: the File System Access API offers
+      // no per-write precondition. Lost-update protection for S5 would require
+      // a Last-Modified compare-and-swap, which is unreliable across OS sync
+      // clients (timestamps round to seconds; cloud agents rewrite freely).
+      // For S5, the user-visible mitigation is the recovery-toast (pendingPush
+      // sentinel) plus the typical "single editor" usage pattern.
+      async write(envelope, _opts) {
         const dirHandle = await getDirHandle();
         const fileHandle = await dirHandle.getFileHandle(fileName, { create: true });
         const writable = await fileHandle.createWritable();
@@ -5378,12 +5472,22 @@ const SyncPoller = (function() {
       _pushDebounceTimer: null,  // setTimeout-Handle für scheduleAutoPush
       _pushInFlight: false,      // Re-Entrancy für Auto-Push
       _needsRecovery: false,     // H3: gesetzt wenn pendingPush beim Boot vorlag
+      // V2.0 Schritt 7: zählt 412-Retries pro Source-Push-Sequenz; Reset bei
+      // erfolgreichem Push oder Cap-Hit (→ degrade auf transient backoff).
+      _concurrentRetries: 0,
     };
   }
 
   // V2.0 Schritt 4: Auto-Push-Debounce-Konstante. 2 Sekunden coalesce
   // rapide Edits (mehrere Klicks/Tipps am Stück) zu einem einzigen Push.
   const PUSH_DEBOUNCE_MS = 2000;
+
+  // V2.0 Schritt 7: max number of immediate re-pull + retry-push cycles when
+  // the S1 backend returns 412 (concurrent update). After this many, degrade
+  // to normal transient backoff so the pull-tick loop handles resolution.
+  // 2 covers the common case (two clients racing once) without becoming
+  // a spin loop if a buggy server keeps changing ETag on every GET.
+  const CONCURRENT_RETRY_MAX = 2;
 
   // Globaler RAM-State: Lifecycle, Listener-Refs, Visibility, Online.
   const _global = {
@@ -5446,6 +5550,11 @@ const SyncPoller = (function() {
     if (!error) return 'transient';
     const code = (error.code != null ? error.code : error.status);
     if (code === 401 || code === 403) return 'auth';
+    // V2.0 step 7: 412 Precondition Failed → optimistic-concurrency conflict.
+    // Distinct from 'transient' because the response is: no exponential
+    // backoff, instead an immediate re-pull + retry-push. The S1 push path
+    // tags the error with name=ConcurrentUpdateError; either signal counts.
+    if (code === 412 || error.name === 'ConcurrentUpdateError') return 'concurrent';
     if (error.name === 'NotAllowedError' || error.name === 'NotFoundError') return 'permission';
     // PassphraseRequiredError aus dem V1.3-Sync-Modul ist KEIN auth-Fehler
     // im Sinne des Polls — Passphrase ist clientseitig und kommt durch
@@ -5771,6 +5880,14 @@ const SyncPoller = (function() {
       // erfolgreiche Push-Iteration räumt auf. Bei auth/permission ist das
       // korrekt (User-Aktion nötig); bei transient räumt der nächste
       // erfolgreiche Push auf.
+      //
+      // V2.0 step 7 (concurrent): 412 bedeutet der Server hat unseren PUT
+      // sauber abgelehnt (Precondition Failed). Es gab keinen Half-Write —
+      // wir können pendingPush gefahrlos löschen. Der nachfolgende Re-Pull-
+      // Pfad behandelt die Konflikt-Auflösung.
+      if (resultClass === 'concurrent') {
+        _clearPendingPushSentinel(sourceId);
+      }
     } finally {
       runtime._pushInFlight = false;
     }
@@ -5788,6 +5905,9 @@ const SyncPoller = (function() {
       // unnötig auf den Strafdelay wartet.
       runtime.consecutiveFailures = 0;
       runtime.errorDelayMs = 0;
+      // V2.0 step 7: reset 412-retry counter on success — fresh slate for
+      // the next concurrent-update race.
+      runtime._concurrentRetries = 0;
       try { Sync.save(post); } catch (e) { /* swallow */ }
       return;
     }
@@ -5820,6 +5940,57 @@ const SyncPoller = (function() {
       try { Sync.save(post); } catch (e) { /* swallow */ }
       console.warn('[SyncPoller] auto-push permission required for source',
         sourceId.slice(0, 8));
+      return;
+    }
+
+    if (resultClass === 'concurrent') {
+      // V2.0 step 7: 412 Precondition Failed → someone else wrote between
+      // our last read and our push. Resolution: immediate re-pull (refreshes
+      // lastEtag + applies the foreign delta), then a single re-push attempt.
+      // Capped at CONCURRENT_RETRY_MAX retries per source-tick to avoid
+      // pathological loops with a misbehaving server.
+      persistedSource.lastAutoPollError = sanitizedError;
+      try { Sync.save(post); } catch (e) { /* swallow */ }
+      runtime._concurrentRetries = (runtime._concurrentRetries || 0) + 1;
+      if (runtime._concurrentRetries > CONCURRENT_RETRY_MAX) {
+        // Too many round-trips: degrade to transient backoff so the regular
+        // pull-tick can resolve eventually. Counter resets on next markDirty.
+        console.warn('[SyncPoller] auto-push concurrent retries exhausted',
+          sourceId.slice(0, 8));
+        runtime._concurrentRetries = 0;
+        return;
+      }
+      console.debug('[SyncPoller] auto-push 412, triggering re-pull + retry',
+        sourceId.slice(0, 8), 'retry=' + runtime._concurrentRetries);
+      // Re-pull immediately. If that succeeds, lastEtag is fresh and we
+      // re-schedule a push (the local dirty state is still there because
+      // pull() does not clear it on apply when we suppress dirty).
+      (async () => {
+        try {
+          await Sync.pull(sourceId, { mode: POLL_MODE });
+          // Re-schedule push without the 2s debounce — the user already
+          // waited once.
+          const rt = _runtime.get(sourceId);
+          if (rt) {
+            if (rt._pushDebounceTimer !== null) {
+              clearTimeout(rt._pushDebounceTimer);
+              rt._pushDebounceTimer = null;
+            }
+            rt._pushDebounceTimer = setTimeout(() => {
+              _pushTick(sourceId).catch(err => {
+                console.warn('[SyncPoller] _pushTick (concurrent retry) threw:',
+                  err && _stripUrlsAndTokens(String(err.message || err)));
+              });
+            }, 0);
+          }
+        } catch (pullErr) {
+          // Re-pull failed — degrade to regular transient handling; the
+          // pull-tick loop will retry with backoff.
+          console.warn('[SyncPoller] concurrent re-pull failed:',
+            pullErr && _stripUrlsAndTokens(String(pullErr.message || pullErr)));
+          runtime._concurrentRetries = 0;
+        }
+      })();
       return;
     }
   }
@@ -6000,7 +6171,12 @@ const SyncPoller = (function() {
         Sync.save(state);
       }
     } catch (e) {
-      console.warn('[SyncPoller] online handler: Sync.load/save failed:', e && e.message);
+      // WP-9: route through _stripUrlsAndTokens — same discipline as the
+      // tick-loop console.warn paths. Sync.load/save errors are unlikely to
+      // carry URLs/tokens, but the architecture rule is "all error.message
+      // that hits a console sink gets sanitized".
+      console.warn('[SyncPoller] online handler: Sync.load/save failed:',
+        e && _stripUrlsAndTokens(String(e.message || e)));
     }
     // H1: Direkter Tick für alle aktiven Sources — User soll nicht auf
     // das nächste Intervall warten müssen.
@@ -6017,7 +6193,9 @@ const SyncPoller = (function() {
         Sync.save(state);
       }
     } catch (e) {
-      console.warn('[SyncPoller] offline handler: Sync.load/save failed:', e && e.message);
+      // WP-9: same sanitization as _onOnline above.
+      console.warn('[SyncPoller] offline handler: Sync.load/save failed:',
+        e && _stripUrlsAndTokens(String(e.message || e)));
     }
     console.debug('[SyncPoller] offline');
     // Ticks werden in _shouldSkipTick() abgewiesen, Timer laufen weiter.
