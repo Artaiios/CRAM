@@ -2627,6 +2627,15 @@ button:focus-visible,
 .sync-migration-banner-actions .btn-ghost:hover {
   color: var(--text-primary);
 }
+/* Migration-Banner-Buttons: 44pt-Mindesthöhe auf Mobile (Apple HIG) */
+@media (max-width: 600px) {
+  .sync-migration-banner-actions button,
+  .sync-migration-banner-actions .btn-ghost {
+    min-height: 44px;
+    padding: 10px 14px;
+    font-size: 12px;
+  }
+}
 
 /* ---- Sync-Modal Online-Tab (V1.2 → V1.3 Karten-Layout) ---- */
 .sync-online-list {
