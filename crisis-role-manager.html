@@ -5391,6 +5391,11 @@ const SyncBundle = (function() {
         const key = await SyncCrypto.deriveKey(enc.passphrase, enc.salt);
         Sync.setKeyForSource(savedSource.id, key);
         Sync.setPassphraseForSource(savedSource.id, enc.passphrase);
+        // WP-16: falls Poller wegen leerem Cache hard-pausiert war.
+        if (typeof SyncPoller !== 'undefined' &&
+            typeof SyncPoller.passphraseProvided === 'function') {
+          SyncPoller.passphraseProvided(savedSource.id);
+        }
       } catch (e) {
         // Source bleibt drin, aber ohne Key — User kann beim nächsten Sync
         // erneut die Passphrase eingeben.
@@ -5475,6 +5480,9 @@ const SyncPoller = (function() {
       // V2.0 Schritt 7: zählt 412-Retries pro Source-Push-Sequenz; Reset bei
       // erfolgreichem Push oder Cap-Hit (→ degrade auf transient backoff).
       _concurrentRetries: 0,
+      // WP-16: Hard-Pause-Flag bei PassphraseRequiredError. Wird via
+      // SyncPoller.passphraseProvided(sourceId) gelöscht.
+      _waitingForPassphrase: false,
     };
   }
 
@@ -5556,10 +5564,16 @@ const SyncPoller = (function() {
     // tags the error with name=ConcurrentUpdateError; either signal counts.
     if (code === 412 || error.name === 'ConcurrentUpdateError') return 'concurrent';
     if (error.name === 'NotAllowedError' || error.name === 'NotFoundError') return 'permission';
-    // PassphraseRequiredError aus dem V1.3-Sync-Modul ist KEIN auth-Fehler
-    // im Sinne des Polls — Passphrase ist clientseitig und kommt durch
-    // Cache-Verlust beim Reload. Behandeln wir transient: das Settings-UI
-    // (Schritt 5) wird Passphrase-Prompts beim Resume separat surfaceisieren.
+    // WP-16: PassphraseRequiredError ist eine eigene Fehlerklasse, KEIN
+    // transient. Vorher: endlos retry alle 2 s bei leerem Passphrase-Cache
+    // (Browser-Restart bei verschlüsselter Source) → Console-Spam, CPU-Last,
+    // User merkt nicht dass Passphrase fehlt. Jetzt: Hard-Pause analog
+    // permission. autoMode bleibt unverändert (anders als auth), damit nach
+    // Passphrase-Eingabe der Direct-Tick die Source automatisch reaktiviert.
+    if (error.name === 'PassphraseRequiredError' ||
+        error.code === 'PASSPHRASE_REQUIRED') {
+      return 'passphrase-required';
+    }
     // ConfigDriftError -> transient, weil das passend ist (User pushed
     // gerade einen neuen Config-Stand, Drift löst sich beim nächsten
     // Status-Pull auf, kein autoMode-Wechsel nötig).
@@ -5611,6 +5625,9 @@ const SyncPoller = (function() {
     if (source.pendingPush) return 'recovery';
     const rt = _runtime.get(source.id);
     if (rt && rt._needsRecovery === true) return 'recovery';
+    // WP-16: Hard-Pause solange Passphrase fehlt. Cache liegt nur im RAM,
+    // also Flag im runtime — Recovery via SyncPoller.passphraseProvided().
+    if (rt && rt._waitingForPassphrase === true) return 'passphrase-required';
     return null;
   }
 
@@ -5642,7 +5659,8 @@ const SyncPoller = (function() {
       // visibility/offline-Phasen. Wenn autoMode='off' oder permission/auth
       // blockieren: keinen neuen Timer planen (Hard-Pause der Source).
       if (skipReason === 'auto-off' || skipReason === 'permission' ||
-          skipReason === 'auth' || skipReason === 'recovery') {
+          skipReason === 'auth' || skipReason === 'recovery' ||
+          skipReason === 'passphrase-required') {
         return;
       }
       // Sonst (paused/offline): nächsten Timer einplanen, Backoff
@@ -5735,6 +5753,19 @@ const SyncPoller = (function() {
       // Kein Reschedule: Hard-Pause bis User-Aktion.
       return;
     }
+
+    if (resultClass === 'passphrase-required') {
+      // WP-16: Passphrase-Cache leer (Browser-Restart bei verschlüsselter
+      // Source). Hard-Pause analog permission — autoMode bleibt unverändert
+      // (anders als auth), damit nach Passphrase-Eingabe der Direct-Tick
+      // via SyncPoller.passphraseProvided() die Source sofort reaktiviert.
+      runtime._waitingForPassphrase = true;
+      persistedSource.lastAutoPollError = sanitizedError;
+      try { Sync.save(post); } catch (e) { /* swallow */ }
+      console.warn('[SyncPoller] passphrase required for source', sourceId.slice(0, 8));
+      // Kein Reschedule: Hard-Pause bis SyncPoller.passphraseProvided().
+      return;
+    }
   }
 
   // ---- Auto-Push (Schritt 4) ----
@@ -5812,6 +5843,10 @@ const SyncPoller = (function() {
     if (source.permissionRequired === true) return 'permission';
     if (source.authError && source.authError.acknowledged === false) return 'auth';
     if (source._needsRecovery === true) return 'recovery';  // H3 hard-pause
+    // WP-16: Passphrase-Wartezustand → Hard-Pause für Push (kein Sentinel,
+    // kein Network-Call). Flag liegt im runtime, nicht in der Source.
+    const rt = _runtime.get(source.id);
+    if (rt && rt._waitingForPassphrase === true) return 'passphrase-required';
     return null;
   }
 
@@ -5866,14 +5901,11 @@ const SyncPoller = (function() {
       // 2xx ok: Sentinel löschen.
       _clearPendingPushSentinel(sourceId);
     } catch (e) {
-      // PassphraseRequiredError: Passphrase-Cache leer (Tab-Reload).
-      // Wir behandeln das transient — der nächste markDirty triggert
-      // einen erneuten Versuch, oder der User entsperrt manuell.
-      if (e && e.name === 'PassphraseRequiredError') {
-        resultClass = 'transient';
-      } else {
-        resultClass = _classifyError(e);
-      }
+      // WP-16: PassphraseRequiredError ist jetzt eine eigene Fehlerklasse.
+      // _classifyError mappt sie auf 'passphrase-required' → Hard-Pause
+      // unten (analog permission). Vorher: silent transient → endlose
+      // Push-Retries bei leerem Cache.
+      resultClass = _classifyError(e);
       sanitizedError = _sanitizeErrorForStorage(e, resultClass);
 
       // Bei Fehler: pendingPush bleibt stehen — Boot-Recovery oder nächste
@@ -5940,6 +5972,25 @@ const SyncPoller = (function() {
       try { Sync.save(post); } catch (e) { /* swallow */ }
       console.warn('[SyncPoller] auto-push permission required for source',
         sourceId.slice(0, 8));
+      return;
+    }
+
+    if (resultClass === 'passphrase-required') {
+      // WP-16: Sync.push warf bevor er an die Wire ging (Envelope-Build
+      // braucht den Key). Sentinel wurde gerade geschrieben — analog zum
+      // 'concurrent'-Pfad cleanen wir ihn, weil definitiv kein Half-Write
+      // am Server angekommen ist. Sonst löst Boot-Recovery beim nächsten
+      // Start fälschlich eine Retry/Discard-Frage aus.
+      _clearPendingPushSentinel(sourceId);
+      runtime._waitingForPassphrase = true;
+      // Source neu lesen, weil _clearPendingPushSentinel geschrieben hat.
+      const post2 = _loadState();
+      const persisted2 = _getSource(post2, sourceId) || persistedSource;
+      persisted2.lastAutoPollError = sanitizedError;
+      try { Sync.save(post2); } catch (e) { /* swallow */ }
+      console.warn('[SyncPoller] auto-push passphrase required for source',
+        sourceId.slice(0, 8));
+      // Kein Reschedule: Hard-Pause bis SyncPoller.passphraseProvided().
       return;
     }
 
@@ -6027,6 +6078,42 @@ const SyncPoller = (function() {
         console.warn('[SyncPoller] _pushTick threw:', e && e.message);
       });
     }, PUSH_DEBOUNCE_MS);
+  }
+
+  // WP-16: Recovery-Hook für PassphraseRequiredError-Hard-Pause.
+  // Wiring: an jeder Stelle, wo Sync.setPassphraseForSource(id, ...)
+  // erfolgreich war, ruft die UI SyncPoller.passphraseProvided(id) auf.
+  // - _waitingForPassphrase = false (Skip-Gate öffnet)
+  // - lastAutoPollError = null (Settings-UI Badge verschwindet)
+  // - Direct-Tick mit 0 ms Delay (analog Online-Recovery)
+  // autoMode bleibt unverändert (im Gegensatz zu auth-Recovery), weil der
+  // User die Passphrase eingegeben hat, nicht den Modus geändert.
+  function passphraseProvided(sourceId) {
+    if (!sourceId || typeof sourceId !== 'string') return;
+    const runtime = _runtime.get(sourceId);
+    if (!runtime) return;
+    if (runtime._waitingForPassphrase !== true) return;  // No-op wenn nicht gewartet
+    runtime._waitingForPassphrase = false;
+
+    // lastAutoPollError cleanen, damit Settings-UI-Badge weg ist.
+    try {
+      const state = _loadState();
+      const source = _getSource(state, sourceId);
+      if (source && source.lastAutoPollError &&
+          source.lastAutoPollError.class === 'passphrase-required') {
+        source.lastAutoPollError = null;
+        try { Sync.save(state); } catch (e) { /* swallow */ }
+      }
+      // Direct-Tick triggern — sofern die Source pull-fähig ist und der
+      // Poller läuft. _scheduleNext clamps timer cleanup selbst.
+      if (source && source.autoMode && source.autoMode !== 'off') {
+        _scheduleNext(sourceId, source, runtime, 0);
+      }
+    } catch (e) {
+      console.warn('[SyncPoller] passphraseProvided post-clear failed:',
+        e && e.message);
+    }
+    console.debug('[SyncPoller] passphraseProvided', sourceId.slice(0, 8));
   }
 
   // Boot-Recovery: beim start() schauen wir, ob eine Source mit
@@ -6371,6 +6458,11 @@ const SyncPoller = (function() {
         // V2.0 Schritt 4: Push/Recovery-Diagnose für Settings-UI (Schritt 5).
         pendingPush: src.pendingPush || null,
         needsRecovery: rt._needsRecovery === true,
+        // WP-16: Hard-Pause weil Passphrase-Cache leer ist (RAM-only).
+        // TODO(cram-ui-engineer): Settings-UI Badge analog is-permission;
+        // i18n key z.B. sync.auto.badge_passphrase mit "Passphrase eingeben"-
+        // Button, der den existierenden Passphrase-Prompt öffnet.
+        waitingForPassphrase: rt._waitingForPassphrase === true,
         pushDebouncePending: rt._pushDebounceTimer !== null,
         pushInFlight: rt._pushInFlight === true,
         consecutiveFailures: rt.consecutiveFailures,
@@ -6392,6 +6484,7 @@ const SyncPoller = (function() {
     pause, resume,
     registerSource, unregisterSource,
     scheduleAutoPush,
+    passphraseProvided,  // WP-16
     getStats,
     CONSTANTS: {
       POLL_MODE,
@@ -12409,6 +12502,11 @@ async function syncOnlineUnlockCard(sourceId) {
     const key = await SyncCrypto.deriveKey(passphrase, saltB64);
     Sync.setKeyForSource(src.id, key);
     Sync.setPassphraseForSource(src.id, passphrase);
+    // WP-16: Hard-Pause aufheben falls aktiv.
+    if (typeof SyncPoller !== 'undefined' &&
+        typeof SyncPoller.passphraseProvided === 'function') {
+      SyncPoller.passphraseProvided(src.id);
+    }
     clearPreviewCache(sourceId);
     renderSyncModal();
   } catch (e) {
@@ -12654,6 +12752,11 @@ async function withPassphraseRecovery(source, opFn) {
       const key = await SyncCrypto.deriveKey(passphrase, saltB64);
       Sync.setKeyForSource(source.id, key);
       Sync.setPassphraseForSource(source.id, passphrase);
+      // WP-16: dieser Wrapper läuft genau im Recovery-Fall — Hard-Pause weg.
+      if (typeof SyncPoller !== 'undefined' &&
+          typeof SyncPoller.passphraseProvided === 'function') {
+        SyncPoller.passphraseProvided(source.id);
+      }
     } catch (deriveErr) {
       throw new Error(t('settings.sync_err_key_derive', { msg: String(deriveErr.message || deriveErr) }));
     }
@@ -14149,6 +14252,11 @@ async function dataOnlineUnlock(sourceId) {
     const key = await SyncCrypto.deriveKey(passphrase, saltB64);
     Sync.setKeyForSource(src.id, key);
     Sync.setPassphraseForSource(src.id, passphrase);
+    // WP-16: Hard-Pause aufheben falls aktiv.
+    if (typeof SyncPoller !== 'undefined' &&
+        typeof SyncPoller.passphraseProvided === 'function') {
+      SyncPoller.passphraseProvided(src.id);
+    }
     clearPreviewCache(sourceId);
     renderDataModal();
   } catch (e) {
@@ -15655,6 +15763,12 @@ async function syncFormSave() {
   if (settingsState._pendingPassphrase && savedSource) {
     Sync.setPassphraseForSource(savedSource.id, settingsState._pendingPassphrase);
     delete settingsState._pendingPassphrase;
+    // WP-16: typischer Recovery-Pfad — User legt die Passphrase im
+    // Settings-Editor neu an. Hard-Pause aufheben falls aktiv.
+    if (typeof SyncPoller !== 'undefined' &&
+        typeof SyncPoller.passphraseProvided === 'function') {
+      SyncPoller.passphraseProvided(savedSource.id);
+    }
   }
 
   // Directory-Handle in IndexedDB persistieren (nur fileSystem)
@@ -15910,6 +16024,11 @@ async function openSyncShareModal(sourceId) {
       const key = await SyncCrypto.deriveKey(passphrase, saltB64);
       Sync.setKeyForSource(sourceId, key);
       Sync.setPassphraseForSource(sourceId, passphrase);
+      // WP-16: Hard-Pause aufheben falls aktiv.
+      if (typeof SyncPoller !== 'undefined' &&
+          typeof SyncPoller.passphraseProvided === 'function') {
+        SyncPoller.passphraseProvided(sourceId);
+      }
     } catch (e) {
       showToast(t('settings.sync_err_key_derive', { msg: String(e.message || e) }), 'error');
       return;
