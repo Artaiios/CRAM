@@ -4784,6 +4784,12 @@ const Sync = (function() {
       // Side effect (V2.0 step 7): a successful pre-read also refreshes
       // source.lastEtag so the immediately-following write() can send
       // a current If-Match — closing the obvious race for status pushes.
+      //
+      // QA-F2b (companion fix to F2 in pull): the ETag must be persisted
+      // only AFTER the fingerprint check passes, not before. Otherwise a
+      // ConfigDriftError throw freezes lastEtag on a payload we deliberately
+      // rejected — same cache-poisoning shape as F2. Buffer the ETag in a
+      // local var; commit it once validation succeeds.
       if (mode === 'status') {
         let serverEnvelope = null;
         try { serverEnvelope = await client.read(); } catch (e) {
@@ -4791,16 +4797,23 @@ const Sync = (function() {
           // write() bringt dann den richtigen Fehler.
         }
         if (serverEnvelope) {
+          let serverEtag = null;
           try {
             const etag = serverEnvelope.__meta && serverEnvelope.__meta.etag;
-            if (etag && typeof etag === 'string') {
-              updateSource(sourceId, { lastEtag: etag });
-            }
-          } catch (e) { /* best-effort */ }
+            if (etag && typeof etag === 'string') serverEtag = etag;
+          } catch (e) { /* read-only access, never throws — defensive */ }
           const localFp = computeConfigHash(State.config);
           const remoteFp = serverEnvelope.fingerprint || '';
           if (remoteFp && remoteFp !== localFp) {
+            // Drift: keep previous lastEtag. Next pull will refresh it from
+            // the then-current server state, then push can re-evaluate.
             throw new ConfigDriftError(remoteFp, localFp);
+          }
+          // Fingerprint matches (or server has none): NOW persist the ETag
+          // so the upcoming write() carries a valid If-Match.
+          if (serverEtag) {
+            try { updateSource(sourceId, { lastEtag: serverEtag }); }
+            catch (e) { /* best-effort */ }
           }
         }
       }
