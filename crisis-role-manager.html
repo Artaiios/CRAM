@@ -2521,6 +2521,14 @@ button:focus-visible,
     flex-wrap: wrap;
     justify-content: flex-end;
   }
+  /* F4: Apple HIG verlangt >=44x44 pt Tap-Targets. Default-Buttons sind
+     auf Desktop nur ~25 px hoch (padding 4px 8px + 12px font-size) und
+     auf iPhone-Viewports nicht zuverlässig treffbar. */
+  .sync-source-actions button {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 10px 14px;
+  }
 }
 
 /* V2.0 Schritt 5: per-source Auto-Sync-Akkordeon im Settings-Sync-Tab.
