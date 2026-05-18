@@ -249,15 +249,15 @@ To let colleagues sync against the same source, you export a **sync bundle**: a 
 
 Since V1.3 the online sync is split into two cleanly separated tools:
 
-- **⇄ Sync → Online**: status only (absences + manual assignments) — the data that changes many times per hour during a real incident. Works **only** when the stab configuration is identical between server and local. On mismatch the sync action is disabled and points you at Data.
-- **⇵ Data → Online**: full configuration + status — the structural changes that rarely happen (new role, restructured stab, new person). Works always, with explicit confirmation dialog.
+- **⇄ Sync → Online**: status only (absences + manual assignments) — the data that changes many times per hour during a real incident. Works **only** when the committee configuration is identical between server and local. On mismatch the sync action is disabled and points you at Data.
+- **⇵ Data → Online**: full configuration + status — the structural changes that rarely happen (new role, restructured committee, new person). Works always, with explicit confirmation dialog.
 
-The split is a safety property: status sync cannot accidentally overwrite the stab structure.
+The split is a safety property: status sync cannot accidentally overwrite the committee structure.
 
 **Common workflows:**
 
 - *Incident routine (change absences):* ⇄ Sync → Online → "Pull status" or "Push status". Fast, two clicks.
-- *Structural stab change:* Edit mode → adjust the configuration → ⇵ Data → Online → "Send local state to server". Server is overwritten with a confirmation.
+- *Structural committee change:* Edit mode → adjust the configuration → ⇵ Data → Online → "Send local state to server". Server is overwritten with a confirmation.
 - *First-time bundle import:* After import CRAM asks: "Server already has a state — take it now?" → click yes, done.
 
 **Awareness indicator (header):** when a server probe (Sync or Data modal opened) finds the configurations differ, the indicator switches to red "⚠ Config drift" — clickable, jumps directly to Data → Online.
