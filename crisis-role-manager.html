@@ -2680,6 +2680,11 @@ button:focus-visible,
   border-color: var(--status-warn-border);
   color: var(--status-warn);
 }
+.sync-auto-badge.is-passphrase {
+  background: var(--status-warn-bg);
+  border-color: var(--status-warn-border);
+  color: var(--status-warn);
+}
 .sync-auto-badge.is-recovery {
   background: var(--status-warn-deep-bg);
   border-color: var(--status-warn-deep-border);
@@ -6948,9 +6953,11 @@ const TRANSLATIONS = {
     'sync.auto.badge_auth': 'Authentifizierung abgelaufen — neu anmelden',
     'sync.auto.badge_permission': 'Dateizugriff erneut bestätigen',
     'sync.auto.badge_recovery': 'Push hängt — Recovery nötig',
+    'sync.auto.badge_passphrase': 'Passphrase erneut eingeben',
     'sync.auto.btn_grant_access': 'Zugriff gewähren',
     'sync.auto.btn_retry_push': 'Erneut versuchen',
     'sync.auto.btn_discard_push': 'Verwerfen',
+    'sync.auto.btn_enter_passphrase': 'Passphrase eingeben',
     'sync.auto.grant_no_handle': 'Kein Verzeichnis-Handle gespeichert. Bitte Quelle bearbeiten und Verzeichnis neu auswählen.',
     // V2.0 Schritt 6: Toast-Strings
     'sync.auto.toast.permission_granted_title': 'Dateizugriff gewährt',
@@ -7506,9 +7513,11 @@ const TRANSLATIONS = {
     'sync.auto.badge_auth': 'Authentication expired — sign in again',
     'sync.auto.badge_permission': 'File access needs confirmation',
     'sync.auto.badge_recovery': 'Push stuck — recovery needed',
+    'sync.auto.badge_passphrase': 'Passphrase needed — re-enter',
     'sync.auto.btn_grant_access': 'Grant access',
     'sync.auto.btn_retry_push': 'Retry',
     'sync.auto.btn_discard_push': 'Discard',
+    'sync.auto.btn_enter_passphrase': 'Enter passphrase',
     'sync.auto.grant_no_handle': 'No directory handle stored. Please edit the source and pick the directory again.',
     // V2.0 step 6: toast strings
     'sync.auto.toast.permission_granted_title': 'File access granted',
@@ -8063,9 +8072,11 @@ const TRANSLATIONS = {
     'sync.auto.badge_auth': 'Autenticación expirada — iniciar sesión nuevamente',
     'sync.auto.badge_permission': 'Confirmar acceso al archivo nuevamente',
     'sync.auto.badge_recovery': 'Envío atascado — se necesita recuperación',
+    'sync.auto.badge_passphrase': 'Frase de contraseña necesaria — volver a introducir',
     'sync.auto.btn_grant_access': 'Otorgar acceso',
     'sync.auto.btn_retry_push': 'Reintentar',
     'sync.auto.btn_discard_push': 'Descartar',
+    'sync.auto.btn_enter_passphrase': 'Introducir frase de contraseña',
     'sync.auto.grant_no_handle': 'No hay identificador de directorio guardado. Edita la fuente y vuelve a seleccionar el directorio.',
     // V2.0 paso 6: cadenas de toast
     'sync.auto.toast.permission_granted_title': 'Acceso a archivo concedido',
@@ -8621,9 +8632,11 @@ const TRANSLATIONS = {
     'sync.auto.badge_auth': 'Authentification expirée — se reconnecter',
     'sync.auto.badge_permission': 'Confirmer à nouveau l\'accès au fichier',
     'sync.auto.badge_recovery': 'Envoi bloqué — récupération nécessaire',
+    'sync.auto.badge_passphrase': 'Phrase secrète requise — saisir à nouveau',
     'sync.auto.btn_grant_access': 'Accorder l\'accès',
     'sync.auto.btn_retry_push': 'Réessayer',
     'sync.auto.btn_discard_push': 'Abandonner',
+    'sync.auto.btn_enter_passphrase': 'Saisir la phrase secrète',
     'sync.auto.grant_no_handle': 'Aucun identifiant de répertoire enregistré. Modifiez la source et sélectionnez à nouveau le répertoire.',
     // V2.0 étape 6 : chaînes de toast
     'sync.auto.toast.permission_granted_title': 'Accès au fichier accordé',
@@ -9182,9 +9195,11 @@ const TRANSLATIONS = {
     'sync.auto.badge_auth': '认证已过期 — 请重新登录',
     'sync.auto.badge_permission': '需要重新确认文件访问权限',
     'sync.auto.badge_recovery': '推送卡住 — 需要恢复',
+    'sync.auto.badge_passphrase': '需要密码 — 请重新输入', // TODO(i18n): native ZH review
     'sync.auto.btn_grant_access': '授予访问权限',
     'sync.auto.btn_retry_push': '重试',
     'sync.auto.btn_discard_push': '丢弃',
+    'sync.auto.btn_enter_passphrase': '输入密码', // TODO(i18n): native ZH review
     'sync.auto.grant_no_handle': '未保存目录句柄。请编辑源并重新选择目录。',
     // V2.0 第 6 步：Toast 字符串 (TODO: native review)
     'sync.auto.toast.permission_granted_title': '已授予文件访问权限',
@@ -10882,6 +10897,7 @@ const CLICK_HANDLERS = {
   'sync-auto-grant-access':     (el) => syncAutoGrantAccess(el.dataset.sourceId),
   'sync-auto-retry-push':       (el) => syncAutoRetryPush(el.dataset.sourceId),
   'sync-auto-discard-push':     (el) => syncAutoDiscardPush(el.dataset.sourceId),
+  'sync-auto-enter-passphrase': (el) => syncAutoEnterPassphrase(el.dataset.sourceId),
 };
 
 // V2.0 Schritt 6: Toast-Actions enthalten Source-IDs als Suffix
@@ -15233,6 +15249,8 @@ function renderSyncAutoAccordion(source) {
   const permReq  = stats ? !!stats.permissionRequired : !!source.permissionRequired;
   const pending  = (stats && stats.pendingPush) || source.pendingPush || null;
   const recover  = stats ? !!stats.needsRecovery : false;
+  // WP-16 UI: Hard-Pause (Passphrase-Cache leer) — Badge analog is-permission.
+  const waitPp   = stats ? !!stats.waitingForPassphrase : false;
 
   const radio = (val, key) => `
     <label>
@@ -15274,6 +15292,16 @@ function renderSyncAutoAccordion(source) {
         <span class="sync-auto-badge-text">${escapeHTML(t('sync.auto.badge_permission'))}</span>
         <span class="sync-auto-badge-actions">
           <button data-action="sync-auto-grant-access" data-source-id="${escapeHTML(sid)}">${escapeHTML(t('sync.auto.btn_grant_access'))}</button>
+        </span>
+      </div>
+    `;
+  }
+  if (waitPp) {
+    badges += `
+      <div class="sync-auto-badge is-passphrase" role="alert">
+        <span class="sync-auto-badge-text">${escapeHTML(t('sync.auto.badge_passphrase'))}</span>
+        <span class="sync-auto-badge-actions">
+          <button data-action="sync-auto-enter-passphrase" data-source-id="${escapeHTML(sid)}">${escapeHTML(t('sync.auto.btn_enter_passphrase'))}</button>
         </span>
       </div>
     `;
@@ -15994,6 +16022,35 @@ function syncAutoRetryPush(sourceId) {
     } catch (e) {
       console.warn('[settings] retry-push wiring failed:', e && e.message);
     }
+  }
+  renderSettingsModal();
+}
+
+// WP-16 UI: Passphrase-Hard-Pause aufheben.
+// Öffnet den bestehenden promptPassphrase-Flow (siehe syncOnlineUnlockCard /
+// openSyncShareModal), schreibt Key+Passphrase in den RAM-Cache und ruft
+// SyncPoller.passphraseProvided(sid) — das clearen des _waitingForPassphrase-
+// Flags + direct-tick übernimmt der Poller selbst.
+async function syncAutoEnterPassphrase(sourceId) {
+  if (!sourceId) return;
+  const src = Sync.getSource(sourceId);
+  if (!src) return;
+  const passphrase = await promptPassphrase(src);
+  if (!passphrase) { renderSettingsModal(); return; }
+  try {
+    const saltB64 = (src.encryption || {}).salt || SyncCrypto.randomSaltB64();
+    if (!(src.encryption || {}).salt) {
+      Sync.updateSource(src.id, { encryption: Object.assign({}, src.encryption || {}, { enabled: true, salt: saltB64 }) });
+    }
+    const key = await SyncCrypto.deriveKey(passphrase, saltB64);
+    Sync.setKeyForSource(src.id, key);
+    Sync.setPassphraseForSource(src.id, passphrase);
+    if (typeof SyncPoller !== 'undefined' &&
+        typeof SyncPoller.passphraseProvided === 'function') {
+      SyncPoller.passphraseProvided(src.id);
+    }
+  } catch (e) {
+    showToast(t('settings.sync_err_key_derive', { msg: String(e.message || e) }), 'error');
   }
   renderSettingsModal();
 }
