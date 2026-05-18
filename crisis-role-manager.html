@@ -2690,6 +2690,11 @@ button:focus-visible,
   border-color: var(--status-warn-deep-border);
   color: var(--status-warn-deep);
 }
+.sync-auto-badge.is-drift {
+  background: var(--status-critical-bg);
+  border-color: var(--status-critical-border);
+  color: var(--status-critical);
+}
 .sync-auto-badge-text {
   flex: 1;
   min-width: 0;
@@ -2711,6 +2716,51 @@ button:focus-visible,
 }
 .sync-auto-badge button:hover {
   background: rgba(255, 255, 255, 0.05);
+}
+
+/* RC-feature: Drift-Modal. Großes mittiges Modal, eine Karte pro betroffene
+   Source mit zwei Aktionen. */
+.drift-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.drift-modal-intro {
+  margin: 0;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+.drift-source-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.drift-source-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--status-critical-bg);
+  border: 1px solid var(--status-critical-border);
+  border-radius: var(--radius-sm);
+  flex-wrap: wrap;
+}
+.drift-source-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  color: var(--status-critical);
+  word-break: break-word;
+}
+.drift-source-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.drift-empty {
+  color: var(--text-secondary);
+  font-style: italic;
 }
 
 @media (max-width: 600px) {
@@ -2741,6 +2791,17 @@ button:focus-visible,
   }
   .sync-auto-interval-value {
     text-align: left;
+    width: 100%;
+  }
+  .drift-source-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .drift-source-actions {
+    flex-direction: column;
+  }
+  .drift-source-actions button {
+    min-height: 44px;
     width: 100%;
   }
 }
@@ -5600,9 +5661,16 @@ const SyncPoller = (function() {
         error.code === 'PASSPHRASE_REQUIRED') {
       return 'passphrase-required';
     }
-    // ConfigDriftError -> transient, weil das passend ist (User pushed
-    // gerade einen neuen Config-Stand, Drift löst sich beim nächsten
-    // Status-Pull auf, kein autoMode-Wechsel nötig).
+    // RC-feature: ConfigDriftError ist KEINE transient mehr. Vorher: silent
+    // retry mit exponentiellem Backoff → User sah nicht, dass die Server-
+    // Config sich (Personen/Rollen/Struktur) geändert hatte. Jetzt: eigene
+    // Klasse 'config-drift' → Hard-Pause der Source, Header-Indikator wird
+    // rot, Modal bietet "Konfiguration übernehmen" (full-Pull) oder
+    // "Später" (Quelle bleibt pausiert).
+    if (error.name === 'ConfigDriftError' ||
+        error.code === 'CONFIG_DRIFT') {
+      return 'config-drift';
+    }
     return 'transient';
   }
 
@@ -5654,6 +5722,9 @@ const SyncPoller = (function() {
     // WP-16: Hard-Pause solange Passphrase fehlt. Cache liegt nur im RAM,
     // also Flag im runtime — Recovery via SyncPoller.passphraseProvided().
     if (rt && rt._waitingForPassphrase === true) return 'passphrase-required';
+    // RC-feature: Hard-Pause bei Config-Drift. Recovery via
+    // SyncPoller.configDriftResolved() nach erfolgreichem Full-Pull.
+    if (rt && rt._configDrift === true) return 'config-drift';
     return null;
   }
 
@@ -5686,7 +5757,8 @@ const SyncPoller = (function() {
       // blockieren: keinen neuen Timer planen (Hard-Pause der Source).
       if (skipReason === 'auto-off' || skipReason === 'permission' ||
           skipReason === 'auth' || skipReason === 'recovery' ||
-          skipReason === 'passphrase-required') {
+          skipReason === 'passphrase-required' ||
+          skipReason === 'config-drift') {
         return;
       }
       // Sonst (paused/offline): nächsten Timer einplanen, Backoff
@@ -5805,6 +5877,22 @@ const SyncPoller = (function() {
       // Kein Reschedule: Hard-Pause bis SyncPoller.passphraseProvided().
       return;
     }
+
+    if (resultClass === 'config-drift') {
+      // RC-feature: Server-Config (Personen/Rollen/Struktur) hat sich
+      // geändert. Status-Pull allein kann nicht angewandt werden — User
+      // muss bewusst entscheiden, ob die fremde Config übernommen wird
+      // (Full-Pull, würde lokale Config überschreiben) oder die Quelle
+      // bis auf Weiteres ignoriert wird. Hard-Pause: kein autoMode-Wechsel
+      // (anders als auth), damit nach SyncPoller.configDriftResolved() der
+      // Direct-Tick die Source automatisch reaktiviert.
+      runtime._configDrift = true;
+      persistedSource.lastAutoPollError = sanitizedError;
+      try { Sync.save(post); } catch (e) { /* swallow */ }
+      console.warn('[SyncPoller] config drift for source', sourceId.slice(0, 8));
+      // Kein Reschedule: Hard-Pause bis SyncPoller.configDriftResolved().
+      return;
+    }
   }
 
   // ---- Auto-Push (Schritt 4) ----
@@ -5886,6 +5974,9 @@ const SyncPoller = (function() {
     // kein Network-Call). Flag liegt im runtime, nicht in der Source.
     const rt = _runtime.get(source.id);
     if (rt && rt._waitingForPassphrase === true) return 'passphrase-required';
+    // RC-feature: Config-Drift → Push würde mit dem gleichen Fingerprint-
+    // Mismatch in Sync.push abgewiesen. Skip früh, kein Sentinel.
+    if (rt && rt._configDrift === true) return 'config-drift';
     return null;
   }
 
@@ -6033,6 +6124,22 @@ const SyncPoller = (function() {
       return;
     }
 
+    if (resultClass === 'config-drift') {
+      // RC-feature: Push wurde abgewiesen, weil Remote-Fingerprint ≠ local.
+      // Sentinel cleanen (analog passphrase-required/concurrent — Sync.push
+      // hat vor dem Wire-Write geworfen, kein Half-Write am Server).
+      _clearPendingPushSentinel(sourceId);
+      runtime._configDrift = true;
+      const post2 = _loadState();
+      const persisted2 = _getSource(post2, sourceId) || persistedSource;
+      persisted2.lastAutoPollError = sanitizedError;
+      try { Sync.save(post2); } catch (e) { /* swallow */ }
+      console.warn('[SyncPoller] auto-push config drift for source',
+        sourceId.slice(0, 8));
+      // Kein Reschedule: Hard-Pause bis SyncPoller.configDriftResolved().
+      return;
+    }
+
     if (resultClass === 'concurrent') {
       // V2.0 step 7: 412 Precondition Failed → someone else wrote between
       // our last read and our push. Resolution: immediate re-pull (refreshes
@@ -6127,6 +6234,11 @@ const SyncPoller = (function() {
         sourceId.slice(0, 8));
       return;
     }
+    if (runtime._configDrift) {
+      console.debug('[SyncPoller] scheduleAutoPush skipped, configDrift',
+        sourceId.slice(0, 8));
+      return;
+    }
 
     // Coalescing: läuft schon ein Timer, clearen und neu setzen — der
     // letzte Edit gewinnt.
@@ -6176,6 +6288,40 @@ const SyncPoller = (function() {
         e && e.message);
     }
     console.debug('[SyncPoller] passphraseProvided', sourceId.slice(0, 8));
+  }
+
+  // RC-feature: Recovery-Hook für ConfigDriftError-Hard-Pause.
+  // Wiring: nach erfolgreichem Full-Pull (User hat im Drift-Modal
+  // "Konfiguration übernehmen" geklickt) ruft die UI
+  // SyncPoller.configDriftResolved(id) auf.
+  // - _configDrift = false (Skip-Gate öffnet)
+  // - lastAutoPollError = null (Settings-Badge + Header-Indikator weg)
+  // - Direct-Tick mit 0 ms Delay (analog passphraseProvided)
+  // autoMode bleibt unverändert — User hat die Quelle nicht deaktiviert,
+  // sondern die Drift behoben.
+  function configDriftResolved(sourceId) {
+    if (!sourceId || typeof sourceId !== 'string') return;
+    const runtime = _runtime.get(sourceId);
+    if (!runtime) return;
+    if (runtime._configDrift !== true) return;  // No-op wenn nicht im Drift
+    runtime._configDrift = false;
+
+    try {
+      const state = _loadState();
+      const source = _getSource(state, sourceId);
+      if (source && source.lastAutoPollError &&
+          source.lastAutoPollError.class === 'config-drift') {
+        source.lastAutoPollError = null;
+        try { Sync.save(state); } catch (e) { /* swallow */ }
+      }
+      if (source && source.autoMode && source.autoMode !== 'off') {
+        _scheduleNext(sourceId, source, runtime, 0);
+      }
+    } catch (e) {
+      console.warn('[SyncPoller] configDriftResolved post-clear failed:',
+        e && e.message);
+    }
+    console.debug('[SyncPoller] configDriftResolved', sourceId.slice(0, 8));
   }
 
   // Boot-Recovery: beim start() schauen wir, ob eine Source mit
@@ -6525,6 +6671,9 @@ const SyncPoller = (function() {
         // i18n key z.B. sync.auto.badge_passphrase mit "Passphrase eingeben"-
         // Button, der den existierenden Passphrase-Prompt öffnet.
         waitingForPassphrase: rt._waitingForPassphrase === true,
+        // RC-feature: Hard-Pause weil Server-Config drift'et ist. Recovery
+        // via configDriftResolved() nach Full-Pull.
+        configDrift: rt._configDrift === true,
         pushDebouncePending: rt._pushDebounceTimer !== null,
         pushInFlight: rt._pushInFlight === true,
         consecutiveFailures: rt.consecutiveFailures,
@@ -6547,6 +6696,7 @@ const SyncPoller = (function() {
     registerSource, unregisterSource,
     scheduleAutoPush,
     passphraseProvided,  // WP-16
+    configDriftResolved,  // RC-feature: drift-modal-resolution
     getStats,
     CONSTANTS: {
       POLL_MODE,
@@ -6995,10 +7145,18 @@ const TRANSLATIONS = {
     'sync.auto.badge_permission': 'Dateizugriff erneut bestätigen',
     'sync.auto.badge_recovery': 'Push hängt — Recovery nötig',
     'sync.auto.badge_passphrase': 'Passphrase erneut eingeben',
+    'sync.auto.badge_drift': 'Konfig weicht ab',
     'sync.auto.btn_grant_access': 'Zugriff gewähren',
     'sync.auto.btn_retry_push': 'Erneut versuchen',
     'sync.auto.btn_discard_push': 'Verwerfen',
     'sync.auto.btn_enter_passphrase': 'Passphrase eingeben',
+    'sync.auto.btn_resolve_drift': 'Konfiguration übernehmen',
+    'sync.drift_modal.title': 'Konfiguration weicht ab',
+    'sync.drift_modal.body': 'Die Konfiguration auf dem Server hat sich geändert (neue Rollen, Personen oder Struktur). Ein reiner Status-Abgleich reicht nicht mehr — wenn du die fremde Konfiguration übernimmst, wird deine lokale Konfiguration für diese Quelle ersetzt. Bis du entschieden hast, ist die automatische Synchronisation für diese Quelle pausiert.',
+    'sync.drift_modal.per_source': '{name}: Konfiguration weicht ab',
+    'sync.drift_modal.btn_apply': 'Konfiguration übernehmen',
+    'sync.drift_modal.btn_later': 'Später',
+    'sync.drift_modal.none': 'Aktuell sind keine Drift-Quellen bekannt.',
     'sync.auto.grant_no_handle': 'Kein Verzeichnis-Handle gespeichert. Bitte Quelle bearbeiten und Verzeichnis neu auswählen.',
     // V2.0 Schritt 6: Toast-Strings
     'sync.auto.toast.permission_granted_title': 'Dateizugriff gewährt',
@@ -7555,10 +7713,18 @@ const TRANSLATIONS = {
     'sync.auto.badge_permission': 'File access needs confirmation',
     'sync.auto.badge_recovery': 'Push stuck — recovery needed',
     'sync.auto.badge_passphrase': 'Passphrase needed — re-enter',
+    'sync.auto.badge_drift': 'Config out of sync',
     'sync.auto.btn_grant_access': 'Grant access',
     'sync.auto.btn_retry_push': 'Retry',
     'sync.auto.btn_discard_push': 'Discard',
     'sync.auto.btn_enter_passphrase': 'Enter passphrase',
+    'sync.auto.btn_resolve_drift': 'Adopt configuration',
+    'sync.drift_modal.title': 'Configuration out of sync',
+    'sync.drift_modal.body': 'The configuration on the server has changed (new roles, people or structure). A plain status sync no longer matches — if you adopt the remote configuration, your local configuration for this source will be replaced. Auto-sync stays paused for this source until you decide.',
+    'sync.drift_modal.per_source': '{name}: configuration out of sync',
+    'sync.drift_modal.btn_apply': 'Adopt configuration',
+    'sync.drift_modal.btn_later': 'Later',
+    'sync.drift_modal.none': 'No drifting sources are currently known.',
     'sync.auto.grant_no_handle': 'No directory handle stored. Please edit the source and pick the directory again.',
     // V2.0 step 6: toast strings
     'sync.auto.toast.permission_granted_title': 'File access granted',
@@ -8114,6 +8280,14 @@ const TRANSLATIONS = {
     'sync.auto.badge_permission': 'Confirmar acceso al archivo nuevamente',
     'sync.auto.badge_recovery': 'Envío atascado — se necesita recuperación',
     'sync.auto.badge_passphrase': 'Frase de contraseña necesaria — volver a introducir',
+    'sync.auto.badge_drift': 'Configuración divergente',
+    'sync.auto.btn_resolve_drift': 'Adoptar configuración',
+    'sync.drift_modal.title': 'Configuración divergente',
+    'sync.drift_modal.body': 'La configuración en el servidor ha cambiado (nuevos roles, personas o estructura). Una sincronización de estado por sí sola ya no encaja — si adoptas la configuración remota, tu configuración local para esta fuente será reemplazada. La sincronización automática queda en pausa para esta fuente hasta que decidas.',
+    'sync.drift_modal.per_source': '{name}: configuración divergente',
+    'sync.drift_modal.btn_apply': 'Adoptar configuración',
+    'sync.drift_modal.btn_later': 'Más tarde',
+    'sync.drift_modal.none': 'Actualmente no se conocen fuentes con configuración divergente.',
     'sync.auto.btn_grant_access': 'Otorgar acceso',
     'sync.auto.btn_retry_push': 'Reintentar',
     'sync.auto.btn_discard_push': 'Descartar',
@@ -8674,6 +8848,14 @@ const TRANSLATIONS = {
     'sync.auto.badge_permission': 'Confirmer à nouveau l\'accès au fichier',
     'sync.auto.badge_recovery': 'Envoi bloqué — récupération nécessaire',
     'sync.auto.badge_passphrase': 'Phrase secrète requise — saisir à nouveau',
+    'sync.auto.badge_drift': 'Config divergente',
+    'sync.auto.btn_resolve_drift': 'Adopter la configuration',
+    'sync.drift_modal.title': 'Configuration divergente',
+    'sync.drift_modal.body': 'La configuration sur le serveur a changé (nouveaux rôles, personnes ou structure). Une synchronisation d\'état seule ne correspond plus — si tu adoptes la configuration distante, ta configuration locale pour cette source sera remplacée. La synchronisation automatique reste en pause pour cette source jusqu\'à ta décision.',
+    'sync.drift_modal.per_source': '{name}: configuration divergente',
+    'sync.drift_modal.btn_apply': 'Adopter la configuration',
+    'sync.drift_modal.btn_later': 'Plus tard',
+    'sync.drift_modal.none': 'Aucune source en dérive n\'est actuellement connue.',
     'sync.auto.btn_grant_access': 'Accorder l\'accès',
     'sync.auto.btn_retry_push': 'Réessayer',
     'sync.auto.btn_discard_push': 'Abandonner',
@@ -9237,6 +9419,14 @@ const TRANSLATIONS = {
     'sync.auto.badge_permission': '需要重新确认文件访问权限',
     'sync.auto.badge_recovery': '推送卡住 — 需要恢复',
     'sync.auto.badge_passphrase': '需要密码 — 请重新输入', // TODO(i18n): native ZH review
+    'sync.auto.badge_drift': '配置不一致', // TODO(i18n): native ZH review
+    'sync.auto.btn_resolve_drift': '采用配置', // TODO(i18n): native ZH review
+    'sync.drift_modal.title': '配置不一致', // TODO(i18n): native ZH review
+    'sync.drift_modal.body': '服务器上的配置已更改（新的角色、人员或结构）。仅同步状态已不足以匹配 — 如果你采用远程配置，此源的本地配置将被替换。在你做出决定前，此源的自动同步将暂停。', // TODO(i18n): native ZH review
+    'sync.drift_modal.per_source': '{name}：配置不一致', // TODO(i18n): native ZH review
+    'sync.drift_modal.btn_apply': '采用配置', // TODO(i18n): native ZH review
+    'sync.drift_modal.btn_later': '稍后', // TODO(i18n): native ZH review
+    'sync.drift_modal.none': '当前没有已知的配置不一致源。', // TODO(i18n): native ZH review
     'sync.auto.btn_grant_access': '授予访问权限',
     'sync.auto.btn_retry_push': '重试',
     'sync.auto.btn_discard_push': '丢弃',
@@ -9894,6 +10084,32 @@ function renderSyncIndicator() {
     }
   }
 
+  // RC-feature: Auto-Poll hat ConfigDriftError gemeldet → Hard-Pause für
+  // diese Source. Indikator MUSS sichtbar rot werden, unabhängig vom
+  // Preview-Cache (User hatte vielleicht den Sync-Modal nie geöffnet).
+  // Quelle: lastAutoPollError.class === 'config-drift' (persistiert) oder
+  // SyncPoller.getStats().configDrift (RAM, redundant aber defensiv).
+  if (status !== 'config-drift') {
+    try {
+      const syncState = Sync.load();
+      if (syncState && Array.isArray(syncState.sources)) {
+        for (const src of syncState.sources) {
+          if (src.lastAutoPollError && src.lastAutoPollError.class === 'config-drift') {
+            status = 'config-drift';
+            break;
+          }
+        }
+      }
+      if (status !== 'config-drift' && typeof SyncPoller !== 'undefined' &&
+          typeof SyncPoller.getStats === 'function') {
+        const all = SyncPoller.getStats();
+        for (const s of all) {
+          if (s && s.configDrift === true) { status = 'config-drift'; break; }
+        }
+      }
+    } catch (e) { /* swallow — indicator must never throw */ }
+  }
+
   if (status === 'disabled') {
     el.hidden = true;
     el.removeAttribute('data-state');
@@ -9928,12 +10144,116 @@ function renderSyncIndicator() {
     '<span class="sync-indicator-label">' + escapeHTML(t(labelKey)) + '</span>';
   el.title = t(tooltipKey, tInfo);
   // Im config-drift-Zustand wird der Indikator klickbar und öffnet
-  // Data-Modal → Online-Tab. Sonst kein onclick.
+  // das dedizierte Drift-Modal. Sonst kein onclick.
   if (status === 'config-drift') {
-    el.setAttribute('data-action', 'sync-indicator-open-data');
+    el.setAttribute('data-action', 'sync-drift-open');
   } else {
     el.removeAttribute('data-action');
   }
+}
+
+/* RC-feature: Drift-Modal.
+   Listet alle Sources mit config-drift (entweder _configDrift==true im
+   Poller-RAM oder lastAutoPollError.class==='config-drift' im persistierten
+   Storage — beides bleibt synchron, redundant gegen Refresh-Reihenfolgen).
+   Pro Source: Name + zwei Buttons (Konfiguration übernehmen / Später).
+   "Übernehmen" triggert dataOnlinePullFull(sourceId), das den existierenden
+   Full-Pull-Pfad fährt (Confirm-Dialog mit Diff-Stats inklusive). Nach
+   erfolgreichem Pull: SyncPoller.configDriftResolved(sid). */
+function _collectDriftSources() {
+  const out = [];
+  try {
+    const syncState = Sync.load();
+    if (!syncState || !Array.isArray(syncState.sources)) return out;
+    let pollerStats = null;
+    if (typeof SyncPoller !== 'undefined' && typeof SyncPoller.getStats === 'function') {
+      try { pollerStats = SyncPoller.getStats(); } catch (e) { pollerStats = null; }
+    }
+    const driftIds = new Set();
+    if (pollerStats) {
+      for (const s of pollerStats) if (s && s.configDrift === true) driftIds.add(s.sourceId);
+    }
+    for (const src of syncState.sources) {
+      const persistedDrift = src.lastAutoPollError &&
+        src.lastAutoPollError.class === 'config-drift';
+      if (persistedDrift || driftIds.has(src.id)) {
+        out.push(src);
+      }
+    }
+  } catch (e) { /* swallow */ }
+  return out;
+}
+
+function openDriftModal() {
+  renderDriftModal();
+  document.getElementById('modal-backdrop').style.display = 'flex';
+}
+
+function renderDriftModal() {
+  document.getElementById('modal-title').textContent = t('sync.drift_modal.title');
+  const body = document.getElementById('modal-body');
+  const footer = document.getElementById('modal-footer');
+  const sources = _collectDriftSources();
+
+  let listHTML = '';
+  if (sources.length === 0) {
+    listHTML = `<div class="drift-empty">${escapeHTML(t('sync.drift_modal.none'))}</div>`;
+  } else {
+    listHTML = '<div class="drift-source-list">';
+    for (const src of sources) {
+      const label = src.label || src.id.slice(0, 8);
+      listHTML += `
+        <div class="drift-source-item">
+          <div class="drift-source-name">${escapeHTML(t('sync.drift_modal.per_source', { name: label }))}</div>
+          <div class="drift-source-actions">
+            <button class="btn-primary" data-action="sync-drift-apply" data-source-id="${escapeHTML(src.id)}">
+              ${escapeHTML(t('sync.drift_modal.btn_apply'))}
+            </button>
+            <button class="btn-secondary" data-action="sync-drift-later" data-source-id="${escapeHTML(src.id)}">
+              ${escapeHTML(t('sync.drift_modal.btn_later'))}
+            </button>
+          </div>
+        </div>
+      `;
+    }
+    listHTML += '</div>';
+  }
+
+  body.innerHTML = `
+    <div class="drift-modal-body">
+      <p class="drift-modal-intro">${escapeHTML(t('sync.drift_modal.body'))}</p>
+      ${listHTML}
+    </div>
+  `;
+  footer.innerHTML = `
+    <button class="btn-secondary" data-action="modal-close">${escapeHTML(t('sync.drift_modal.btn_later'))}</button>
+  `;
+}
+
+/* RC-feature: Apply-Action im Drift-Modal.
+   Schließt das Modal, ruft dataOnlinePullFull (Full-Mode, lädt Config+Status,
+   eingebauter Confirm-Dialog mit Diff-Summary). Bei Erfolg löst der Pull
+   intern den Drift-Resolved-Hook aus; wir rufen es defensiv hier auch noch,
+   weil dataOnlinePullFull selbst nicht weiß, ob die Source vorher im Drift
+   war. */
+async function driftModalApply(sourceId) {
+  closeModal();
+  try {
+    await dataOnlinePullFull(sourceId);
+    if (typeof SyncPoller !== 'undefined' &&
+        typeof SyncPoller.configDriftResolved === 'function') {
+      SyncPoller.configDriftResolved(sourceId);
+    }
+    renderSyncIndicator();
+  } catch (e) {
+    showToast(t('sync.online_pull_failed', { msg: String(e.message || e) }), 'error');
+  }
+}
+
+/* "Später"-Action: Modal schließen. Source bleibt im Hard-Pause. Header-
+   Indikator bleibt rot — User soll an die offene Drift erinnert werden. */
+function driftModalLater(sourceId) {
+  closeModal();
 }
 
 function formatRelativeTime(timestamp) {
@@ -10872,6 +11192,11 @@ const CLICK_HANDLERS = {
     dataModalState.mode = 'online';
     renderDataModal();
   },
+  // RC-feature: Drift-Modal. Header-Indikator und Akkordeon-Badge zeigen
+  // beide auf diesen Handler.
+  'sync-drift-open':  ()   => openDriftModal(),
+  'sync-drift-apply': (el) => driftModalApply(el.dataset.sourceId),
+  'sync-drift-later': (el) => driftModalLater(el.dataset.sourceId),
   // V1.3 Data-Online Cards
   'data-online-refresh':    (el) => dataOnlineRefresh(el.dataset.sourceId),
   'data-online-unlock':     (el) => dataOnlineUnlock(el.dataset.sourceId),
@@ -14360,11 +14685,18 @@ async function dataOnlinePullFull(sourceId) {
   try {
     await withPassphraseRecovery(src, () => Sync.pull(sourceId, { mode: 'full' }));
     showToast(t('data.online_pulled_full', { label: src.label }), 'success');
+    // RC-feature: erfolgreicher Full-Pull löst eine eventuelle Drift-Hard-
+    // Pause auf. Hook ist No-Op wenn die Source vorher nicht im Drift war.
+    if (typeof SyncPoller !== 'undefined' &&
+        typeof SyncPoller.configDriftResolved === 'function') {
+      SyncPoller.configDriftResolved(sourceId);
+    }
     render();
   } catch (e) {
     showToast(t('sync.online_pull_failed', { msg: String(e.message || e) }), 'error');
   }
   clearPreviewCache(sourceId);
+  renderSyncIndicator();
   const backdrop = document.getElementById('modal-backdrop');
   if (backdrop && backdrop.style.display === 'flex') renderDataModal();
 }
@@ -15292,6 +15624,10 @@ function renderSyncAutoAccordion(source) {
   const recover  = stats ? !!stats.needsRecovery : false;
   // WP-16 UI: Hard-Pause (Passphrase-Cache leer) — Badge analog is-permission.
   const waitPp   = stats ? !!stats.waitingForPassphrase : false;
+  // RC-feature: Config-Drift Hard-Pause. RAM-Flag oder persistierter
+  // lastAutoPollError.class — beides triggert das Badge.
+  const drift    = (stats && stats.configDrift === true) ||
+                   (lastErr && lastErr.class === 'config-drift');
 
   const radio = (val, key) => `
     <label>
@@ -15354,6 +15690,16 @@ function renderSyncAutoAccordion(source) {
         <span class="sync-auto-badge-actions">
           <button data-action="sync-auto-retry-push" data-source-id="${escapeHTML(sid)}">${escapeHTML(t('sync.auto.btn_retry_push'))}</button>
           <button data-action="sync-auto-discard-push" data-source-id="${escapeHTML(sid)}">${escapeHTML(t('sync.auto.btn_discard_push'))}</button>
+        </span>
+      </div>
+    `;
+  }
+  if (drift) {
+    badges += `
+      <div class="sync-auto-badge is-drift" role="alert">
+        <span class="sync-auto-badge-text">${escapeHTML(t('sync.auto.badge_drift'))}</span>
+        <span class="sync-auto-badge-actions">
+          <button data-action="sync-drift-open" data-source-id="${escapeHTML(sid)}">${escapeHTML(t('sync.auto.btn_resolve_drift'))}</button>
         </span>
       </div>
     `;
