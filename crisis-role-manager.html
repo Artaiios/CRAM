@@ -4922,6 +4922,12 @@ const SyncBundle = (function() {
       encryption: encryptionForSrc,
     });
 
+    // V2.0: Bundle-Restore-Source ebenfalls beim Poller registrieren.
+    if (savedSource) {
+      try { SyncPoller.registerSource(savedSource.id); }
+      catch (e) { console.warn('SyncPoller.registerSource failed:', e && e.message); }
+    }
+
     if (bundle.type === 'fileSystem' && dirHandle) {
       await SyncFileStore.setHandle(savedSource.id, dirHandle);
     }
@@ -4946,6 +4952,253 @@ const SyncBundle = (function() {
   }
 
   return { FORMAT, build, serialize, parse, apply, getFingerprintLocal };
+})();
+
+/* =========================================================================
+   SYNC POLLER — V2.0 AUTO-SYNC SKELETON (Schritt 2)
+   --------------------------------------------------------------------------
+   Verantwortet das Polling von Sync-Quellen im 'status'-Modus. Schritt 2
+   liefert nur das Skeleton: API-Surface, RAM-Runtime, globale Listener
+   für Visibility (D3) und Online/Offline (H1). KEINE Timer, KEIN fetch(),
+   KEIN Backoff — das kommt in Schritt 3.
+
+   Mode-Constraint: SyncPoller ruft ausschließlich mit mode='status' auf
+   (POLL_MODE-Konstante). 'full' bleibt der Data-UI vorbehalten.
+
+   Konstanten sind als SyncPoller.CONSTANTS exportiert — Settings-UI in
+   Schritt 5 konsumiert daraus die Min/Max/Default-Werte.
+   ========================================================================= */
+const SyncPoller = (function() {
+  'use strict';
+
+  // ---- Constants (Single-Source-of-Truth, von Settings-UI konsumiert) ----
+  const POLL_MODE = 'status';              // immer status, nie data (Mode-Constraint)
+  const VISIBILITY_HIDDEN_MULTIPLIER = 4;  // D3: Tab hidden -> Intervall × 4
+  const POLL_INTERVAL_MIN_SEC = 15;        // Spec-Floor
+  const POLL_INTERVAL_MAX_SEC = 300;       // Spec-Cap
+  const POLL_INTERVAL_DEFAULT_SEC = 90;    // Spec-Default
+
+  // ---- RAM-only Runtime-State (NIE persistiert) ----
+  // Map<sourceId, RuntimeState>. Verschwindet beim Tab-Reload — das ist
+  // beabsichtigt. Persistente Felder leben in Sync.load().sources[i]
+  // (lastAutoPollAt, lastAutoPollError, authError, pendingPush).
+  const _runtime = new Map();
+
+  function _defaultRuntime(sourceId) {
+    return {
+      sourceId: sourceId,
+      timerId: null,             // setTimeout-Handle (Schritt 3)
+      consecutiveFailures: 0,    // Backoff-Counter (Schritt 3)
+      errorDelayMs: 0,           // aktueller Backoff-Delay (Schritt 3)
+      lastTickAt: null,          // performance.now() Timestamp, Diagnose
+      nextTickAt: null,          // Wand-Zeit-Timestamp (ms epoch) für getStats()
+    };
+  }
+
+  // Globaler RAM-State: Lifecycle, Listener-Refs, Visibility, Online.
+  const _global = {
+    started: false,
+    paused: false,
+    visibilityMultiplier: 1,     // 1 oder VISIBILITY_HIDDEN_MULTIPLIER (D3)
+    isOnline: (typeof navigator !== 'undefined' && typeof navigator.onLine === 'boolean')
+      ? navigator.onLine
+      : true,
+    visibilityListener: null,    // gespeichert für stop()-cleanup
+    onlineListener: null,
+    offlineListener: null,
+  };
+
+  // ---- Listener-Handler ----
+
+  function _onVisibilityChange() {
+    const hidden = (typeof document !== 'undefined') && document.hidden === true;
+    _global.visibilityMultiplier = hidden ? VISIBILITY_HIDDEN_MULTIPLIER : 1;
+    if (!hidden) {
+      // D3: Tab wieder sichtbar — Schritt 3 wird hier den direkten Tick
+      // anstoßen, damit der User nicht auf das nächste Intervall wartet.
+      console.debug('[SyncPoller] visibility -> visible (skeleton: no tick yet)');
+    } else {
+      console.debug('[SyncPoller] visibility -> hidden (multiplier ×' + VISIBILITY_HIDDEN_MULTIPLIER + ')');
+    }
+  }
+
+  function _onOnline() {
+    _global.isOnline = true;
+    // H1: offlineSince zurücksetzen, sobald wir wieder online sind.
+    // Wir schreiben nur, wenn auch tatsächlich ein Wert gesetzt war —
+    // unnötige save()-Roundtrips vermeiden.
+    try {
+      const state = Sync.load();
+      if (state && state.auto && state.auto.offlineSince !== null) {
+        state.auto.offlineSince = null;
+        Sync.save(state);
+      }
+    } catch (e) {
+      console.warn('[SyncPoller] online handler: Sync.load/save failed:', e && e.message);
+    }
+    // Schritt 3: hier wird ein direkter Tick pro Source mit autoMode!='off'
+    // angestoßen, damit User sofort frische Daten sehen.
+    console.debug('[SyncPoller] online (skeleton: no tick yet)');
+  }
+
+  function _onOffline() {
+    _global.isOnline = false;
+    // H1: offlineSince stempeln, aber NUR wenn noch kein Wert existiert.
+    // Das schützt die Anzeige "offline seit X" gegen Flapping.
+    try {
+      const state = Sync.load();
+      if (state && state.auto && state.auto.offlineSince === null) {
+        state.auto.offlineSince = new Date().toISOString();
+        Sync.save(state);
+      }
+    } catch (e) {
+      console.warn('[SyncPoller] offline handler: Sync.load/save failed:', e && e.message);
+    }
+    // Schritt 3: hier werden laufende Fetches abgebrochen — Schritt 2 hat
+    // noch keine Fetches im Spiel.
+    console.debug('[SyncPoller] offline');
+  }
+
+  // ---- Lifecycle ----
+
+  function start() {
+    if (_global.started) return;
+    _global.started = true;
+
+    // Initialen Visibility-Zustand übernehmen (Tab könnte beim Boot
+    // schon hidden sein).
+    if (typeof document !== 'undefined') {
+      _global.visibilityMultiplier = document.hidden === true
+        ? VISIBILITY_HIDDEN_MULTIPLIER
+        : 1;
+      _global.visibilityListener = _onVisibilityChange;
+      document.addEventListener('visibilitychange', _global.visibilityListener);
+    }
+
+    if (typeof window !== 'undefined') {
+      _global.onlineListener = _onOnline;
+      _global.offlineListener = _onOffline;
+      window.addEventListener('online', _global.onlineListener);
+      window.addEventListener('offline', _global.offlineListener);
+    }
+  }
+
+  function stop() {
+    if (!_global.started) return;
+
+    // Alle Timer in _runtime stoppen — Schritt 3 setzt timerId; in
+    // Schritt 2 ist timerId immer null, der Loop ist dennoch korrekt.
+    _runtime.forEach((rt) => {
+      if (rt.timerId !== null) {
+        clearTimeout(rt.timerId);
+        rt.timerId = null;
+      }
+      rt.nextTickAt = null;
+    });
+
+    if (_global.visibilityListener && typeof document !== 'undefined') {
+      document.removeEventListener('visibilitychange', _global.visibilityListener);
+      _global.visibilityListener = null;
+    }
+    if (_global.onlineListener && typeof window !== 'undefined') {
+      window.removeEventListener('online', _global.onlineListener);
+      _global.onlineListener = null;
+    }
+    if (_global.offlineListener && typeof window !== 'undefined') {
+      window.removeEventListener('offline', _global.offlineListener);
+      _global.offlineListener = null;
+    }
+
+    _global.started = false;
+  }
+
+  function pause() {
+    _global.paused = true;
+    // Schritt 3: laufende Timer werden hier deaktiviert; Skeleton hat
+    // noch keine.
+  }
+
+  function resume() {
+    _global.paused = false;
+    // Schritt 3: hier werden Timer wieder gestartet für alle Sources mit
+    // autoMode!='off'.
+  }
+
+  // ---- Source-Registrierung ----
+
+  function registerSource(sourceId) {
+    if (!sourceId || typeof sourceId !== 'string') return;
+    if (_runtime.has(sourceId)) return;        // idempotent
+    _runtime.set(sourceId, _defaultRuntime(sourceId));
+    // Schritt 3: hier wird der erste Timer gestartet, sofern
+    // started === true und autoMode !== 'off'. In Schritt 2 bleibt
+    // timerId null — sauberer Eintrag ohne Tick.
+  }
+
+  function unregisterSource(sourceId) {
+    if (!sourceId) return;
+    const rt = _runtime.get(sourceId);
+    if (!rt) return;
+    if (rt.timerId !== null) {
+      clearTimeout(rt.timerId);
+      rt.timerId = null;
+    }
+    _runtime.delete(sourceId);
+  }
+
+  // ---- Diagnose ----
+
+  function getStats() {
+    // Read-only Snapshot für Settings-UI (Schritt 5). Pro registrierter
+    // Source ein Objekt; persistente Felder kommen aus Sync.load(),
+    // RAM-Felder aus _runtime.
+    let persisted = null;
+    try {
+      persisted = Sync.load();
+    } catch (e) {
+      persisted = { sources: [] };
+    }
+    const sourcesById = {};
+    if (persisted && Array.isArray(persisted.sources)) {
+      for (const s of persisted.sources) sourcesById[s.id] = s;
+    }
+
+    const out = [];
+    _runtime.forEach((rt, sourceId) => {
+      const src = sourcesById[sourceId] || {};
+      out.push({
+        sourceId: sourceId,
+        autoMode: src.autoMode || 'off',
+        pollIntervalSec: typeof src.pollIntervalSec === 'number'
+          ? src.pollIntervalSec
+          : POLL_INTERVAL_DEFAULT_SEC,
+        lastAutoPollAt: src.lastAutoPollAt || null,
+        lastAutoPollError: src.lastAutoPollError || null,
+        consecutiveFailures: rt.consecutiveFailures,
+        nextTickAt: rt.nextTickAt,
+        isOnline: _global.isOnline,
+        isPaused: _global.paused,
+        visibilityMultiplier: _global.visibilityMultiplier,
+      });
+    });
+    return out;
+  }
+
+  // ---- Public API ----
+
+  return {
+    start, stop,
+    pause, resume,
+    registerSource, unregisterSource,
+    getStats,
+    CONSTANTS: {
+      POLL_MODE,
+      VISIBILITY_HIDDEN_MULTIPLIER,
+      POLL_INTERVAL_MIN_SEC,
+      POLL_INTERVAL_MAX_SEC,
+      POLL_INTERVAL_DEFAULT_SEC,
+    },
+  };
 })();
 
 /* =========================================================================
@@ -13690,6 +13943,11 @@ async function syncFormSave() {
       config,
       encryption,
     });
+    // V2.0: neue Source im Poller eintragen (autoMode default 'off' → kein Tick)
+    if (savedSource) {
+      try { SyncPoller.registerSource(savedSource.id); }
+      catch (e) { console.warn('SyncPoller.registerSource failed:', e && e.message); }
+    }
     showToast(t('toast.sync_source_added'), 'success');
   }
 
@@ -13724,6 +13982,10 @@ async function syncDeleteSource(sourceId, label) {
   const msg = t('settings.sync_delete_confirm', { label: label || '' });
   if (!window.confirm(msg)) return;
   const src = Sync.getSource(sourceId);
+  // V2.0: Poller VOR Sync.removeSource() abräumen, damit kein Timer auf
+  // einer gerade gelöschten Source weiterläuft.
+  try { SyncPoller.unregisterSource(sourceId); }
+  catch (e) { console.warn('SyncPoller.unregisterSource failed:', e && e.message); }
   Sync.removeSource(sourceId);
   // Bei fileSystem: zusätzlich den DirectoryHandle aus IndexedDB entfernen.
   if (src && src.type === 'fileSystem') {
@@ -14206,6 +14468,21 @@ function init() {
 
   // Sync-Awareness-Indikator: bei jeder Sync-State-Mutation neu rendern
   Sync.onChange(() => renderSyncIndicator());
+
+  // V2.0 Auto-Sync Poller: globale Listener registrieren (Visibility, Online/
+  // Offline) und alle existierenden Sources eintragen. Default autoMode='off'
+  // bedeutet: kein Timer startet, bis User in Settings opt-in macht.
+  try {
+    SyncPoller.start();
+    const syncState = Sync.load();
+    if (syncState && Array.isArray(syncState.sources)) {
+      for (const src of syncState.sources) {
+        SyncPoller.registerSource(src.id);
+      }
+    }
+  } catch (e) {
+    console.warn('SyncPoller-Setup übersprungen:', e && e.message);
+  }
 
   render();
 }
