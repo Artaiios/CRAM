@@ -32,6 +32,7 @@ import datetime as _dt
 import html as _html
 import pathlib
 import re
+import struct
 import subprocess
 import sys
 import tempfile
@@ -64,6 +65,41 @@ _LINK = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
 # Block-level image: `![alt](path)` on its own line. Captured before inline
 # parsing so the link regex above does not turn it into a text link.
 _IMAGE_BLOCK_RE = re.compile(r"^!\[([^\]]*)\]\(([^)]+)\)\s*$")
+
+
+def _png_dimensions(path: pathlib.Path) -> tuple[int, int] | None:
+    """Return (width, height) from a PNG file header, or None if unreadable.
+
+    Uses only stdlib: PNG signature is 8 bytes, IHDR chunk header is 8 bytes,
+    width+height live as big-endian uint32 at offsets 16-23.
+    """
+    try:
+        with open(path, "rb") as f:
+            header = f.read(24)
+    except OSError:
+        return None
+    if len(header) < 24 or header[:8] != b"\x89PNG\r\n\x1a\n":
+        return None
+    width, height = struct.unpack(">II", header[16:24])
+    return width, height
+
+
+def _figure_class(width: int, height: int) -> str:
+    """Pick a CSS size class for a figure based on the source PNG dimensions.
+
+    Classes (ordered by check priority):
+        tiny      width < 500       — small inline thumbnails (icons, badges)
+        portrait  height > width    — modal screenshots (tall, narrow)
+        wide      width > 1500      — full-app screenshots (landscape)
+        standard  otherwise         — mid-size landscape panels
+    """
+    if width < 500:
+        return "md-figure-tiny"
+    if height > width:
+        return "md-figure-portrait"
+    if width > 1500:
+        return "md-figure-wide"
+    return "md-figure-standard"
 
 
 def _render_inline(text: str) -> str:
@@ -162,7 +198,9 @@ def markdown_to_html(md: str) -> str:
             src = im.group(2).strip()
             resolved = (DOCS_DIR / src).resolve()
             src_url = "file://" + str(resolved)
-            out.append('<figure class="md-figure">')
+            dims = _png_dimensions(resolved)
+            size_class = _figure_class(*dims) if dims else "md-figure-standard"
+            out.append(f'<figure class="md-figure {size_class}">')
             out.append(
                 f'<img src="{_html.escape(src_url, quote=True)}" '
                 f'alt="{_html.escape(alt, quote=True)}"/>'
@@ -361,18 +399,18 @@ table.md-table th {
   font-weight: 600;
 }
 figure.md-figure {
-  margin: 10pt 0 14pt 0;
+  margin: 10pt auto 14pt auto;
   padding: 0;
   page-break-inside: avoid;
+  break-inside: avoid;
   text-align: center;
 }
 figure.md-figure img {
-  max-width: 100%;
-  height: auto;
   display: block;
   margin: 0 auto;
-  border: 1px solid #ccc;
+  border: 1px solid #d0d0d0;
   border-radius: 3pt;
+  box-shadow: 0 1pt 3pt rgba(0,0,0,0.08);
 }
 figure.md-figure figcaption {
   margin-top: 4pt;
@@ -380,6 +418,32 @@ figure.md-figure figcaption {
   color: #555;
   font-style: italic;
   text-align: center;
+}
+/* Size classes -- width:auto + height:auto with both caps lets the browser
+   pick the smaller scaling factor, preserving aspect ratio. */
+figure.md-figure-tiny img {
+  max-width: 35%;
+  max-height: 4cm;
+  width: auto;
+  height: auto;
+}
+figure.md-figure-portrait img {
+  max-width: 65%;
+  max-height: 12cm;
+  width: auto;
+  height: auto;
+}
+figure.md-figure-standard img {
+  max-width: 85%;
+  max-height: 10cm;
+  width: auto;
+  height: auto;
+}
+figure.md-figure-wide img {
+  max-width: 100%;
+  max-height: 9cm;
+  width: auto;
+  height: auto;
 }
 """
 
