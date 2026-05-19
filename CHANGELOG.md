@@ -2,7 +2,7 @@
 
 All notable changes to CRAM are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.0.0-rc1] — 2026-05-18
+## [2.0.0-rc1] — 2026-05-19
 
 Auto-Sync as a release candidate. V2.0 turns the V1.2/1.3 manual pull-push channel into a background poller that survives offline, hidden tabs, lost auth, lost permission, missing passphrase, and crash-mid-push — without ever silently replacing a stab configuration (V1.3 status/data split holds). Opt-in per source; default off.
 
@@ -17,6 +17,8 @@ Auto-Sync as a release candidate. V2.0 turns the V1.2/1.3 manual pull-push chann
 - **Settings UI — Auto-Sync accordion.** Per-source: mode toggle (off / pull / push / bidirectional), polling-interval slider (30–300 s), live stats, four badges (`authError`, `permissionRequired`, `pendingPush`, `passphrase-required`).
 - **Toast system with dedup.** Catch-up on tab focus after a 401, recovery modal on boot, transient-error coalescing.
 - **Migration banner V1.3 → V2.** Opt-in per source, dismissible, idempotent (dual trigger: `schemaVersion < 2 || !state.auto`).
+- **Config-drift error class.** Surfaces drift as its own error class (analog `auth` / `permission` / `passphrase-required`). Header-Indikator wechselt auf rot, modaler Dialog listet betroffene Sources mit Option „Konfiguration übernehmen" (Daten-Pull via existierendem `dataOnlinePullFull`) oder „Später"; Accordion-Source zeigt zusätzlichen Badge `is-drift` mit Resolve-Button.
+- **Live-Countdown im Header-Indikator.** Im Auto-Mode zeigt „Synced vor 12s · nächster in 18s" mit 1s-Tick; im Manual-Mode „Synced vor Xs" oder „Nicht synchronisiert". Error-States (drift / auth / permission / passphrase) haben Vorrang vor dem Countdown.
 
 ### Added — Mobile (iPhone gate)
 
@@ -39,6 +41,7 @@ Auto-Sync as a release candidate. V2.0 turns the V1.2/1.3 manual pull-push chann
 
 ### Fixed
 
+- **Auto-Pull triggerte kein UI-Re-Render.** SyncPoller `_tick` und `_pushTick` 412-Re-Pull aktualisierten zwar lokalen State, aber kein `render()`-Aufruf. Manuell-Pull-Wrapper machten das selbst, daher fiel der Bug erst beim 2-Tab-Smoke auf. Fix: typeof-Guard `render()`-Hook in beiden Tick-Erfolgs-Pfaden. Manual-Pull-Pfad unverändert (kein Doppel-Render).
 - **V1.3 regression — docs(en).** `stab` → `committee` consistency in the Online-Sync chapter.
 - **Mobile F1 — Migration-banner buttons.** Raised from 23 px to 44 px on ≤600 px (HIG violation).
 - **Mobile F2 — Settings modal source-card.** Horizontal overflow on iPhone SE (470 px content in a 373 px viewport) eliminated.

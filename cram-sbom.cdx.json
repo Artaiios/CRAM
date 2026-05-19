@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
-  "serialNumber": "urn:uuid:6fbf4217-da17-4620-87d3-1266c8e3501b",
+  "serialNumber": "urn:uuid:8468bdb1-1632-4167-a257-934978c12be8",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-05-18T21:42:03Z",
+    "timestamp": "2026-05-19T05:01:55Z",
     "tools": [
       {
         "vendor": "CRAM project",
@@ -31,7 +31,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "cc81ea1d04a40e9f1bb756f52a837fca50ae0f613cc4bc13808c9f71028fe47b"
+          "content": "a6b5097cffc465189bc707b476246ae85e9a3b59113fef2748d2362ff7a4092b"
         }
       ],
       "externalReferences": [
