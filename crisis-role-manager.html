@@ -4134,6 +4134,49 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
 
 /* =========================================================================
+   QUOTA-ERROR HANDLER (F-A + F-S1, gemeinsam für Storage & Sync)
+   ----------------------------------------------------------------
+   Beide Audits (Security: F-A, Stability: F-S1) flaggten, dass
+   QuotaExceededError silent durchrutscht — nur console.error,
+   keine User-Warnung. State-Mutationen gehen verloren bis Reload.
+   Counter-Logik: 1. Treffer kann transient sein (Race mit anderem Tab),
+   beim 2. Treffer einen persistenten, dedupierten Toast zeigen.
+   Toast wird erst gerendert wenn `Toast` global verfügbar ist (Sync.save
+   wird teilweise vor Toast-Init aufgerufen — daher typeof-Guard).
+   ========================================================================= */
+let _quotaErrorCount = 0;
+function _isQuotaError(e) {
+  if (!e) return false;
+  // Standard: DOMException name 'QuotaExceededError'. Legacy WebKit: code 22.
+  // Firefox legacy: code 1014 / name 'NS_ERROR_DOM_QUOTA_REACHED'.
+  return e.name === 'QuotaExceededError'
+      || e.code === 22
+      || e.code === 1014
+      || e.name === 'NS_ERROR_DOM_QUOTA_REACHED';
+}
+function _handleQuotaError(e, context) {
+  if (!_isQuotaError(e)) return false;
+  _quotaErrorCount++;
+  // Erst beim 2. Treffer im Tab-Lifecycle warnen. Einzeltreffer könnte
+  // ein vorübergehender Cross-Tab-Race sein.
+  if (_quotaErrorCount < 2) return true;
+  // Toast nur wenn API + i18n schon initialisiert sind.
+  if (typeof Toast === 'undefined' || typeof t !== 'function') return true;
+  try {
+    Toast.show({
+      id: 'quota-warning',
+      level: 'warn',
+      title: t('storage.quota_exceeded_title'),
+      message: t('storage.quota_exceeded_body'),
+      durationMs: null,
+    });
+  } catch (toastErr) {
+    console.warn('[Quota] toast render failed:', toastErr && toastErr.message);
+  }
+  return true;
+}
+
+/* =========================================================================
    STORAGE LAYER
    Abstrahiert für späteren Wechsel auf zentrale DB (REST-API).
    ========================================================================= */
@@ -4167,6 +4210,8 @@ const Storage = (function() {
       return true;
     } catch (e) {
       console.error('Storage write failed for', key, e);
+      // F-A + F-S1: QuotaExceededError → User-Toast (ab 2. Treffer).
+      _handleQuotaError(e, 'Storage.set:' + key);
       return false;
     }
   }
@@ -4418,6 +4463,8 @@ const Sync = (function() {
       return true;
     } catch (e) {
       console.error('Sync state write failed:', e);
+      // F-A + F-S1: QuotaExceededError → User-Toast (ab 2. Treffer).
+      _handleQuotaError(e, 'Sync.save');
       return false;
     }
   }
@@ -7386,6 +7433,8 @@ const TRANSLATIONS = {
     'toast.import_done': 'Import übernommen — {levels} Ebenen, {persons} Personen',
     'audit.config_imported': 'Konfiguration importiert',
     'audit.config_exported': 'Konfiguration exportiert',
+    'storage.quota_exceeded_title': 'Speicherplatz voll',
+    'storage.quota_exceeded_body': 'Browser-Speicher ist voll. Status-Änderungen werden nicht gespeichert. Bitte alte Daten exportieren und löschen.',
     'manual.tooltip': 'Manuell zugeordnet — vom Algorithmus nicht überschreibbar',
     'manual.absent_hint': '(zugewiesene Person abwesend)',
     'manual.modal_title': 'Manuelle Zuordnung',
@@ -7958,6 +8007,8 @@ const TRANSLATIONS = {
     'toast.import_done': 'Import applied — {levels} levels, {persons} people',
     'audit.config_imported': 'Configuration imported',
     'audit.config_exported': 'Configuration exported',
+    'storage.quota_exceeded_title': 'Storage full',
+    'storage.quota_exceeded_body': 'Browser storage is full. Status changes are not being saved. Please export and remove old data.',
     'manual.absent_hint': '(assigned person absent)',
     'manual.modal_title': 'Manual assignment',
     'manual.modal_intro': 'Pick a person for this role. The assignment overrides the automatic logic and stays until you release it.',
@@ -8529,6 +8580,8 @@ const TRANSLATIONS = {
     'toast.import_done': 'Importación aplicada — {levels} niveles, {persons} personas',
     'audit.config_imported': 'Configuración importada',
     'audit.config_exported': 'Configuración exportada',
+    'storage.quota_exceeded_title': 'Almacenamiento lleno',
+    'storage.quota_exceeded_body': 'El almacenamiento del navegador está lleno. Los cambios de estado no se están guardando. Por favor, exporta y elimina datos antiguos.',
     'manual.tooltip': 'Asignación manual — el algoritmo no la sobrescribe',
     'manual.absent_hint': '(persona asignada ausente)',
     'manual.modal_title': 'Asignación manual',
@@ -9101,6 +9154,8 @@ const TRANSLATIONS = {
     'toast.import_done': 'Import appliqué — {levels} niveaux, {persons} personnes',
     'audit.config_imported': 'Configuration importée',
     'audit.config_exported': 'Configuration exportée',
+    'storage.quota_exceeded_title': 'Stockage saturé',
+    'storage.quota_exceeded_body': 'Le stockage du navigateur est saturé. Les changements de statut ne sont pas enregistrés. Veuillez exporter et supprimer les anciennes données.',
     'manual.tooltip': 'Affectation manuelle — non remplacée par l\u2019algorithme',
     'manual.absent_hint': '(personne affectée absente)',
     'manual.modal_title': 'Affectation manuelle',
@@ -9677,6 +9732,9 @@ const TRANSLATIONS = {
     'toast.import_done': '已导入 — {levels} 层级，{persons} 人员',
     'audit.config_imported': '配置已导入',
     'audit.config_exported': '配置已导出',
+    // TODO(i18n): ZH-Übersetzung von Native-Speaker prüfen lassen
+    'storage.quota_exceeded_title': '存储空间已满',
+    'storage.quota_exceeded_body': '浏览器存储空间已满。状态更改未被保存。请导出并删除旧数据。',
     'manual.tooltip': '手动分配 — 不受算法覆盖',
     'manual.absent_hint': '（指定人员缺席）',
     'manual.modal_title': '手动分配',
