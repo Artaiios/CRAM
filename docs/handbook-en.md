@@ -229,6 +229,8 @@ In V1.2/V1.3 both actions are **manual** (two buttons in the Sync modal). Since 
 
 **Add a sync source:**
 
+There is no dedicated header button for the Settings dialog. The path is always: enter edit mode, then click ⚙ **Settings** in the edit banner. Notice banners (e.g. after an update) also expose a direct "Open settings" button.
+
 1. Enter edit mode (✎ in the header)
 2. Click ⚙ **Settings** in the edit banner
 3. Switch to the **Sync sources** tab
@@ -296,7 +298,7 @@ V2.0 adds a **background poller per source** so that status updates propagate be
 
 ![Settings modal, Sync sources tab — per-source Auto-Sync mode and polling interval](screenshots/14-settings-sync-sources-tab.png)
 
-After updating from V1.3, a one-time migration banner appears in the Sync sources tab the first time the tab opens. It explains the new mode field and the default off-state.
+After updating from V1.3, a one-time migration banner appears in the Sync sources tab the first time the tab opens. It explains the new mode field and the default off-state. The notice only shows up in the Settings dialog on the **Sync sources** tab — not in the header sync dialog (⇄) and not in the header data dialog. Looking for it there is a dead end.
 
 **Enable Auto-Sync:**
 

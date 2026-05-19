@@ -229,6 +229,8 @@ In V1.2/V1.3 sind beide Aktionen **manuell** (zwei Buttons im Sync-Modal). Ab V2
 
 **Eine Sync-Source einrichten:**
 
+Den Einstellungen-Dialog gibt es nicht als eigenen Header-Button. Der Pfad ist immer: Edit-Modus aktivieren, dann im Edit-Banner ⚙ **Einstellungen** klicken. Alternativ zeigen Hinweisbanner (z.B. nach einem Update) einen direkten Knopf „Einstellungen öffnen".
+
 1. Edit-Modus aktivieren (✎ in der Kopfleiste)
 2. Im Edit-Banner ⚙ **Einstellungen** klicken
 3. Auf den Tab **Sync-Sources** wechseln
@@ -296,7 +298,7 @@ V2.0 ergänzt einen **Hintergrund-Poller pro Source**, damit Status-Updates ohne
 
 ![Einstellungs-Modal, Tab Sync-Sources — Auto-Sync-Modus und Polling-Intervall pro Source](screenshots/14-settings-sync-sources-tab.png)
 
-Nach dem Update von V1.3 zeigt CRAM beim ersten Öffnen des Sync-Tabs einmalig ein Migrations-Banner. Es erklärt das neue Modus-Feld und den Default-OFF-Zustand.
+Nach dem Update von V1.3 zeigt CRAM beim ersten Öffnen des Sync-Tabs einmalig ein Migrations-Banner. Es erklärt das neue Modus-Feld und den Default-OFF-Zustand. Der Hinweis erscheint ausschließlich im Einstellungen-Dialog im Reiter **Sync-Sources** — nicht im Header-Sync-Dialog (⇄) und nicht im Header-Daten-Dialog. Wer ihn dort sucht, wird ihn nicht finden.
 
 **Auto-Sync aktivieren:**
 
