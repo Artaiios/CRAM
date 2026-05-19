@@ -2,6 +2,10 @@
 
 Dieses Handbuch beschreibt den Betrieb von CRAM — dem Crisis Role Availability Manager. Es ist in zwei Teile gegliedert: der **Anwenderteil** richtet sich an alle Mitglieder eines Krisenstabs, die mit dem Tool während eines Ereignisses arbeiten. Der **Administrationsteil** richtet sich an diejenigen, die die Konfiguration pflegen, neue Versionen verteilen und für den Betrieb zuständig sind.
 
+![Übersicht des Organigramms mit geladener Demo-Konfiguration](screenshots/01-chart-overview-de.png)
+
+> Die Screenshots in diesem Handbuch sind Platzhalter für V2.0.0-rc1. Sie werden vor V2.0 GA durch echte Renders ersetzt. Die Pipeline (Markdown-Bildreferenzen → PDF-Build) ist bereits eingerichtet.
+
 ---
 
 # Teil 1: Anwenderteil
@@ -40,6 +44,8 @@ Jede Rollenkarte zeigt folgende Informationen:
 
 Ein **Schloss-Symbol** oben rechts zeigt an, dass diese Rolle manuell zugewiesen wurde und nicht der automatischen Logik folgt.
 
+![Personen-Detail-Modal — Telefon, E-Mail, Status, Abwesenheitsgründe](screenshots/08-person-detail-modal-de.png)
+
 ## Eine Person als abwesend markieren
 
 Im normalen Betrieb, also außerhalb des Edit-Modus, genügt ein Klick auf den Namen einer Person in einer Rollenkarte, um sie als abwesend zu markieren.
@@ -61,6 +67,8 @@ Nach dem Bestätigen gilt die Person als abwesend. Alle Rollen, in denen sie ein
 Wenn die Anzahl der Abwesenheiten zunimmt, entstehen Kaskaden: Eine Rolle verliert ihren Primärbesetzer, die Vertretung springt ein — ist aber selbst Primär in einer anderen Rolle, sodass dort eine weitere Verschiebung ausgelöst wird.
 
 CRAM visualisiert solche Kaskaden mit animierten gestrichelten Pfeilen zwischen den betroffenen Rollenkarten. Das macht auf einen Blick sichtbar, welche Vertretungsketten aktuell unter Druck stehen — eine wichtige Information für die Krisenstabsleitung, wenn es darum geht abzuschätzen, wie robust die aktuelle Aufstellung ist.
+
+![Kaskaden-Visualisierung mit Pfeilen von Heim- zu Ziel-Rollen](screenshots/09-cascade-visualization-de.png)
 
 Gibt es keine verfügbare Person mehr in einer Kette, wird die Rolle als **Unoccupied** markiert. Das entsprechende Pill in der Kopfleiste zeigt die Anzahl unbesetzter Rollen an; bei kritischen Rollen wird das Pill rot eingefärbt.
 
@@ -106,6 +114,8 @@ Die Pfeilfarbe richtet sich nach der **Ziel-Rolle** (wohin vertreten wird), nich
 | Grau (neutral) | Reine Info-Zählung, keine Aktion nötig |
 | Gelber Rahmen | Aktiv, aber nicht kritisch — Vertreter sind eingesprungen |
 | Rot + pulsierend | Mindestens eine kritische Rolle ist unbesetzt |
+
+![Header-Indikator mit Live-Countdown zur nächsten Auto-Sync-Aktion](screenshots/07-header-live-countdown-de.png)
 
 ### Akzente in der Seitenleiste
 
@@ -266,6 +276,12 @@ Die Trennung ist Sicherheit: Status-Sync kann nicht versehentlich die Stab-Struk
 
 V2.0 ergänzt einen **Hintergrund-Poller pro Source**, damit Status-Updates ohne manuellen Klick zwischen Geräten verteilt werden. Der Modus wird **pro Source einzeln** aktiviert. Default nach Update von V1.x ist **OFF** — die manuellen Buttons funktionieren weiter wie vorher.
 
+![Einstellungs-Modal, Tab Sync-Sources](screenshots/02-settings-sync-tab-de.png)
+
+Nach dem Update von V1.3 zeigt CRAM beim ersten Öffnen des Sync-Tabs einmalig ein Migrations-Banner. Es erklärt das neue Modus-Feld und den Default-OFF-Zustand.
+
+![Migrations-Banner einmalig nach Update von V1.3 auf V2.0](screenshots/04-migration-banner-de.png)
+
 **Auto-Sync aktivieren:**
 
 1. Edit-Modus → ⚙ Einstellungen → Tab **Sync-Sources**
@@ -278,6 +294,8 @@ V2.0 ergänzt einen **Hintergrund-Poller pro Source**, damit Status-Updates ohne
    - **Polling-Intervall:** Slider 30 / 60 / 90 / 120 / 180 / 300 Sekunden
 3. Sobald Auto-Sync aktiv ist, zeigt der Header-Indikator im Auto-Modus zusätzlich eine **Live-Countdown** zur nächsten Aktion: „Synced vor 12s · nächster in 18s".
 
+![Aufgeklapptes Auto-Sync-Akkordeon mit Modus-Radio, Polling-Slider und Stats](screenshots/03-sync-source-accordion-de.png)
+
 **Verhalten bei besonderen Zuständen:**
 
 - **Tab im Hintergrund:** Polling-Intervall wird ×4 gedehnt. Beim Zurückwechseln des Tabs holt CRAM sofort den aktuellen Stand, unabhängig vom Polling-Cycle.
@@ -288,9 +306,13 @@ V2.0 ergänzt einen **Hintergrund-Poller pro Source**, damit Status-Updates ohne
 - **Konflikt beim Push** (jemand anderes hat zwischenzeitlich geschrieben, ETag-Mismatch → HTTP 412): CRAM macht automatisch einen Pull, mergt lokal, pusht erneut. Wenn das nach 3 Versuchen nicht klappt, Toast „Sync-Konflikt — bitte prüfen".
 - **Konfigurations-Drift** (Server hat eine andere Stab-Struktur): wird als eigene Fehlerklasse behandelt — Auto-Push pausiert für diese Source, Indikator wird rot „⚠ Konfig-Drift", modaler Dialog listet betroffene Sources mit den Optionen „Konfiguration vom Server übernehmen" (löst einen Voll-Pull über Data → Online aus) oder „Später".
 
+![Konfig-Drift-Modal mit Liste der betroffenen Sources](screenshots/05-drift-modal-de.png)
+
 **Crash-Recovery (Crash mitten im Push):**
 
 Wenn der Tab während eines Pushes geschlossen wird, erkennt CRAM beim nächsten Start einen Sentinel und zeigt einen modalen Dialog: „Letzter Sync-Vorgang wurde unterbrochen — bitte manuell prüfen". Zwei Optionen: „Erneut pushen (mit Conflict-Check)" oder „Verwerfen". Bis zur Entscheidung wird Auto-Sync für diese Source pausiert.
+
+![Recovery-Toast beim Boot nach abgebrochenem Push](screenshots/06-toast-recovery-de.png)
 
 **Toast-Benachrichtigungen:**
 
@@ -337,6 +359,8 @@ Das ☀/☾-Symbol in der Kopfleiste wechselt zwischen hellem und dunklem Theme.
 Die Größenstufen **S/M/L/XL** passen die Darstellungsdichte des Organigramms an die Bildschirmgröße an. Bei Mobilgeräten gibt es eine eigene Layout-Variante mit Bottom-Navigation.
 
 ## Audit-Log lesen
+
+![Audit-Log-Tab mit jüngsten Konfigurations- und Abwesenheits-Änderungen](screenshots/10-audit-log-tab-de.png)
 
 Der Log-Tab zeigt alle Änderungen der letzten 30 Tage:
 

@@ -2,6 +2,10 @@
 
 This handbook describes the operation of CRAM — the Crisis Role Availability Manager. It is split into two parts. The **user section** is for any member of a crisis committee who works with the tool during an incident. The **administration section** is for those who maintain the configuration, distribute new versions, and are responsible for operations.
 
+![Chart overview with the demo configuration loaded](screenshots/01-chart-overview-en.png)
+
+> Screenshots in this manual are placeholders for V2.0.0-rc1. They will be replaced with real renders before V2.0 GA. The pipeline (markdown image references → PDF build) is already in place.
+
 ---
 
 # Part 1: User Section
@@ -40,6 +44,8 @@ Each role card shows the following information:
 
 A **lock symbol** in the top right indicates that this role has been manually assigned and does not follow the automatic logic.
 
+![Person detail modal — phone, email, current state, absence reasons](screenshots/08-person-detail-modal-en.png)
+
 ## Marking a person unavailable
 
 In normal operation — that is, outside edit mode — a single click on a person's name within a role card opens the unavailability dialog.
@@ -61,6 +67,8 @@ After confirmation, the person counts as unavailable. All roles in which they ar
 As the number of absences grows, cascades form: A role loses its primary, the substitute steps in — but is itself primary in another role, triggering a further shift there.
 
 CRAM visualises such cascades with animated dashed arrows between the affected role cards. This makes it immediately visible which substitution chains are currently under stress — an important piece of information for the committee lead when assessing how robust the current lineup is.
+
+![Cascade visualisation with arrows pointing from home roles to current cover targets](screenshots/09-cascade-visualization-en.png)
 
 If no person is available anywhere in a chain, the role is flagged as **Unoccupied**. The corresponding pill in the header shows the count of unoccupied roles; it turns red when a critical role is affected.
 
@@ -106,6 +114,8 @@ The arrow colour is determined by the **target role** (where the person is stand
 | Grey (neutral) | Informational count, no action required |
 | Yellow outline | Active but non-critical condition — substitutes have stepped in |
 | Red + pulsing | At least one critical role is unoccupied |
+
+![Header indicator with live countdown to next auto-sync action](screenshots/07-header-live-countdown-en.png)
 
 ### Sidebar accents
 
@@ -266,6 +276,12 @@ The split is a safety property: status sync cannot accidentally overwrite the co
 
 V2.0 adds a **background poller per source** so that status updates propagate between devices without a manual click. The mode is enabled **per source individually**. After updating from V1.x the default is **OFF** — the manual buttons keep working as before.
 
+![Settings modal, Sync sources tab](screenshots/02-settings-sync-tab-en.png)
+
+After updating from V1.3, a one-time migration banner appears in the Sync sources tab the first time the tab opens. It explains the new mode field and the default off-state.
+
+![Migration banner shown once after V1.3 to V2.0 update](screenshots/04-migration-banner-en.png)
+
 **Enable Auto-Sync:**
 
 1. Edit mode → ⚙ Settings → **Sync sources** tab
@@ -278,6 +294,8 @@ V2.0 adds a **background poller per source** so that status updates propagate be
    - **Polling interval:** slider 30 / 60 / 90 / 120 / 180 / 300 seconds
 3. Once Auto-Sync is active, the header indicator shows a **live countdown** to the next action: "Synced 12s ago · next in 18s".
 
+![Auto-Sync accordion expanded with mode radio, polling slider, and stats](screenshots/03-sync-source-accordion-en.png)
+
 **Behaviour in special states:**
 
 - **Tab in the background:** polling interval is stretched ×4. On returning to the tab, CRAM pulls immediately, regardless of the polling cycle.
@@ -288,9 +306,13 @@ V2.0 adds a **background poller per source** so that status updates propagate be
 - **Push conflict** (someone else wrote in between, ETag mismatch → HTTP 412): CRAM automatically pulls, merges locally, pushes again. If that fails after 3 attempts: toast "Sync conflict — please review".
 - **Configuration drift** (server has a different committee structure): treated as its own error class — auto-push pauses for this source, the indicator turns red "⚠ Config drift", a modal lists the affected sources with the options "Take the server's configuration" (triggers a full pull via Data → Online) or "Later".
 
+![Config drift modal listing affected sources](screenshots/05-drift-modal-en.png)
+
 **Crash recovery (crash mid-push):**
 
 If the tab is closed during a push, CRAM detects a sentinel on the next start and shows a modal: "The last sync operation was interrupted — please review manually". Two options: "Push again (with conflict check)" or "Discard". Auto-Sync for that source is paused until the user decides.
+
+![Recovery toast surfaced on boot after an interrupted push](screenshots/06-toast-recovery-en.png)
 
 **Toast notifications:**
 
@@ -337,6 +359,8 @@ The ☀/☾ symbol in the header toggles between light and dark theme.
 The **S/M/L/XL** size steps adjust the display density of the organisation chart to screen size. On mobile devices there is a dedicated layout variant with bottom navigation.
 
 ## Reading the audit log
+
+![Audit log tab listing recent configuration and absence changes](screenshots/10-audit-log-tab-en.png)
 
 The Log tab shows all changes over the past 30 days:
 

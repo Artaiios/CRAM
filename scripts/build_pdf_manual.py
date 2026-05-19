@@ -61,6 +61,9 @@ _INLINE_CODE = re.compile(r"`([^`]+)`")
 _BOLD = re.compile(r"\*\*([^*]+)\*\*")
 _ITALIC = re.compile(r"(?<![*A-Za-z0-9])\*([^*]+)\*(?!\*)")
 _LINK = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
+# Block-level image: `![alt](path)` on its own line. Captured before inline
+# parsing so the link regex above does not turn it into a text link.
+_IMAGE_BLOCK_RE = re.compile(r"^!\[([^\]]*)\]\(([^)]+)\)\s*$")
 
 
 def _render_inline(text: str) -> str:
@@ -144,6 +147,29 @@ def markdown_to_html(md: str) -> str:
             close_list_stack(list_stack)
             indent_stack.clear()
             out.append("<hr/>")
+            i += 1
+            continue
+
+        # Block-level image: a line that is just `![alt](path)`. Resolve the
+        # path relative to docs/ (the markdown source location), then emit
+        # as a figure with the same path absolutised so Chrome's file://
+        # loader can find it regardless of where the temp HTML lives.
+        im = _IMAGE_BLOCK_RE.match(stripped)
+        if im:
+            close_list_stack(list_stack)
+            indent_stack.clear()
+            alt = im.group(1).strip()
+            src = im.group(2).strip()
+            resolved = (DOCS_DIR / src).resolve()
+            src_url = "file://" + str(resolved)
+            out.append('<figure class="md-figure">')
+            out.append(
+                f'<img src="{_html.escape(src_url, quote=True)}" '
+                f'alt="{_html.escape(alt, quote=True)}"/>'
+            )
+            if alt:
+                out.append(f"<figcaption>{_render_inline(alt)}</figcaption>")
+            out.append("</figure>")
             i += 1
             continue
 
@@ -333,6 +359,27 @@ table.md-table td {
 table.md-table th {
   background: #f0f0f0;
   font-weight: 600;
+}
+figure.md-figure {
+  margin: 10pt 0 14pt 0;
+  padding: 0;
+  page-break-inside: avoid;
+  text-align: center;
+}
+figure.md-figure img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  border: 1px solid #ccc;
+  border-radius: 3pt;
+}
+figure.md-figure figcaption {
+  margin-top: 4pt;
+  font-size: 9pt;
+  color: #555;
+  font-style: italic;
+  text-align: center;
 }
 """
 
