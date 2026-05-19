@@ -196,7 +196,7 @@ For **archival, email distribution, or version control**. The configuration (and
 
 For **regular status reconciliation across a distributed team** over the network. Unlike Code / QR / file, online sync does **not** require live contact between sender and receiver — everyone pushes their state to a shared endpoint and pulls the latest combined state from there.
 
-In V1.2 both actions are **manual** (two buttons in the Sync modal). V2.0 will automate this.
+In V1.2/V1.3 both actions are **manual** (two buttons in the Sync modal). Since V2.0 there is an additional **automatic mode per source** — opt-in, default OFF (see "Auto-Sync (since V2.0)" further down).
 
 **Two backend types are supported:**
 
@@ -261,6 +261,51 @@ The split is a safety property: status sync cannot accidentally overwrite the co
 - *First-time bundle import:* After import CRAM asks: "Server already has a state — take it now?" → click yes, done.
 
 **Awareness indicator (header):** when a server probe (Sync or Data modal opened) finds the configurations differ, the indicator switches to red "⚠ Config drift" — clickable, jumps directly to Data → Online.
+
+### Auto-Sync (since V2.0)
+
+V2.0 adds a **background poller per source** so that status updates propagate between devices without a manual click. The mode is enabled **per source individually**. After updating from V1.x the default is **OFF** — the manual buttons keep working as before.
+
+**Enable Auto-Sync:**
+
+1. Edit mode → ⚙ Settings → **Sync sources** tab
+2. Each source has an **Auto-Sync accordion** with:
+   - **Mode** (toggle):
+     - `off` — no auto-sync (default)
+     - `pull` — poll the server periodically (passive consumer)
+     - `push` — push immediately on local changes (active publisher, no polling)
+     - `bidirectional` — both
+   - **Polling interval:** slider 30 / 60 / 90 / 120 / 180 / 300 seconds
+3. Once Auto-Sync is active, the header indicator shows a **live countdown** to the next action: "Synced 12s ago · next in 18s".
+
+**Behaviour in special states:**
+
+- **Tab in the background:** polling interval is stretched ×4. On returning to the tab, CRAM pulls immediately, regardless of the polling cycle.
+- **Browser offline (`navigator.onLine = false`):** polling stops completely, no retry storm. Sidebar shows "Offline since HH:MM". When the browser comes back online, an immediate resume tick fires.
+- **Auth loss (401/403):** Auto-Mode is switched OFF automatically. A persistent badge in the Sync tab and the Settings accordion shows "Authentication expired — please sign in again". On the next tab focus, a one-shot catch-up toast displays the time of the auth loss.
+- **Passphrase missing** (e.g. after a tab restart on an encrypted source): Auto-Sync pauses, accordion shows a "Passphrase required" badge. User action: re-enter the passphrase.
+- **File access lost** (S5, local directory — after reboot or third-party process): hard-pause, no retries. Sidebar shows "Confirm file access again" with a "Grant access" button.
+- **Push conflict** (someone else wrote in between, ETag mismatch → HTTP 412): CRAM automatically pulls, merges locally, pushes again. If that fails after 3 attempts: toast "Sync conflict — please review".
+- **Configuration drift** (server has a different committee structure): treated as its own error class — auto-push pauses for this source, the indicator turns red "⚠ Config drift", a modal lists the affected sources with the options "Take the server's configuration" (triggers a full pull via Data → Online) or "Later".
+
+**Crash recovery (crash mid-push):**
+
+If the tab is closed during a push, CRAM detects a sentinel on the next start and shows a modal: "The last sync operation was interrupted — please review manually". Two options: "Push again (with conflict check)" or "Discard". Auto-Sync for that source is paused until the user decides.
+
+**Toast notifications:**
+
+- *State updated by [user] at [time]* — when an incoming pull changed visible data
+- *Your edit was replaced by a newer version — see log* — when a local edit was lost to a sync conflict (subtle red, 8 s)
+- *Sync conflict resolved* — after a successful pull-merge-push retry
+
+**What Auto-Sync NEVER does:**
+
+- Auto-Sync touches **status only** (absences + manual assignments). Structural configuration changes (new role, person added, committee restructured) **always** go through Data → Online with an explicit confirmation dialog. Automatic configuration takeover without a user click is architecturally impossible.
+- Auto-Sync never triggers a modal dialog for incoming updates — only toasts. The UX rationale: during an incident no dialog should compete for attention.
+
+**Note on S5 (local directory):** The File System Access API has no ETag/If-Match equivalent. With two parallel writes to an S5 source, one version can be lost without CRAM detecting the conflict. This is surfaced in the Settings accordion of S5 sources with an explicit hint. Auto-Pull on S5 works; Auto-Push on S5 is disabled in V2.0-rc1.
+
+**iPhone note (PWA standalone mode):** Apple clears Web App data after roughly 7 days of inactivity. Anyone installing CRAM as a PWA on iOS and only opening it sporadically risks losing local sources, the audit log, and the configuration. Mitigation: export JSON regularly, **or** make sure an HTTP sync source is configured — after data loss a single Pull restores the state. The iPhone smoke test has not yet been verified against a physical device in V2.0-rc1 (see CHANGELOG "Deferred").
 
 ## Printing
 

@@ -1,6 +1,6 @@
 # CRAM — Roadmap
 
-Stand: 13. Mai 2026 — V1.0, V1.2.0, V1.2.1 released. V1.3 implementiert (Branch `v1-3-sync-split`), Release-Tag steht noch aus.
+Stand: 19. Mai 2026 — V1.0, V1.2.0, V1.2.1, V1.3.0 released. V2.0.0-rc1 als Release-Candidate getaggt (`v2-auto-sync`-Branch); Promotion auf stable V2.0.0 nach RC-Phase.
 
 Lebende Liste. Prioritäten verschieben sich durch Praxis-Feedback. Liegt im Repo, damit Mitbenutzer nachvollziehen können, woran wir denken.
 
@@ -109,24 +109,45 @@ Praxistest mit rc1.2/rc1.3 hat keine Bugs oder strukturellen Probleme aufgezeigt
 
 ---
 
-## V2.0 — Automatischer Online-Sync
+## V2.0 — Automatischer Online-Sync ✓ als rc1 released
 
 **Ziel:** "Set-and-forget"-UX. Sync läuft transparent im Hintergrund, im Krisenfall kein manueller Aufwand für die Nutzer.
 
-**Architektur:** identisch zu V1.2 (gleiche Sync-Source-Abstraktion, gleiche Backends).
+**Architektur:** identisch zu V1.3 (gleiche Sync-Source-Abstraktion, gleiche Backends). V2.0 ergänzt eine Automatisierungs-Schicht.
 
-**Was V2.0 dazubringt:**
-- **Auto-Polling** alle 90 Sekunden (konfigurierbar 30–300 Sek)
-- **Auto-Push** sofort nach jedem lokalen Save (mit Backoff bei Fehler)
-- **Pull-before-push** mit HTTP-If-Match für optimistische Konkurrenz-Kontrolle (S1, S2)
-- **Tab-Visibility-Sync** — sofortiger Pull bei Tab-Fokus
-- **Silent auto-apply** eingehender Updates, Toast-Notification ohne Dialog
-- **Konflikt-Verlust** wird ins Audit-Log geschrieben mit Recovery-Pfad
-- **Multi-Source** als Advanced-Option für Failover-Szenarien
+**Was V2.0-rc1 enthält:**
+- **SyncPoller** mit per-source Tick-Loop, Visibility-Multiplier ×4 bei Hidden-Tab, `online`/`offline`-Listener
+- **3-Klassen-Fehler-Modell:** `transient` (Backoff), `auth` (AutoMode-OFF + Badge), `permission` (Hard-Pause + Action-Required) — plus separate Klassen für `passphrase-required`, `concurrent` (412), `config-drift`
+- **Auto-Push** mit 2 s-Debounce via `Sync.markDirty()`
+- **Pull-before-push** mit `If-Match`-ETag für Lost-Update-Schutz (S1)
+- **`pendingPush`-Sentinel** für Crash-Recovery mid-push (SHA-256-Payload-Hash)
+- **Vier Auto-Modi pro Source:** `off`, `pull`, `push`, `bidirectional`, Polling-Intervall 30–300 s
+- **Tab-Visibility-Sync** — sofortiger Pull bei Tab-Fokus, Reset des Visibility-Multipliers
+- **Silent auto-apply** eingehender Updates, Toast statt Dialog
+- **Config-drift** als eigene Fehlerklasse + modaler Resolve-Dialog
+- **Live-Countdown** im Header-Indikator (Auto-Mode: „Synced vor 12s · nächster in 18s")
+- **PWA-Manifest** mit 192/512 PNG-Icons (Lighthouse-installable)
+- **Mobile-Akzeptanzkriterien M1–M3** (iPhone Safari iOS 15+)
+
+**Was in rc1 NICHT enthalten ist (deferred → rc2/GA):**
+- S5-Auto-Push (kein ETag-Equivalent in File System Access API)
+- iPad-Smoke
+- PDF-Handbücher (reflektieren noch V1.0-rc1.3)
+- Realer iPhone-Smoke gegen physisches Gerät
+- WP-16 ZH-native Review der Passphrase-i18n-Strings
+- Dev-Backend `If-Match`-Validation
 
 **Detail-Spec:** [`docs/specs/v2.0-auto-sync.md`](docs/specs/v2.0-auto-sync.md).
 
-**Branch:** `v2-0-auto-sync`. **Aufwand:** geschätzt 5–8 Sessions auf Basis der V1.2-Architektur.
+**Branch:** `v2-auto-sync`. **Tag:** `v2.0.0-rc1`.
+
+### V2.0-GA-Gate
+
+Promotion auf stable V2.0.0:
+1. Realer iPhone-Smoke gegen physisches Gerät (M1–M3 plus H1/H3 im Standalone-Mode)
+2. Dev-Backend `If-Match`-Validation (für Two-Tab-Konflikt-Smoke im CI)
+3. RC-Phase mind. zwei Wochen ohne neue Showstopper
+4. WP-16 ZH-Native-Review
 
 ---
 
@@ -217,9 +238,8 @@ Für Enterprise-Einsätze sinnvoll: Apache-2.0 ist mit typischen Unternehmens-Li
 
 ## Reihenfolge-Vorschlag
 
-1. **Jetzt:** S-02 abschließen → V1.0 final taggen → GitHub-Release mit Assets.
-2. **Danach:** V1.2 implementieren (manueller Sync, Awareness-Indikator, Sync-Source-Architektur). Praxistest.
-3. **Nach V1.2-Praxistest:** V2.0 (Auto-Sync) als Switch-On auf der V1.2-Architektur.
-4. **Optional V2.1:** S2-Backend, wenn Bedarf da.
-5. **Parallel oder nach V2.0:** F-01..F-07 in praxis-getriebener Reihenfolge. Voraussichtlich F-07 (günstig) → F-01 (Suche, viel Wert) → F-02 (Audit-Export) → F-05 (Theme-Auto) → F-03/F-04 (Tags + Bulk) → F-06 (Kontakt-Karte).
-6. **Langfristig optional:** V-02 (historische Ansicht), wenn Audit-Bedürfnisse danach rufen.
+1. **Erledigt:** S-02, V1.0, V1.2, V1.3, V2.0-rc1.
+2. **Jetzt:** V2.0-rc1 in RC-Phase. iPhone-Physical-Smoke + Dev-Backend-If-Match → V2.0.0 stable.
+3. **Optional V2.1:** S2-Backend (S3 presigned URLs), wenn Bedarf da.
+4. **Parallel oder nach V2.0-GA:** F-01..F-07 in praxis-getriebener Reihenfolge. Voraussichtlich F-07 (günstig) → F-01 (Suche, viel Wert) → F-02 (Audit-Export) → F-05 (Theme-Auto) → F-03/F-04 (Tags + Bulk) → F-06 (Kontakt-Karte).
+5. **Langfristig optional:** V-02 (historische Ansicht), wenn Audit-Bedürfnisse danach rufen.

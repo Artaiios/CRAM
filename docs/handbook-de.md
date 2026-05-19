@@ -196,7 +196,7 @@ Für **Archivierung, E-Mail-Versand oder Versionskontrolle**. Die Konfiguration 
 
 Für die **regelmäßige Statusabgleichung verteilter Teams** über das Netzwerk. Im Gegensatz zu Code/QR/Datei ist hier **kein Live-Kontakt** zwischen Sender und Empfänger nötig — jeder schickt seinen Stand an einen geteilten Server und holt sich von dort den aktuellen Gesamtstand.
 
-In V1.2 sind beide Aktionen **manuell** (zwei Buttons im Sync-Modal). V2.0 wird das automatisieren.
+In V1.2/V1.3 sind beide Aktionen **manuell** (zwei Buttons im Sync-Modal). Ab V2.0 gibt es zusätzlich einen **automatischen Modus pro Source** — opt-in, Default OFF (siehe Abschnitt „Auto-Sync (ab V2.0)" weiter unten).
 
 **Zwei Backend-Typen werden unterstützt:**
 
@@ -261,6 +261,51 @@ Die Trennung ist Sicherheit: Status-Sync kann nicht versehentlich die Stab-Struk
 - *Erstes Mal Bundle importieren:* Nach dem Import fragt CRAM: „Server hat bereits einen Stand — jetzt übernehmen?" → Ja drücken, fertig.
 
 **Awareness-Indikator (im Header):** Wenn nach einem Server-Probe (Sync- oder Data-Modal geöffnet) festgestellt wird, dass die Konfigurationen abweichen, wechselt der Indikator auf rotes „⚠ Konfig-Drift" — anklickbar, springt direkt zu Data → Online.
+
+### Auto-Sync (ab V2.0)
+
+V2.0 ergänzt einen **Hintergrund-Poller pro Source**, damit Status-Updates ohne manuellen Klick zwischen Geräten verteilt werden. Der Modus wird **pro Source einzeln** aktiviert. Default nach Update von V1.x ist **OFF** — die manuellen Buttons funktionieren weiter wie vorher.
+
+**Auto-Sync aktivieren:**
+
+1. Edit-Modus → ⚙ Einstellungen → Tab **Sync-Sources**
+2. Pro Source erscheint ein **Auto-Sync-Akkordeon** mit folgenden Optionen:
+   - **Modus** (Toggle):
+     - `off` — kein Auto-Sync (Default)
+     - `pull` — nur regelmäßig vom Server holen (passiv konsumieren)
+     - `push` — bei lokalen Änderungen sofort schicken (aktiv publizieren, kein Polling)
+     - `bidirectional` — beides
+   - **Polling-Intervall:** Slider 30 / 60 / 90 / 120 / 180 / 300 Sekunden
+3. Sobald Auto-Sync aktiv ist, zeigt der Header-Indikator im Auto-Modus zusätzlich eine **Live-Countdown** zur nächsten Aktion: „Synced vor 12s · nächster in 18s".
+
+**Verhalten bei besonderen Zuständen:**
+
+- **Tab im Hintergrund:** Polling-Intervall wird ×4 gedehnt. Beim Zurückwechseln des Tabs holt CRAM sofort den aktuellen Stand, unabhängig vom Polling-Cycle.
+- **Browser offline (`navigator.onLine = false`):** Polling pausiert komplett, keine Retries im Leerlauf. Sidebar zeigt „Offline seit HH:MM". Sobald Browser wieder online ist, ein sofortiger Resume-Tick.
+- **Auth-Verlust (401/403):** Auto-Mode wird automatisch auf OFF gesetzt. Ein persistentes Badge im Sync-Tab und im Settings-Akkordeon zeigt „Authentifizierung abgelaufen — neu anmelden". Beim nächsten Tab-Fokus erscheint einmalig ein Catch-Up-Toast mit dem Zeitpunkt des Auth-Verlusts.
+- **Passphrase fehlt** (z.B. nach Tab-Neustart bei verschlüsselter Source): Auto-Sync pausiert, Badge „Passphrase erforderlich" am Akkordeon. User-Aktion: Passphrase nachreichen.
+- **Datei-Zugriff verloren** (S5, lokales Verzeichnis — nach Reboot oder Drittprozess): Hard-Pause, keine Retries. Sidebar zeigt „Dateizugriff erneut bestätigen" mit Button „Zugriff gewähren".
+- **Konflikt beim Push** (jemand anderes hat zwischenzeitlich geschrieben, ETag-Mismatch → HTTP 412): CRAM macht automatisch einen Pull, mergt lokal, pusht erneut. Wenn das nach 3 Versuchen nicht klappt, Toast „Sync-Konflikt — bitte prüfen".
+- **Konfigurations-Drift** (Server hat eine andere Stab-Struktur): wird als eigene Fehlerklasse behandelt — Auto-Push pausiert für diese Source, Indikator wird rot „⚠ Konfig-Drift", modaler Dialog listet betroffene Sources mit den Optionen „Konfiguration vom Server übernehmen" (löst einen Voll-Pull über Data → Online aus) oder „Später".
+
+**Crash-Recovery (Crash mitten im Push):**
+
+Wenn der Tab während eines Pushes geschlossen wird, erkennt CRAM beim nächsten Start einen Sentinel und zeigt einen modalen Dialog: „Letzter Sync-Vorgang wurde unterbrochen — bitte manuell prüfen". Zwei Optionen: „Erneut pushen (mit Conflict-Check)" oder „Verwerfen". Bis zur Entscheidung wird Auto-Sync für diese Source pausiert.
+
+**Toast-Benachrichtigungen:**
+
+- *Stand aktualisiert von [User] um [Zeit]* — wenn ein eingehender Pull sichtbare Daten verändert hat
+- *Dein Edit wurde durch eine neuere Version ersetzt — siehe Log* — wenn ein lokaler Edit im Sync-Konflikt verloren ging (dezent rot, 8 Sek)
+- *Sync-Konflikt aufgelöst* — nach erfolgreichem Pull-Merge-Push-Retry
+
+**Was Auto-Sync NIE tut:**
+
+- Auto-Sync berührt **nur Status** (Abwesenheiten + manuelle Zuweisungen). Strukturelle Konfigurationsänderungen (neue Rolle, Person hinzugefügt, Stab umstrukturiert) gehen **immer** über Data → Online mit explizitem Bestätigungs-Dialog. Eine automatische Konfigurations-Übernahme ohne User-Klick ist baulich ausgeschlossen.
+- Auto-Sync löst keinen modalen Dialog für eingehende Updates aus — nur Toasts. Die UX-Entscheidung dahinter: im Krisenfall darf kein Dialog die Aufmerksamkeit binden.
+
+**Hinweis S5 (lokales Verzeichnis):** Die File-System-Access-API kennt kein ETag/If-Match. Bei zwei parallelen Schreibvorgängen auf einer S5-Source kann eine Version verloren gehen, ohne dass CRAM den Konflikt bemerkt. Wird im Settings-Akkordeon einer S5-Source mit einem Hinweis kenntlich gemacht. Auto-Pull auf S5 funktioniert, Auto-Push auf S5 ist in V2.0-rc1 deaktiviert.
+
+**iPhone-Hinweis (PWA-Standalone-Mode):** Apple löscht PWA-Daten nach ca. 7 Tagen Inaktivität. Wer CRAM als PWA auf iOS installiert und nur sporadisch öffnet, riskiert Verlust der lokalen Sources, des Audit-Logs und der Konfiguration. Mitigation: regelmäßig JSON exportieren, **oder** sicherstellen dass eine HTTP-Sync-Source eingerichtet ist — nach Datenverlust ist ein einmaliger Pull genug, um wieder auf Stand zu sein. Der iPhone-Smoke-Test ist in V2.0-rc1 noch nicht gegen ein physisches Gerät verifiziert worden (siehe CHANGELOG „Deferred").
 
 ## Drucken
 

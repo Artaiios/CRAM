@@ -14,10 +14,11 @@ Runs entirely in the browser. No server, no database, no external dependencies a
 - Visualise the flow with **cascade lines** that show where a substitute is actively covering for someone else on a different level
 - **Override** an automatic assignment when a specific person must hold a role regardless of availability
 - **Print paper versions** of the roster — in three different layouts, sized for A4, A3 or Letter, portrait or landscape
-- **Transfer state between devices** via three independent channels, each for a different realistic situation:
+- **Transfer state between devices** via four independent channels, each for a different realistic situation:
   - A short code read over the phone for quick status updates
   - QR codes for full configuration transfer between nearby devices
   - JSON export/import for archival or e-mail distribution
+  - Online sync against a shared HTTP backend or a local sync folder — manual (V1.2) or automatic in the background (V2.0)
 - Keep a **30-day audit log** of every change that the committee can review after an incident
 
 ## Why it exists
@@ -186,7 +187,7 @@ A conventional JSON file with the full configuration and optionally the current 
 
 ### Online sync (V1.2+)
 
-For ongoing reconciliation across a distributed team. Unlike the channels above, online sync does not require live contact between sender and receiver — everyone pushes their state to a shared endpoint and pulls the combined state from there. In V1.2 both actions are manual (two buttons); V2.0 will automate this.
+For ongoing reconciliation across a distributed team. Unlike the channels above, online sync does not require live contact between sender and receiver — everyone pushes their state to a shared endpoint and pulls the combined state from there.
 
 Two backend types are supported:
 
@@ -194,6 +195,10 @@ Two backend types are supported:
 - **Local directory** — typically a folder synchronised by OneDrive / Dropbox / Google Drive. CRAM writes the file; the vendor's desktop client handles distribution. No new server required.
 
 End-to-end encryption is enabled by default (AES-256-GCM with PBKDF2). The passphrase is never persisted — recipients re-enter it after a browser restart. Sources can be onboarded onto other devices by sharing a **sync bundle**: a JSON object that carries URL or filename, auth data, salt, and passphrase. Distribute the bundle over a secure channel (Signal, password manager, in-person) — never in plain email or chat.
+
+**Manual sync (V1.2/V1.3):** two buttons in the Sync modal — Pull and Push. Status-only by default; structural changes go through Data → Online with an explicit confirmation.
+
+**Automatic sync (V2.0, opt-in):** per source, the user can switch on a background poller with one of four modes — `off`, `pull` (poll only), `push` (push on local edits only), or `bidirectional`. Polling interval is configurable between 30 and 300 seconds. The header indicator shows a live countdown to the next tick. ETag-based If-Match guards against lost updates on HTTP backends; conflicts get one Pull-Merge-Push retry. Tab visibility, offline events, auth errors, missing passphrase, and lost file-system permission each have their own pause/resume behaviour — the poller does not retry blindly. Config drift (server has a different committee structure) surfaces as a separate error class and routes the user to Data → Online for an explicit decision.
 
 For end-user step-by-step instructions, see [docs/handbook-en.md](docs/handbook-en.md#online-sync-since-v12).
 
@@ -256,21 +261,24 @@ This does mean there is no cloud sync, no cross-device login, no backup unless y
 
 ## Browser compatibility
 
-| Feature | Chrome/Edge | Safari | Firefox |
-|---|---|---|---|
-| Core functionality | ✓ | ✓ | ✓ |
-| QR code generation | ✓ | ✓ | ✓ |
-| QR code scanning | ✓ | ✓ | — (missing BarcodeDetector API) |
-| PWA installation | ✓ | ✓ | partial |
-| Camera over `file://` | ✓ | ✓ | ✓ |
-| Camera on mobile over `file://` | — | — | — (needs HTTPS) |
-| **Online sync — HTTP backend (V1.2+)** | ✓ | ✓ | ✓ |
-| **Online sync — Local directory (V1.2+)** | ✓ | partial (re-permission per session) | — (no File System Access API) |
-| **End-to-end encryption (V1.2+)** | ✓ | ✓ | ✓ |
+| Feature | Chrome/Edge | Safari (desktop) | Safari (iOS 15+) | Firefox |
+|---|---|---|---|---|
+| Core functionality | ✓ | ✓ | ✓ | ✓ |
+| QR code generation | ✓ | ✓ | ✓ | ✓ |
+| QR code scanning | ✓ | ✓ | ✓ | — (missing BarcodeDetector API) |
+| PWA installation | ✓ | ✓ | ✓ (caveat below) | partial |
+| Camera over `file://` | ✓ | ✓ | n/a | ✓ |
+| Camera on mobile over `file://` | — | — | — (needs HTTPS) | — (needs HTTPS) |
+| **Online sync — HTTP backend (V1.2+)** | ✓ | ✓ | ✓ | ✓ |
+| **Online sync — Local directory (V1.2+)** | ✓ | partial (re-permission per session) | — (no File System Access API) | — (no File System Access API) |
+| **End-to-end encryption (V1.2+)** | ✓ | ✓ | ✓ | ✓ |
+| **Auto-Sync polling (V2.0)** | ✓ | ✓ | ✓ (caveat below) | ✓ |
 
 Firefox users can still use every feature except QR scanning and the Local-directory sync source. HTTP-based online sync works in every browser. When a feature is unavailable, CRAM shows an explanatory banner in the Sync sources tab.
 
 For mobile camera access, the tool needs to be served over HTTPS, localhost, or loaded from `file://` with appropriate permissions.
+
+**iOS PWA caveat:** Safari clears Web App data after roughly 7 days of inactivity (Apple platform policy). For users who install CRAM as a PWA on iPhone and only open it during incidents, sources, the audit log, and the local configuration can disappear unexpectedly. Mitigation: export a JSON backup regularly, or keep the sync source configured against an HTTP backend so a re-import after data loss is one Pull away.
 
 ## Known limitations
 
