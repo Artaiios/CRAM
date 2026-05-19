@@ -4,7 +4,9 @@ A single-file web application for managing crisis committee roles and substituti
 
 Runs entirely in the browser. No server, no database, no external dependencies at runtime. Works offline after the first page load and can be installed as a progressive web app.
 
-![Main view — Enterprise demo configuration with 30 roles across 5 levels, cascade lines showing active substitutions](docs/screenshots/01-main-view-dark.png)
+![Main view — Enterprise demo configuration, chart of all roles across levels with the right-hand sidebar](docs/screenshots/01-main-chart-overview.png)
+
+> Screenshots show the included Enterprise demo configuration (`cram-demo-enterprise-en.json`) with placeholder names. Real organisational data is never shown.
 
 ## What it does
 
@@ -76,11 +78,13 @@ When the app resolves who is currently holding a role, it walks the chain:
 
 Each role card shows its complete chain at the bottom, with struck-through names indicating who is currently unavailable. When a substitute has actually taken over, the card is annotated with `Replacing: <original primary>`.
 
-![Light theme — a critical role is unoccupied, cascade arrows trace where a substitute has taken over from another role](docs/screenshots/02-main-view-light.png)
+![Main view with people sidebar — primary occupants and chains visible per role](docs/screenshots/03-main-view-with-people-sidebar.png)
 
 ### Cascade visualisation
 
 When one person covers for another on a different level, CRAM draws an animated dashed arrow between the affected role cards. This makes it immediately visible which chains are actively being exercised — useful when the committee is briefing and needs to know at a glance which positions are under substitution stress.
+
+![Cascade visualisation — yellow arrows trace where substitutes are actively covering for absent primaries](docs/screenshots/06-cascade-visualization.png)
 
 ### Visual legend
 
@@ -139,7 +143,7 @@ The arrow colour is determined by the **target role** (where the person is stand
 
 Sometimes the automatic rule isn't what you want. A manual assignment pins a specific person to a role regardless of availability — useful during an actual incident when the primary might be available but unfit for this particular task, or when a substitute has been specifically drafted in.
 
-![Manual assignment modal](docs/screenshots/10-manual-assignment.png)
+![Manual assignment in effect — role card carries the lock badge and the pinned person's name](docs/screenshots/08-manual-assignment-active.png)
 
 Manual assignments are marked with a 🔒 badge on the role card and persist until cleared. They are included in sync transfers.
 
@@ -165,13 +169,13 @@ This separation matters because the two types of data have different transfer ch
 
 A short alphanumeric code — typically 20 to 40 characters — that encodes the current availability of all persons plus any manual assignments. The sending instance generates the code; the receiving instance enters it. Both instances must share the same base configuration (verified by a 4-character fingerprint).
 
-![Code sync view with fingerprint verification and people statistics](docs/screenshots/03-sync-code.png)
+![Sync code send view with fingerprint and people statistics](docs/screenshots/16-sync-code-send.png)
 
 ### QR transfer
 
 For transferring full configurations, the sender generates one or several QR codes (compressed and encoded in fragments). The receiver activates their camera, holds it up to the sender's screen, and the fragments are collected and reassembled automatically.
 
-![QR transfer — single QR code for a status-only transfer](docs/screenshots/04-sync-qr.png)
+![QR transfer send view — scope picker and generated QR code](docs/screenshots/17-sync-qr-send-options.png)
 
 Works offline, device to device. Requires a modern browser with the native barcode detection API (Chrome, Edge, Safari); Firefox users need to fall back to JSON file import.
 
@@ -183,7 +187,7 @@ A conventional JSON file with the full configuration and optionally the current 
 - Version-controlling the crisis committee definition in your documentation system
 - Seeding a fresh CRAM instance on a new device
 
-![Export dialog showing counts for levels, roles, people, absent and manual assignments](docs/screenshots/06-backup-restore.png)
+![Data export dialog with scope and runtime-state toggle](docs/screenshots/19-data-export.png)
 
 ### Online sync (V1.2+)
 
@@ -200,6 +204,8 @@ End-to-end encryption is enabled by default (AES-256-GCM with PBKDF2). The passp
 
 **Automatic sync (V2.0, opt-in):** per source, the user can switch on a background poller with one of four modes — `off`, `pull` (poll only), `push` (push on local edits only), or `bidirectional`. Polling interval is configurable between 30 and 300 seconds. The header indicator shows a live countdown to the next tick. ETag-based If-Match guards against lost updates on HTTP backends; conflicts get one Pull-Merge-Push retry. Tab visibility, offline events, auth errors, missing passphrase, and lost file-system permission each have their own pause/resume behaviour — the poller does not retry blindly. Config drift (server has a different committee structure) surfaces as a separate error class and routes the user to Data → Online for an explicit decision.
 
+![Settings → Sync sources — per-source Auto-Sync mode, polling interval, encryption status](docs/screenshots/14-settings-sync-sources-tab.png)
+
 For end-user step-by-step instructions, see [docs/handbook-en.md](docs/handbook-en.md#online-sync-since-v12).
 
 ## Print / PDF
@@ -210,7 +216,9 @@ Three variants, each sensibly sized for the chosen paper:
 - **Role detail** — multi-page structured listing. One section per level; each role shows the current occupant, the complete substitution chain with phone numbers, and any manual assignment.
 - **People list** — alphabetical phone directory. Absent people are called out in a separate section.
 
-![Print dialog — template and paper size selection](docs/screenshots/05-print-dialog.png)
+![Print dialog — template chooser with paper size and orientation](docs/screenshots/22-print-template-chooser.png)
+
+![Overview print template rendered for the Enterprise demo committee](docs/screenshots/23-print-overview-output.png)
 
 All three variants support A4, A3, and Letter in both portrait and landscape. The layout scales to fill the selected page.
 
@@ -223,7 +231,7 @@ The user interface is available in:
 - French (Français)
 - Chinese (中文)
 
-![Language switcher in the header](docs/screenshots/13-language-selector.png)
+![Language switcher in the header](docs/screenshots/12-language-switcher.png)
 
 The language switcher is in the header. The selection persists between sessions.
 
@@ -231,17 +239,19 @@ The language switcher is in the header. The selection persists between sessions.
 
 Edit mode is activated with the ✎ icon in the header. While in edit mode you can add or rearrange levels, roles, and persons, and manage the substitution chain for each role.
 
-![Role editor with ordered substitution chain](docs/screenshots/08-edit-role.png)
+![Edit mode active — role cards show pencil and pin handles for editing](docs/screenshots/10-edit-mode-active.png)
+
+![Role editor with ordered substitution chain](docs/screenshots/11-edit-role-modal.png)
 
 The Settings dialog exposes the organisation name and the print title — both are empty by default and are shown on every printed page if filled in.
 
-![Settings dialog](docs/screenshots/07-settings.png)
+![Settings dialog — General tab](docs/screenshots/13-settings-general-tab.png)
 
 ## Tracking absence
 
 Clicking a person in the main view (when not in edit mode) opens a dialog to mark them unavailable. A reason category and an optional note can be recorded. Once marked, the person's availability is reflected across all roles they are assigned to, and the substitution chain takes over automatically.
 
-![Mark unavailable — reason selector](docs/screenshots/09-mark-unavailable.png)
+![Manual assignment modal — pick the person who should hold this role regardless of availability](docs/screenshots/09-manual-assignment-modal.png)
 
 The sidebar has three tabs:
 
@@ -249,9 +259,9 @@ The sidebar has three tabs:
 - **People** — alphabetical list of all persons with their availability status and quick filter.
 - **Log** — the 30-day audit trail.
 
-![People tab with availability statistics](docs/screenshots/11-people-list.png)
+![People tab — alphabetical directory with availability state](docs/screenshots/04-sidebar-people-tab.png)
 
-![Log tab showing recent availability changes and manual assignments](docs/screenshots/12-audit-log.png)
+![Log tab — recent absence changes, manual assignments, sync events](docs/screenshots/05-sidebar-audit-log.png)
 
 ## Privacy and data handling
 
