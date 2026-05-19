@@ -5608,6 +5608,32 @@ const SyncPoller = (function() {
   // (lastAutoPollAt, lastAutoPollError, authError, pendingPush).
   const _runtime = new Map();
 
+  // RC-Blocker (2026-05): Edit-Modale (Rolle/Person/Level/Manual-Assign/
+  // Verfügbarkeit) leben im globalen #modal-backdrop. Wenn render() während
+  // einer Edit-Session läuft (Auto-Pull-Tick alle 30-90s, Auto-Push-Retry
+  // nach 412), wird zwar das Modal-DOM nicht direkt zerstört (Modal liegt
+  // außerhalb von #org-chart/#side-panel), aber re-render plus State-
+  // Mutation durch applyEnvelopeForSource() führt zu Datenverlust:
+  // editRoleState.role zeigt auf das alte State.config-Objekt, Save
+  // schreibt ins Leere. Auto-Push während offenem Modal ist ebenfalls
+  // sinnlos — der User editiert noch, dirty wird gleich wieder gesetzt.
+  // Fix: während ein Modal offen ist, weder render() noch scheduleAutoPush
+  // ausführen. Stattdessen Pending-Flag setzen; modalClosed() drained.
+  function _hasOpenEditModal() {
+    if (typeof document === 'undefined') return false;
+    const bd = document.getElementById('modal-backdrop');
+    if (!bd) return false;
+    // display:'none' (Style-Attribut oder CSS-Default) → kein Modal aktiv.
+    // Modal-Open setzt explizit display='flex' (siehe openEditRoleModal etc.).
+    const inline = bd.style && bd.style.display;
+    if (inline && inline !== 'none') return true;
+    return false;
+  }
+  let _pendingRenderAfterModal = false;
+  // Set<sourceId> — Sources, die während Modal-Edit einen Auto-Push
+  // brauchten. Wird in modalClosed() drained (re-scheduled mit 0ms).
+  const _pendingPushAfterModal = new Set();
+
   function _defaultRuntime(sourceId) {
     return {
       sourceId: sourceId,
@@ -5782,6 +5808,13 @@ const SyncPoller = (function() {
     // RC-feature: Hard-Pause bei Config-Drift. Recovery via
     // SyncPoller.configDriftResolved() nach erfolgreichem Full-Pull.
     if (rt && rt._configDrift === true) return 'config-drift';
+    // RC-Blocker (2026-05): während User aktiv in Edit-Modal arbeitet,
+    // keine Auto-Pulls. Sonst kann der Tick eine Config-Mutation triggern
+    // (Status-Mode rewrites runtime, Full-Mode rewrites config+runtime),
+    // die den im RAM gehaltenen editRoleState.role-Pointer entwertet.
+    // Soft-Pause (paused/offline analog): Timer läuft weiter, der nächste
+    // Tick nach Modal-Close findet wieder zur normalen Kadenz zurück.
+    if (_hasOpenEditModal()) return 'modal-editing';
     return null;
   }
 
@@ -5872,9 +5905,17 @@ const SyncPoller = (function() {
       // Sidebar bleiben auf altem Stand bis User F5/Manual-Pull triggert.
       // Fix: nach success-Pull explizit render() aufrufen. typeof-Guard für
       // Test-Loader, die das Sync-IIFE ohne DOM ausführen.
+      // RC-Blocker (2026-05, follow-up): Edit-Modale (Rolle/Person/...)
+      // dürfen NICHT durch einen Auto-Render aus dem Weg geräumt werden,
+      // sonst verliert der User die Eingaben. Pending-Flag setzen, drainen
+      // in modalClosed().
       if (typeof render === 'function') {
-        try { render(); }
-        catch (e) { console.warn('[SyncPoller] render() after pull threw:', e && e.message); }
+        if (_hasOpenEditModal()) {
+          _pendingRenderAfterModal = true;
+        } else {
+          try { render(); }
+          catch (e) { console.warn('[SyncPoller] render() after pull threw:', e && e.message); }
+        }
       }
       _scheduleNext(sourceId, persistedSource, runtime);
       return;
@@ -6034,6 +6075,18 @@ const SyncPoller = (function() {
     // RC-feature: Config-Drift → Push würde mit dem gleichen Fingerprint-
     // Mismatch in Sync.push abgewiesen. Skip früh, kein Sentinel.
     if (rt && rt._configDrift === true) return 'config-drift';
+    // RC-Blocker (2026-05): Push-Tick darf nicht losfeuern, während User
+    // im Edit-Modal sitzt. Der Concurrent-Retry-Pfad ruft Sync.pull() +
+    // render(), und genau dieser render() würde die Edit-Session zerstören
+    // bzw. die State.config-Pointer von editRoleState invalidieren. Edge-
+    // case: 2s-Debounce-Timer wurde schon VOR Modal-Öffnung gesetzt (User
+    // klickt schnell durch). scheduleAutoPush hat den Set-Eintrag bei
+    // modalClosed() bereits gemerkt, aber der schon laufende Debounce-
+    // Timer würde sonst durchschlüpfen. Skip + erneut in den Set legen.
+    if (_hasOpenEditModal()) {
+      _pendingPushAfterModal.add(source.id);
+      return 'modal-editing';
+    }
     return null;
   }
 
@@ -6224,10 +6277,14 @@ const SyncPoller = (function() {
           await Sync.pull(sourceId, { mode: POLL_MODE });
           // RC-Blocker (2026-05): gleiche Re-Render-Lücke wie im _tick.
           // Wenn der Concurrent-Pull tatsächlich neuen Remote-State holt,
-          // soll die UI das auch zeigen.
+          // soll die UI das auch zeigen. Modal-aware (siehe _tick).
           if (typeof render === 'function') {
-            try { render(); }
-            catch (e) { console.warn('[SyncPoller] render() after concurrent re-pull threw:', e && e.message); }
+            if (_hasOpenEditModal()) {
+              _pendingRenderAfterModal = true;
+            } else {
+              try { render(); }
+              catch (e) { console.warn('[SyncPoller] render() after concurrent re-pull threw:', e && e.message); }
+            }
           }
           // Re-schedule push without the 2s debounce — the user already
           // waited once.
@@ -6294,6 +6351,18 @@ const SyncPoller = (function() {
     if (runtime._configDrift) {
       console.debug('[SyncPoller] scheduleAutoPush skipped, configDrift',
         sourceId.slice(0, 8));
+      return;
+    }
+    // RC-Blocker (2026-05): kein Auto-Push während offenem Edit-Modal.
+    // markDirty() feuert mehrfach bei Form-Save-Klicks (Storage.saveConfig +
+    // Storage.saveRuntime hintereinander) und kann auch durch Auto-Pull-
+    // getriggertes applyEnvelopeForSource() ausgelöst werden. Ein 2s-Debounce
+    // läuft also typischerweise ab, während der User noch im selben Modal
+    // editiert; nach Erfolg ruft _pushTick keine Edit-Modal-vernichtende
+    // Routine, aber Re-Pull bei 412 schon (siehe oben). Sauberer: ganz
+    // pausieren, nach modalClosed() drainen.
+    if (_hasOpenEditModal()) {
+      _pendingPushAfterModal.add(sourceId);
       return;
     }
 
@@ -6745,6 +6814,35 @@ const SyncPoller = (function() {
     return out;
   }
 
+  // RC-Blocker (2026-05): wird vom globalen closeModal() aufgerufen.
+  // Drained den während Edit-Phase angesammelten Render-Bedarf und die
+  // zurückgehaltenen Auto-Push-Aufträge. Defensiv: try/catch um jeden
+  // Drain-Schritt, damit ein UI-Fehler nicht den Sync-Recovery blockiert.
+  function modalClosed() {
+    // 1. Render-Drain: ein einziger render()-Aufruf für alle gestauten
+    //    State-Mutationen aus Auto-Pulls während Edit-Phase.
+    if (_pendingRenderAfterModal && typeof render === 'function') {
+      _pendingRenderAfterModal = false;
+      try { render(); }
+      catch (e) { console.warn('[SyncPoller] pending render after modal close threw:', e && e.message); }
+    } else {
+      _pendingRenderAfterModal = false;
+    }
+    // 2. Push-Drain: alle Sources, die während Modal-Edit markDirty
+    //    bekamen, jetzt regulär durch scheduleAutoPush wieder ein-
+    //    schleusen. Set leeren VOR dem Re-Schedule, weil scheduleAutoPush
+    //    bei erneut offenem Modal (Edge-Case: zweites Modal direkt nach
+    //    Close) sonst doppelt addiert.
+    if (_pendingPushAfterModal.size > 0) {
+      const ids = Array.from(_pendingPushAfterModal);
+      _pendingPushAfterModal.clear();
+      for (const sid of ids) {
+        try { scheduleAutoPush(sid, 'modal-close-drain'); }
+        catch (e) { console.warn('[SyncPoller] pending push reschedule threw:', e && e.message); }
+      }
+    }
+  }
+
   // ---- Public API ----
 
   return {
@@ -6752,6 +6850,7 @@ const SyncPoller = (function() {
     pause, resume,
     registerSource, unregisterSource,
     scheduleAutoPush,
+    modalClosed,         // RC-Blocker (2026-05): drained pending render+push
     passphraseProvided,  // WP-16
     configDriftResolved,  // RC-feature: drift-modal-resolution
     getStats,
@@ -11710,6 +11809,13 @@ function closeModal() {
   if (typeof qrCleanupOnModalClose === 'function') qrCleanupOnModalClose();
   // QR-Scanner stoppen, falls aktiv
   if (typeof qrStopScanner === 'function') qrStopScanner();
+  // RC-Blocker (2026-05): während offenem Edit-Modal waren Auto-Renders
+  // und Auto-Pushes pausiert (sonst Modal-Vernichtung / Edit-Datenverlust).
+  // Jetzt drainen: pending render + ggf. pending push re-scheduled.
+  if (typeof SyncPoller !== 'undefined' && typeof SyncPoller.modalClosed === 'function') {
+    try { SyncPoller.modalClosed(); }
+    catch (e) { console.warn('SyncPoller.modalClosed() threw:', e && e.message); }
+  }
 }
 
 function markUnavailable(personId, category, note) {
