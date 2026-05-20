@@ -141,6 +141,133 @@ For these cases there is **manual assignment**. In edit mode, or via the pin but
 
 Manually assigned roles are marked with a 🔒 symbol on the role card and flagged as such in the Roster tab. They are included in sync transfers (both code sync and QR transfer).
 
+## Team pools (since V2.1)
+
+Below the classic three-tier hierarchy (crisis committee → management → topic lead) there is a fourth tier: **team pools**. A pool is a group of employees attached to a lead role — typical use cases are on-call rotations, specialist teams (forensics, threat intel, legal) or extended response groups that report into a lead but are not formal substitutes in the chain.
+
+### What a pool is — and what it is not
+
+A pool consists of:
+
+- **Name** (required, max 200 characters) — e.g. "SOC On-Call Shift A"
+- **Lead role** (required) — the role this pool is attached to
+- **Members** — list of people from the People directory
+- **Notes** (optional, max 2000 characters) — free text for handover hints, out-of-band contact info
+- **Optional secondary leads** — pools can appear as a cross-reference on a second role without being duplicated there
+
+A pool **does not replace a substitution chain**. People who must be formal substitutes belong in the role's assignment list. Pool membership can exist in parallel — a `[SUB]` badge on the pool pill makes the overlap visible.
+
+### Creating a pool (V2.1.1+)
+
+Pools are created in the **edit mode of the chart**, directly under the relevant column:
+
+1. Click ✎ in the header to enter edit mode
+2. In the column with the lead role, click **"+ Pool"**
+3. In the modal: name, lead role (pre-filled), members via pick list, optional notes and secondary leads
+4. Save — the pool appears directly below the lead card
+
+Edit and delete are inline via `✎` and `×` on the pool header — same pattern as role editing.
+
+**Alternative path for power users:** Settings → "Pools" tab shows all pools as a list with bulk actions. This is secondary to the chart-inline workflow.
+
+### How pools render in the chart
+
+- **Desktop (≥ 1024 px)**: pool sits directly below the lead card in the same column. A subtle top connector links them visually; a "POOL OF:" label is unnecessary — spatial proximity carries the meaning.
+- **Tablet (768–1023 px) and mobile (< 768 px)**: pool sits at the end of the level, horizontally. On mobile it is collapsed by default and expands on click.
+- **Pill layout**: max four members per row, sorted by availability (available first), then alphabetically.
+- **Status icons** are shape-coded, not colour-only — state is recognisable without colour perception (accessibility).
+
+### Availability at the pool level
+
+Each pool member carries their normal availability state from the People area. That lets you see at a glance how many of the pool are ready to engage. There is no separate "pool readiness" model — the pool is a view onto the People data, not a parallel system.
+
+### Pool members as substitutes
+
+One person can simultaneously be:
+
+1. **Primary** or **substitute** in a role (via the assignment list)
+2. **Member** of one or several pools
+
+This dual status is explicitly allowed and is the norm in crisis-committee practice (the on-call lead is also the topic-lead's sub2). A **`[SUB]` badge** on the pool pill surfaces this — anyone who is both in a pool and in a substitution chain is flagged.
+
+### Orphaned pools
+
+If the lead role of a pool is deleted, **the pool is not deleted with it**. Instead it moves to a dedicated section at the end of the chart ("Unassigned", with a warn border). The institutional knowledge (who is in which squad) is preserved even when the organisational anchor is gone. The pool can be re-attached to a new lead role or explicitly deleted from there.
+
+### Sync note for pools
+
+Pool changes are part of the **configuration**, not the status. Status-mode sync (the short sync code, automatic status push) **does not carry pool changes** — the configuration fingerprint deliberately ignores them.
+
+Anyone who has added, edited, or deleted a pool must distribute that change via the **data mode**: JSON export, QR transfer with scope "Configuration + Status", or Online-Sync in data mode. See the "Sync vs. Data — what to use when (V1.3)" section.
+
+## Keywords (since V2.1)
+
+People carry an optional list of **free-form tags** — keywords. They capture things that don't model cleanly as roles: specialisations, certifications, languages, equipment affinities.
+
+**Examples:** "SOC analyst tier 2", "macOS forensics", "cloud reverse engineering", "fluent French", "TPM/HSM experience".
+
+### Maintaining keywords
+
+In edit mode or directly from the People list, open the **person-edit modal**. In the "Keywords" field:
+
+1. Type a tag
+2. Enter or comma commits it as a chip
+3. Or pick from the autocomplete dropdown (shows all keywords already used across the org — encourages consistent terminology)
+4. The `×` on a chip removes a keyword
+
+### Limits
+
+- **Max 64 characters per keyword** — labels, not sentences
+- **Max 32 keywords per person** — past that, the organisation is probably better modelled with roles than tags
+- **Keywords are not a skill-level system** — no tier 1/2/3, no certificate expiry. Both are on the post-V2.1 roadmap
+
+### Sync behaviour for keywords
+
+Like pools, keywords are part of the **configuration**. Status sync does not transfer them — data-mode sync is needed.
+
+## Search (since V2.1)
+
+With pools and keywords comes the near-inevitable use case: "Who can do cloud forensics right now?" That's what the new **Search tab** in the sidebar is for.
+
+### Where the tab lives
+
+- **Desktop**: sidebar tab between "People" and "Log" (fourth tab)
+- **Mobile**: fifth button in the bottom nav bar (between "People" and "Log")
+
+### What search does
+
+The search field matches across four fields simultaneously:
+
+- **Name** (first and last)
+- **Keywords** (all tags assigned to the person)
+- **Phone number**
+- **E-mail**
+
+Filters on top:
+
+- **Availability**: All / Available only / Absent only
+- **Keyword cloud**: shows every keyword used across the org as a clickable chip. Multi-select is **AND-combined** — picking "macOS forensics" AND "available" returns only people who satisfy both.
+
+### Hit representation
+
+Each hit is a **person card** with:
+
+- Status icon (available / absent, same shape vocabulary as the pool pills)
+- Name + contact info (phone, e-mail)
+- **Role memberships**: every role where the person is primary or substitute, with rank badge
+- **Pool memberships**: every pool the person belongs to
+- **Keyword chips**: all tags
+
+Click on a card opens the person-edit modal — you can correct a keyword or update a phone number straight from the search result.
+
+### Typical query patterns
+
+- "Who can do cloud forensics in the next hour?" → filter "Available" + keyword chip "Cloud forensics"
+- "Who in the org speaks fluent French?" → search field "French" or the corresponding keyword-cloud chip
+- "Am I currently the only available macOS forensicist?" → filter "Available" + keyword "macOS forensics"
+
+Search is a read-only view — it does not change state. Edits happen in the person-edit modal after clicking a card.
+
 ## Transferring data to another device
 
 CRAM offers three ways to transfer data between devices. Which one to use depends on the situation.
@@ -436,6 +563,7 @@ In edit mode the People tab becomes an editor. A person has:
 - **Name** (mandatory)
 - **Phone number** (optional but strongly recommended — this is the central contact information during an incident)
 - **Email** (optional)
+- **Keywords** (optional, since V2.1) — free-form tags like "SOC tier 2", "macOS forensics". Power the Search tab. Details in the "Keywords" chapter.
 
 Recommendations:
 
