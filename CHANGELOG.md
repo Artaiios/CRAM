@@ -2,6 +2,44 @@
 
 All notable changes to CRAM are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] — 2026-05-20
+
+V2.0 stable release. Promotes the V2.0.0-rc1 Auto-Sync candidate to GA after six independent internal audits (Security, Stability, Mobile, Resilience, Regression, Docs) and a final polish pass on two UX bugs that surfaced during the audit phase. No new features beyond rc1 — this release is exclusively polish, mobile-pass hardening, and documentation/spec completion.
+
+### Fixed
+
+- **Edit-Modals stayed open during Auto-Sync renders.** SyncPoller re-render races could close an in-flight edit modal while the user was typing. Fix: `_hasOpenEditModal` guard in SyncPoller defers re-render until the modal closes, with a pending-drain in `closeModal()`.
+- **Live-Countdown stale after manual pull/push.** `Sync.pull()` / `Sync.push()` now write `lastAutoPollAt` centrally on every successful operation, covering both auto and manual paths. Header countdown stays in sync.
+- **Header overlap between Sync-Indicator and language switcher.** Human-readable thresholds (`s` / `min` / `h` / `d`) compress the text, with CSS `max-width` + ellipsis as defense-in-depth.
+- **Cache-poisoning vector closed in `Sync.pull()` (F2) and `Sync.push()` pre-read (F2b).** `lastEtag` is persisted only after envelope validation succeeds; a malformed envelope can no longer update the ETag and then bail.
+- **Mobile F1–F4 tap-target compliance.** Migration-banner buttons, settings-modal overflow, header buttons, and source-row actions all raised to 44 pt across the three breakpoints.
+- **Header safe-area-top in PWA standalone mode on iPhone (Dynamic Island).** `env(safe-area-inset-top)` on `.app-header` prevents content clipping.
+- **F-A / F-S1 — Quota-toast on `QuotaExceededError`.** Two independent audits surfaced the missing toast; now visible at the next storage-write attempt.
+- **docs(en) — `stab` → `committee`** consistency pass in the Online-Sync chapter.
+
+### Added
+
+- **Config-Drift as a dedicated error class.** Red header indicator + modal with resolve action ("Konfiguration übernehmen" / "Später"). Accordion-source carries an `is-drift` badge with resolve button.
+- **Live-Countdown in the header sync-indicator.** Auto-mode: "Synced vor 12s · nächster in 18s" with 1 s tick. Human-readable thresholds, error-states take precedence.
+- **`PassphraseRequiredError` as a dedicated error class (WP-16).** Accordion badge + recovery hook so encrypted sources can pause cleanly when the passphrase is missing.
+- **4 PWA icon sizes in the manifest.** SVG + 192×192 + 512×512 PNG (Lighthouse green).
+- **23 real UI screenshots in the handbooks and README.** Rendered from the enterprise demo configuration only — see Documentation Data Policy.
+- **`SECURITY.md`** with threat model, CSP hardening recipe, sanitization-gap disclosure, reporting path.
+- **Pen-test regression suite `tests/pen-test-s02.js`** with 108 XSS test cases.
+- **`docs/specs/v2x-print-refresh.md`** as a planned polish task for V2.x.
+- **Documentation Data Policy** (binding): screenshots only with demo configs, no real organisation/person data in documentation materials, even blurred.
+
+### Changed
+
+- **ROADMAP.md restructured:** V2.0 as a plateau, V2.1 Team Pools planned, V2.2 On-Call Calendar, transparent discard list.
+- **PDF builder size classes** (tiny / portrait / standard / wide) for clean print layouts.
+- **Walkthrough doc clarifications (F-R1 / F-R2):** migration-banner path, settings reachability.
+
+### Security
+
+- **Six independent internal audits** completed for V2.0 (Security, Stability, Mobile, Resilience, Regression, Docs) — all clean.
+- **25 Watch-Points documented**, all blocking ones addressed, the rest scheduled in the Post-GA backlog.
+
 ## [2.0.0-rc1] — 2026-05-19
 
 Auto-Sync as a release candidate. V2.0 turns the V1.2/1.3 manual pull-push channel into a background poller that survives offline, hidden tabs, lost auth, lost permission, missing passphrase, and crash-mid-push — without ever silently replacing a stab configuration (V1.3 status/data split holds). Opt-in per source; default off.
