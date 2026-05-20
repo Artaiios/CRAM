@@ -5025,7 +5025,11 @@ const Sync = (function() {
     if (envelope.fingerprint && envelope.fingerprint !== localFp) {
       throw new Error('Fingerprint mismatch (local ' + localFp + ', remote ' + envelope.fingerprint + ')');
     }
-    State.config = inner.config;
+    // V2.1 step 2: normalise the incoming config through the schema
+    // migrator before it touches State. A V2.0 peer pushes config without
+    // pools[] / persons[].keywords; without this hop the render layer
+    // crashes on undefined-access in the Pools tab.
+    State.config = Storage.migrateConfigV3(inner.config);
     State.runtime = inner.runtime || { unavailable: {}, manualAssignments: {} };
     Storage.saveConfig(State.config);
     Storage.saveRuntime(State.runtime);
@@ -5102,7 +5106,10 @@ const Sync = (function() {
         });
       } catch (e) { /* audit ist best-effort */ }
     }
-    State.config = inner.config;
+    // V2.1 step 2: migrate before assigning. See applyEnvelope() above for
+    // the rationale — a V2.0 peer's payload would be missing pools[] and
+    // persons[].keywords.
+    State.config = Storage.migrateConfigV3(inner.config);
     State.runtime = inner.runtime || { unavailable: {}, manualAssignments: {} };
     Storage.saveConfig(State.config);
     Storage.saveRuntime(State.runtime);
@@ -13129,7 +13136,10 @@ function qrApplyReceivedPayload() {
       if (!Array.isArray(payload.config.levels) || !Array.isArray(payload.config.persons)) {
         throw new Error(t('qr.err_invalid_config'));
       }
-      State.config = payload.config;
+      // V2.1 step 2: route through the schema migrator before assignment.
+      // QR transfer between mixed V2.0/V2.1 devices would otherwise hand
+      // the receiver a config without pools[] / keywords[].
+      State.config = Storage.migrateConfigV3(payload.config);
       State.config.meta = State.config.meta || {};
       State.config.meta.lastModified = now;
       Storage.saveConfig(State.config);
@@ -15513,7 +15523,10 @@ function applyImport() {
   const overwriteRuntimeEl = document.getElementById('import-overwrite-runtime');
   const overwriteRuntime = overwriteRuntimeEl ? overwriteRuntimeEl.checked : false;
 
-  State.config = parsed.config;
+  // V2.1 step 2: JSON files exported by V1.x / V2.0.x lack pools[] and
+  // persons[].keywords. Pipe through the migrator so the render layer
+  // never sees a partial v3 shape.
+  State.config = Storage.migrateConfigV3(parsed.config);
   Storage.saveConfig(State.config);
 
   if (overwriteRuntime && parsed.runtime) {
