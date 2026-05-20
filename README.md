@@ -56,12 +56,14 @@ A comprehensive user and administrator handbook is available in [English](docs/h
 
 ## Demo configurations
 
-Two large sample configurations are included for testing and demonstration. Each has 100 persons, 40 roles across 7 levels, and realistic crisis committee structures for a multinational enterprise:
+CRAM ships **empty by default** — no demo data is loaded on first start, so the tool feels professionally pre-flighted. To explore the feature set, import one of the demo configurations:
 
 - [`demo/cram-demo-enterprise-en.json`](demo/cram-demo-enterprise-en.json) — English role names and descriptions
 - [`demo/cram-demo-enterprise-de.json`](demo/cram-demo-enterprise-de.json) — German role names and descriptions
 
-Both contain the same 100 people with international names from all continents (Europe, the Americas, Africa, China, India, the rest of Asia, the Middle East, Oceania). Import via the Data (⇵) → Import panel.
+Each demo has **70 persons, 4 levels, 28 roles, and 5 skill-based pools** (SOC Analysts, Forensics Specialists, Crisis Communications, IT Recovery, Legal Response). Person names use Latin script only — including for Asian personae — so the data is universally readable on every printer and PDF reader. One person is set as "absent" so the cascade visualisation is visible on the chart and overview print right after import.
+
+Import via the **Data (⇵) → Import** panel. The demo files are also attached as assets to each GitHub release.
 
 ## Core concepts
 
