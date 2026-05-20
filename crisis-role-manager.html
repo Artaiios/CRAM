@@ -4333,6 +4333,207 @@ const Storage = (function() {
       return _migrateConfigToV3(cfg);
     },
     configSchemaVersion: () => CONFIG_SCHEMA_VERSION,
+
+    /* =====================================================================
+       V2.1 step 2: pool + keyword CRUD helpers.
+       Pure State + persistence layer. UI helpers (confirm, toast, render)
+       stay in the handle*() functions in the CRUD section near the bottom.
+       Every mutating helper calls saveConfig(), which routes through set()
+       and triggers Sync.markDirty() for auto-sync.
+       ===================================================================== */
+
+    // Pool CRUD --------------------------------------------------------------
+
+    addPool: (poolData) => {
+      if (!State || !State.config) throw new Error('Storage.addPool: State.config not initialised');
+      if (!Array.isArray(State.config.pools)) State.config.pools = [];
+      const data = poolData || {};
+      const name = (data.name != null ? String(data.name) : '').trim();
+      if (!name) throw new Error('Storage.addPool: name required');
+      const pool = {
+        id: 'pool-' + uid('p').slice(2), // uid('p') = "p-<ts>-<rand>"; strip leading "p-" so the visible id is pool-<ts>-<rand>
+        name,
+        leadRoleId: (data.leadRoleId != null ? String(data.leadRoleId) : null),
+        memberIds: Array.isArray(data.memberIds) ? data.memberIds.slice() : [],
+        notes: (data.notes != null ? String(data.notes) : ''),
+        secondaryLeadRoleIds: Array.isArray(data.secondaryLeadRoleIds) ? data.secondaryLeadRoleIds.slice() : [],
+      };
+      State.config.pools.push(pool);
+      set(KEY_CONFIG, State.config);
+      return pool;
+    },
+
+    updatePool: (poolId, changes) => {
+      if (!State || !State.config || !Array.isArray(State.config.pools)) {
+        throw new Error('Storage.updatePool: pools not initialised');
+      }
+      const pool = State.config.pools.find(p => p && p.id === poolId);
+      if (!pool) throw new Error('Storage.updatePool: pool not found: ' + poolId);
+      const patch = changes || {};
+      // Patch-Style: only touch supplied keys.
+      if (Object.prototype.hasOwnProperty.call(patch, 'name')) {
+        const n = (patch.name != null ? String(patch.name) : '').trim();
+        if (!n) throw new Error('Storage.updatePool: name cannot be empty');
+        pool.name = n;
+      }
+      if (Object.prototype.hasOwnProperty.call(patch, 'leadRoleId')) {
+        const lr = patch.leadRoleId;
+        if (lr !== null && lr !== undefined) {
+          // Validate role exists. null is allowed (unassigned).
+          const exists = (State.config.levels || []).some(level =>
+            (level && Array.isArray(level.roles))
+              ? level.roles.some(r => r && r.id === lr)
+              : false
+          );
+          if (!exists) throw new Error('Storage.updatePool: leadRoleId does not exist: ' + lr);
+          pool.leadRoleId = String(lr);
+        } else {
+          pool.leadRoleId = null;
+        }
+      }
+      if (Object.prototype.hasOwnProperty.call(patch, 'memberIds')) {
+        pool.memberIds = Array.isArray(patch.memberIds) ? patch.memberIds.slice() : [];
+      }
+      if (Object.prototype.hasOwnProperty.call(patch, 'notes')) {
+        pool.notes = (patch.notes != null ? String(patch.notes) : '');
+      }
+      if (Object.prototype.hasOwnProperty.call(patch, 'secondaryLeadRoleIds')) {
+        pool.secondaryLeadRoleIds = Array.isArray(patch.secondaryLeadRoleIds)
+          ? patch.secondaryLeadRoleIds.slice()
+          : [];
+      }
+      set(KEY_CONFIG, State.config);
+      return pool;
+    },
+
+    removePool: (poolId) => {
+      if (!State || !State.config || !Array.isArray(State.config.pools)) return false;
+      const idx = State.config.pools.findIndex(p => p && p.id === poolId);
+      if (idx === -1) return false;
+      const removed = State.config.pools[idx];
+      State.config.pools.splice(idx, 1);
+      // Audit. Best-effort — never block the mutation if audit write fails.
+      try {
+        const log = get(KEY_AUDIT, []);
+        log.unshift({
+          id: uid('a'),
+          timestamp: new Date().toISOString(),
+          type: 'config_edit',
+          action: 'pool_deleted',
+          detail: 'Pool deleted (name=' + (removed && removed.name ? removed.name : '?') + ')',
+        });
+        set(KEY_AUDIT, log.slice(0, 10000));
+      } catch (e) { /* audit best-effort */ }
+      set(KEY_CONFIG, State.config);
+      return true;
+    },
+
+    addPoolMember: (poolId, personId) => {
+      if (!State || !State.config || !Array.isArray(State.config.pools)) {
+        throw new Error('Storage.addPoolMember: pools not initialised');
+      }
+      const pool = State.config.pools.find(p => p && p.id === poolId);
+      if (!pool) throw new Error('Storage.addPoolMember: pool not found: ' + poolId);
+      const personExists = Array.isArray(State.config.persons)
+        && State.config.persons.some(p => p && p.id === personId);
+      if (!personExists) throw new Error('Storage.addPoolMember: person not found: ' + personId);
+      if (!Array.isArray(pool.memberIds)) pool.memberIds = [];
+      // Idempotent: do nothing if already a member, but still return true so
+      // callers can treat the response as "member is in the pool now".
+      if (pool.memberIds.indexOf(personId) === -1) {
+        pool.memberIds.push(personId);
+        set(KEY_CONFIG, State.config);
+      }
+      return true;
+    },
+
+    removePoolMember: (poolId, personId) => {
+      if (!State || !State.config || !Array.isArray(State.config.pools)) return false;
+      const pool = State.config.pools.find(p => p && p.id === poolId);
+      if (!pool || !Array.isArray(pool.memberIds)) return false;
+      const before = pool.memberIds.length;
+      pool.memberIds = pool.memberIds.filter(id => id !== personId);
+      if (pool.memberIds.length !== before) {
+        set(KEY_CONFIG, State.config);
+        return true;
+      }
+      // Idempotent: silently return false if person was not a member.
+      return false;
+    },
+
+    // Person keyword CRUD ---------------------------------------------------
+
+    setPersonKeywords: (personId, keywords) => {
+      if (!State || !State.config || !Array.isArray(State.config.persons)) {
+        throw new Error('Storage.setPersonKeywords: persons not initialised');
+      }
+      const person = State.config.persons.find(p => p && p.id === personId);
+      if (!person) throw new Error('Storage.setPersonKeywords: person not found: ' + personId);
+      const list = Array.isArray(keywords) ? keywords : [];
+      // Trim, drop empties, dedupe case-insensitively while preserving the
+      // first-seen original case (so "ITSec" survives over "itsec").
+      const seen = new Set();
+      const out = [];
+      for (const raw of list) {
+        if (typeof raw !== 'string') continue;
+        const trimmed = raw.trim();
+        if (!trimmed) continue;
+        const lc = trimmed.toLowerCase();
+        if (seen.has(lc)) continue;
+        seen.add(lc);
+        out.push(trimmed);
+      }
+      person.keywords = out;
+      set(KEY_CONFIG, State.config);
+      return out.slice();
+    },
+
+    // Read-only: collects all distinct keywords across persons. Returns a
+    // case-insensitively-deduped, alphabetically sorted (locale-aware)
+    // array of original-case strings. No markDirty.
+    getAllKeywords: () => {
+      if (!State || !State.config || !Array.isArray(State.config.persons)) return [];
+      const seen = new Set();
+      const out = [];
+      for (const p of State.config.persons) {
+        if (!p || !Array.isArray(p.keywords)) continue;
+        for (const k of p.keywords) {
+          if (typeof k !== 'string') continue;
+          const trimmed = k.trim();
+          if (!trimmed) continue;
+          const lc = trimmed.toLowerCase();
+          if (seen.has(lc)) continue;
+          seen.add(lc);
+          out.push(trimmed);
+        }
+      }
+      const lang = (typeof State !== 'undefined' && State && State.language) ? State.language : 'de';
+      out.sort((a, b) => a.localeCompare(b, lang, { sensitivity: 'base' }));
+      return out;
+    },
+
+    // Sort helper for chart-render (step 5). Returns the pool's members as
+    // full person objects, ordered: available first, absent last; within
+    // each group alphabetically by name. Missing persons (stale memberIds
+    // after a person was deleted via a non-cleanup path) are skipped.
+    getSortedPoolMembers: (poolId) => {
+      if (!State || !State.config || !Array.isArray(State.config.pools)) return [];
+      const pool = State.config.pools.find(p => p && p.id === poolId);
+      if (!pool || !Array.isArray(pool.memberIds)) return [];
+      const persons = Array.isArray(State.config.persons) ? State.config.persons : [];
+      const unavail = (State.runtime && State.runtime.unavailable) ? State.runtime.unavailable : {};
+      const lang = (State && State.language) ? State.language : 'de';
+      const resolved = pool.memberIds
+        .map(id => persons.find(p => p && p.id === id))
+        .filter(p => !!p);
+      resolved.sort((a, b) => {
+        const aAbs = !!unavail[a.id];
+        const bAbs = !!unavail[b.id];
+        if (aAbs !== bAbs) return aAbs ? 1 : -1; // available first
+        return (a.name || '').localeCompare(b.name || '', lang);
+      });
+      return resolved;
+    },
   };
 })();
 
@@ -14171,6 +14372,12 @@ function handleDeleteRole(roleId) {
   if (!loc) return;
   const role = State.config.levels[loc.levelIdx].roles[loc.roleIdx];
   if (!confirm(t('edit.confirm_delete_role', { name: role.name }))) return;
+  // V2.1 step 2: orphan any pools that referenced this role as their Lead.
+  // Patrick decision (docs/specs/v2.1-team-pools.md): do NOT cascade-delete
+  // the pool — members keep their grouping, the slot becomes unassigned and
+  // is re-pickable in the Pools tab. Secondary leads are filtered down by
+  // dropping the deleted role-id from the list.
+  _orphanPoolsForLead(roleId);
   State.config.levels[loc.levelIdx].roles.splice(loc.roleIdx, 1);
   // Manuelle Zuordnung für diese Rolle entfernen
   if (State.runtime.manualAssignments && State.runtime.manualAssignments[roleId]) {
@@ -14180,6 +14387,23 @@ function handleDeleteRole(roleId) {
   logConfigEdit('Role deleted', { name: role.name });
   saveConfigAndRerender();
   showToast(t('toast.edit_deleted'), 'success');
+}
+
+// V2.1 step 2: helper used by handleDeleteRole. Pure State mutation; the
+// caller persists via saveConfigAndRerender(). Idempotent — a no-op if no
+// pool references this role-id.
+function _orphanPoolsForLead(roleId) {
+  const pools = State.config && State.config.pools;
+  if (!Array.isArray(pools)) return;
+  pools.forEach(pool => {
+    if (!pool) return;
+    if (pool.leadRoleId === roleId) {
+      pool.leadRoleId = null;
+    }
+    if (Array.isArray(pool.secondaryLeadRoleIds)) {
+      pool.secondaryLeadRoleIds = pool.secondaryLeadRoleIds.filter(id => id !== roleId);
+    }
+  });
 }
 
 function openEditRoleModalById(roleId) {
@@ -14306,6 +14530,16 @@ function handleDeletePerson(personId) {
         .map((a, i) => ({ personId: a.personId, rank: i }));
     });
   });
+  // V2.1 step 2: clean up pool memberships before removing the person, so
+  // no pool is left holding a stale id. Notes/leadRoleId are untouched —
+  // only memberIds reference person-ids.
+  if (Array.isArray(State.config.pools)) {
+    State.config.pools.forEach(pool => {
+      if (pool && Array.isArray(pool.memberIds)) {
+        pool.memberIds = pool.memberIds.filter(id => id !== personId);
+      }
+    });
+  }
   // Aus Personen-Liste entfernen
   State.config.persons = State.config.persons.filter(x => x.id !== personId);
   // Aus unavailable entfernen falls vorhanden
