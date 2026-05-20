@@ -2,6 +2,50 @@
 
 All notable changes to CRAM are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] — 2026-05-20
+
+First reasoned V2.x expansion after V2.0.0 (see ROADMAP.md "V2.0-Plateau"). Adds a fourth tier below Krisenstab, Management, and Topic-Lead: **team pools** with availability tracking and free-form keyword tags. Plus a full print-template refresh.
+
+### Added
+
+- **Team pools per lead role.** Each lead position can carry an employee pool (schema v3). Members can simultaneously appear in the lead's substitution chain — a `[SUB]` badge surfaces that in the chart.
+- **Pool CRUD in the Settings modal** ("Pools" tab) including a migration banner for v1/v2 → v3.
+- **Pool rendering in the chart per level.** Bracket-style enclosure with "pool of: <Lead>". Pills max 4 per row, status-icon shape (form, not just colour → a11y). Sorted by availability, then alphabetically.
+- **Orphaned pools** (lead role deleted): dedicated section with warn-border. No cascade delete.
+- **Mobile pools**: collapsed by default <600px, expandable.
+- **Keywords per person** with chip-pills and autocomplete dropdown (`Storage.getAllKeywords()`).
+- **Sidebar tab "Search"** with text query, availability filter, keyword cloud, hit-cards showing roles + pool membership.
+- **Mobile nav expanded to 5 buttons** (Search added).
+- **5 languages** for all new UI strings (DE/EN/ES/FR/ZH, best-effort).
+
+### Changed
+
+- **Print templates fully overhauled** (see `docs/specs/v2x-print-refresh.md`):
+  - Overview: role name dominant, dynamic columns, simple critical coding, pool indicator per lead.
+  - Role-detail: B/W-printable (border instead of background), skip-arrow for manual notes, pool members + keywords listing.
+  - People-list: ABSENT i18n-ified, letter anchors, primary/sub rank visible, keywords row.
+  - Dead code (`position: running(pageFooter)`) removed.
+- **Schema migration v1/v2 → v3** in 5 import paths (apply-envelope, QR, JSON import, init).
+- **Length caps**: `pool.name` 200, `pool.notes` 2000, `keyword` 64 chars, max 32 keywords/person.
+
+### Fixed
+
+- **Strict-type validator before `migrateConfigV3`** — defense against malformed JSON imports.
+- **Pool audit-trail**: `addPool` / `updatePool` / `setPersonKeywords` now write audit entries.
+
+### Security
+
+- **Pen-test S-02 expanded for keyword surface** — 9 new XSS test cases.
+- **`escapeHTML` discipline on all new pool/keyword surfaces** (chip text, `data-keyword` attributes, pool-member pills, search-result cards).
+- **Sync behaviour clarified**: pool and keyword changes need data-mode sync (fingerprint ignores them). Documented in the release body and CHANGELOG.
+
+### Deferred (post-V2.1)
+
+- Pool-member skill-levels / certificate tracking
+- External HR-system integration
+- Server-mediated pool-sync conflicts (V2.0 ETag mechanism is sufficient for now)
+- PDF handbook screenshots reflect V2.0.0 state; Markdown handbooks under `docs/` cover V2.1
+
 ## [2.0.0] — 2026-05-20
 
 V2.0 stable release. Promotes the V2.0.0-rc1 Auto-Sync candidate to GA after six independent internal audits (Security, Stability, Mobile, Resilience, Regression, Docs) and a final polish pass on two UX bugs that surfaced during the audit phase. No new features beyond rc1 — this release is exclusively polish, mobile-pass hardening, and documentation/spec completion.

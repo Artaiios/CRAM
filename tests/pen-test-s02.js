@@ -183,6 +183,29 @@ const SURFACES = [
       } catch (e) { /* swallow */ }
     `,
   },
+  {
+    // V2.1 pre-GA polish — keywords as new XSS-surface. Render paths:
+    //   - Person-Edit-Modal: keyword chips with data-keyword attribute
+    //   - Search-Tab (sidebar): result list + active-tag chips
+    //   - Chart Pool-Member hover/tap: keyword tooltip
+    //   - Print People-List template: keyword column / inline list
+    // We inject into every person so the chart, sidebar, search and
+    // print paths all see the payload as soon as their respective
+    // render function fires.
+    id: 'person.keywords',
+    description: 'Person.keywords (chip + search-tab + chart pool-member + print)',
+    patch: (payload) => `
+      if (Array.isArray(State.config && State.config.persons)) {
+        State.config.persons.forEach(p => {
+          if (!p) return;
+          // Single-element array: assertions sweep the rendered DOM
+          // for the literal payload, so one chip per person is enough
+          // to exercise every escape path.
+          p.keywords = [${JSON.stringify(payload)}];
+        });
+      }
+    `,
+  },
 ];
 
 // Views to drive after each injection. Each view is selected by a
@@ -192,6 +215,9 @@ const VIEWS = [
   { id: 'chart',          action: `if (typeof render === 'function') render();` },
   { id: 'sidebar.active', action: `State.activeTab = 'active'; if (typeof renderSidebar === 'function') renderSidebar();` },
   { id: 'sidebar.people', action: `State.activeTab = 'people'; if (typeof renderSidebar === 'function') renderSidebar();` },
+  // V2.1: search tab introduced in step 6 (Roster/People/Search/Log).
+  // Drives the keyword-result chip + result list render paths.
+  { id: 'sidebar.search', action: `State.activeTab = 'search'; if (typeof renderSidebar === 'function') renderSidebar();` },
   { id: 'sidebar.audit',  action: `State.activeTab = 'audit';  if (typeof renderSidebar === 'function') renderSidebar();` },
   // Modals are rendered on demand. We invoke the generic open-modal
   // entry points if they are reachable from window scope; otherwise

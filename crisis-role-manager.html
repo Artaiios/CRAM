@@ -3048,6 +3048,477 @@ button:focus-visible,
   }
 }
 
+/* ---- V2.1 step 3: Settings-Tab "Pools" + Pool-Edit-Modal ---- */
+.pools-migration-banner {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-bg);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--text-primary);
+}
+.pools-migration-banner strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+.pools-migration-banner-body {
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+.pools-migration-banner-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.pools-migration-banner-actions button {
+  font-size: 11px;
+  padding: 4px 10px;
+}
+.pools-migration-banner-actions .btn-ghost {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-radius: var(--radius-sm);
+}
+.pools-migration-banner-actions .btn-ghost:hover {
+  color: var(--text-primary);
+}
+
+.pools-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+.pool-list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+.pool-list-meta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.pool-list-meta strong {
+  font-size: 13px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pool-list-lead,
+.pool-list-members {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  letter-spacing: 0.03em;
+}
+.pool-list-lead-unassigned {
+  color: var(--text-dim);
+  font-style: italic;
+}
+.pool-list-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.pool-list-actions button {
+  font-size: 11px;
+  padding: 4px 10px;
+}
+.pools-section-title {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-top: 16px;
+  margin-bottom: 6px;
+}
+.pools-empty {
+  padding: 16px;
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 13px;
+  text-align: center;
+}
+.pools-new-btn-row {
+  margin-top: 12px;
+  display: flex;
+}
+
+/* Pool-Edit-Modal (1-spaltig vertikal, Q5) */
+.pool-edit-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.pool-edit-modal .form-field {
+  gap: 4px;
+}
+.pool-member-picker {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-base);
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 6px 8px;
+}
+.pool-member-search {
+  margin-bottom: 6px;
+}
+.pool-member-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.pool-member-row:last-child { border-bottom: none; }
+.pool-member-row input[type="checkbox"] {
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.pool-member-row.is-absent {
+  color: var(--text-secondary);
+}
+.pool-member-empty {
+  padding: 12px 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+.pool-edit-advanced-toggle {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 4px 0;
+  text-align: left;
+}
+.pool-edit-advanced-toggle:hover { color: var(--text-primary); }
+.pool-edit-secondary-leads {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-base);
+  max-height: 160px;
+  overflow-y: auto;
+  padding: 6px 8px;
+}
+.pool-secondary-lead-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+@media (max-width: 600px) {
+  .pools-migration-banner-actions button,
+  .pools-migration-banner-actions .btn-ghost,
+  .pool-list-actions button,
+  .pools-new-btn-row button,
+  .pool-edit-modal button,
+  .pool-edit-advanced-toggle,
+  .pool-edit-modal .form-input,
+  .pool-edit-modal .form-select,
+  .pool-edit-modal .form-textarea,
+  .pool-member-row,
+  .pool-secondary-lead-row {
+    min-height: 44px;
+  }
+  .pool-list-actions button,
+  .pools-migration-banner-actions button {
+    padding: 10px 14px;
+    font-size: 12px;
+  }
+}
+
+/* ---- Person-Edit-Modal: Keywords-Field (V2.1 Schritt 4) ---- */
+.person-edit-keywords {
+  margin-top: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+}
+.person-edit-keywords > label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.keyword-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 32px;
+  padding: 4px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  margin-bottom: 6px;
+}
+.keyword-chips-empty {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding: 4px 6px;
+  font-style: italic;
+}
+.keyword-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  background: var(--accent-bg);
+  color: var(--accent);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+.keyword-chip-remove {
+  background: none;
+  border: none;
+  color: currentColor;
+  cursor: pointer;
+  font-weight: bold;
+  padding: 0 2px;
+  font-size: 14px;
+  line-height: 1;
+}
+.keyword-chip-remove:hover { opacity: 0.7; }
+.keyword-input {
+  width: 100%;
+  padding: 6px 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  box-sizing: border-box;
+}
+.keyword-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.keyword-suggestions {
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+  margin-top: 2px;
+  max-height: 160px;
+  overflow-y: auto;
+  border-radius: var(--radius-sm);
+}
+.keyword-suggestions[hidden] { display: none; }
+.keyword-suggestion-item {
+  padding: 6px 10px;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-primary);
+}
+.keyword-suggestion-item:hover {
+  background: var(--bg-hover);
+}
+.keyword-hint {
+  font-size: 10px;
+  color: var(--text-secondary);
+  margin: 4px 0 0 0;
+  font-family: var(--font-mono);
+}
+
+@media (max-width: 600px) {
+  .keyword-input {
+    min-height: 44px;
+    font-size: 14px;
+  }
+  .keyword-chip-remove {
+    min-width: 24px;
+    min-height: 24px;
+    font-size: 16px;
+  }
+  .keyword-suggestion-item {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+}
+
+/* ---- Chart: Level-Pool-Sections (V2.1 Schritt 5) ----
+   Klammer-Hülle (linker + unterer Border) am Ende jedes Levels.
+   Pool-Member als Pills im 4/3/2-Spalten-Grid. Mobile-Default kollabiert. */
+.level-pool {
+  border-left: 2px solid var(--border-strong);
+  border-bottom: 2px solid var(--border-strong);
+  border-bottom-left-radius: var(--radius-sm);
+  margin: var(--space-3) 0 var(--space-3) var(--space-4);
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-base);
+}
+.level-pools-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+.level-pool-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: 4px;
+}
+.level-pool-bracket-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.level-pool-toggle {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.level-pool-toggle:hover { color: var(--text-primary); }
+.level-pool[aria-expanded="false"] .level-pool-toggle { transform: rotate(-90deg); }
+.level-pool-name {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+.level-pool-members {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+@media (max-width: 900px) {
+  .level-pool-members { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+  .level-pool-members { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.pool-member-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.pool-pill-icon { flex-shrink: 0; }
+.pool-pill-available .pool-pill-icon { color: var(--status-ok); }
+.pool-pill-absent .pool-pill-icon { color: var(--status-warn); }
+.pool-pill-absent { opacity: 0.65; }
+.pool-pill-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pool-pill-sub-badge {
+  font-size: 9px;
+  font-weight: bold;
+  padding: 1px 4px;
+  background: var(--accent-bg);
+  color: var(--accent);
+  border-radius: 2px;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+.level-pool-empty {
+  font-style: italic;
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding: 4px 0;
+}
+
+/* Orphaned-Pools-Sektion (Pools ohne Lead-Rolle) */
+.orphaned-pools-section {
+  margin-top: var(--space-5);
+  padding: var(--space-3);
+  border: 1px dashed var(--status-warn-border);
+  border-radius: var(--radius-sm);
+  background: var(--status-warn-bg);
+}
+.orphaned-pools-header {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--status-warn);
+  margin-bottom: var(--space-2);
+}
+.orphaned-pools-hint {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-3);
+  font-style: italic;
+}
+
+/* Mobile: Pools kollabiert per Default (data-mobile-collapsed="true").
+   Toggle entfernt das Attribut. Auf Desktop wird das Attribut ignoriert. */
+@media (max-width: 600px) {
+  .level-pool[data-mobile-collapsed="true"] .level-pool-members,
+  .level-pool[data-mobile-collapsed="true"] .level-pool-name {
+    display: none;
+  }
+  .level-pool[data-mobile-collapsed="true"] .level-pool-header { margin-bottom: 0; }
+  .level-pool-toggle {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  .pool-member-pill {
+    min-height: 32px;
+    font-size: 12px;
+  }
+}
+
 /* ---- Sync-Modal Online-Tab (V1.2 → V1.3 Karten-Layout) ---- */
 .sync-online-list {
   display: flex;
@@ -3699,9 +4170,12 @@ button:focus-visible,
   }
   .p-header-meta div { margin-bottom: 2pt; }
 
-  /* ---- Footer auf jeder Seite ---- */
+  /* ---- Footer auf jeder Seite ----
+     Hinweis: `position: running()` wurde entfernt — kein Element nutzte den
+     Slot, der Code war seit V1.x tot. Footer-Inhalte erscheinen heute über
+     @page-margin-boxes (in applyPrintPageStyle gesteuert), nicht über
+     running elements. */
   .p-footer {
-    position: running(pageFooter);
     font-size: calc(8pt * var(--print-scale, 1));
     color: #666;
     text-align: center;
@@ -3737,6 +4211,11 @@ button:focus-visible,
     padding-bottom: 2pt;
     margin-bottom: 2pt;
   }
+  /* Karten-Hierarchie umgedreht (Spec-Fix Overview-2):
+     ROLLE jetzt dominant (12pt fett), Person sekundär (10pt regular).
+     Single-Critical-Encoding (Spec-Fix Overview-5): nur der linke 3pt-Balken
+     markiert kritische Rollen — kein rötlicher Hintergrund und kein Badge
+     mehr. Das macht volle Vorstand-Level lesbar statt rot-ertränkt. */
   .p-overview .p-role-card {
     break-inside: avoid;
     background: #fff;
@@ -3749,18 +4228,18 @@ button:focus-visible,
     gap: 1pt;
   }
   .p-overview .p-role-card[data-critical="true"] {
-    border-left-color: #c00;
-    background: #fff5f5;
+    border-left: 3pt solid #c00;
   }
   .p-overview .p-role-name {
-    font-size: calc(9pt * var(--print-scale, 1));
-    font-weight: 600;
-    color: #333;
-  }
-  .p-overview .p-role-person {
     font-size: calc(12pt * var(--print-scale, 1));
     font-weight: 700;
     color: #000;
+    line-height: 1.2;
+  }
+  .p-overview .p-role-person {
+    font-size: calc(10pt * var(--print-scale, 1));
+    font-weight: 400;
+    color: #222;
   }
   .p-overview .p-role-person[data-unoccupied="true"] {
     color: #c00;
@@ -3768,31 +4247,32 @@ button:focus-visible,
   }
   .p-overview .p-role-phone {
     font-family: 'IBM Plex Mono', monospace;
-    font-size: calc(11pt * var(--print-scale, 1));
-    color: #000;
+    font-size: calc(9pt * var(--print-scale, 1));
+    color: #333;
   }
+  /* Spec-Fix Overview-4: Substitution-Hinweis von 7.5pt auf 9pt.
+     Wandchart-Distanz erfordert mind. 9pt Body-Lesbarkeit. */
   .p-overview .p-role-sub-hint {
-    font-size: calc(7.5pt * var(--print-scale, 1));
-    color: #666;
-    font-style: italic;
+    font-size: calc(9pt * var(--print-scale, 1));
+    color: #555;
+    font-weight: 600;
   }
-  .p-overview .p-critical-badge {
-    display: inline-block;
-    background: #c00;
-    color: #fff;
-    font-size: calc(6.5pt * var(--print-scale, 1));
-    font-weight: 700;
-    padding: 1pt 4pt;
-    border-radius: 2pt;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
+  /* Pool-Indikator (V2.1 step 7): dezent unter dem Lead.
+     Klein genug um nicht mit dem Rollennamen zu konkurrieren, aber lesbar. */
+  .p-overview .p-role-pool-indicator {
+    font-size: calc(8pt * var(--print-scale, 1));
+    color: #555;
+    letter-spacing: 0.03em;
+    margin-top: 1pt;
   }
 
   /* ============================================================
      VARIANTE 2 — ROLLEN-DETAIL (mehrseitig)
      ============================================================ */
+  /* Spec-Fix Detail-6: break-inside auf Level-Section entfernt — sonst
+     erzwingt ein großes Level halbleere Vorgängerseiten. Stattdessen
+     reicht break-inside auf Rolle-Ebene (siehe p-detail-role unten). */
   .p-detail .p-level-section {
-    break-inside: avoid-page;
     margin-bottom: 8pt;
   }
   .p-detail .p-level-section .p-h2 {
@@ -3805,9 +4285,9 @@ button:focus-visible,
     margin-bottom: 4pt;
     background: #fafafa;
   }
+  /* Spec-Fix Detail (single critical encoding): nur Balken, kein rosa BG. */
   .p-detail .p-detail-role[data-critical="true"] {
-    border-left: 2.5pt solid #c00;
-    background: #fff5f5;
+    border-left: 3pt solid #c00;
   }
   .p-detail .p-detail-role-head {
     display: flex;
@@ -3862,9 +4342,15 @@ button:focus-visible,
     text-decoration: line-through;
     color: #888;
   }
+  /* Spec-Fix Detail-3: S/W-Druck-taugliches Active-Highlight.
+     Dickes linkes Border (4pt) plus Bold-Schrift — erkennbar auch ohne
+     Farbe. Der zarte Hintergrund bleibt für Farbdrucke, ist aber nicht
+     mehr die primäre Codierung. */
   .p-detail .p-chain-item[data-active="true"] {
+    border-left: 4pt solid #000;
+    padding-left: 4pt;
     background: #fff3c0;
-    font-weight: 600;
+    font-weight: 700;
   }
   .p-detail .p-absent-tag {
     display: inline-block;
@@ -3874,6 +4360,45 @@ button:focus-visible,
     font-size: calc(7pt * var(--print-scale, 1));
     margin-left: 4pt;
     border-radius: 1pt;
+  }
+  /* Spec-Fix Detail-2: Manual-Note erklärt jetzt, welcher Eintrag der
+     Kette übergangen wurde („→ skipped: Person X"). */
+  .p-detail .p-detail-manual-skip {
+    font-size: calc(8pt * var(--print-scale, 1));
+    color: #555;
+    font-style: italic;
+    margin-top: 2pt;
+  }
+  /* V2.1 step 7: Pool-Member-Liste unter der Rolle. Eine kompakte Sub-
+     Sektion mit Member-Name + Keywords inline. */
+  .p-detail .p-detail-pool-section {
+    margin-top: 4pt;
+    padding-top: 3pt;
+    border-top: 0.25pt dashed #999;
+  }
+  .p-detail .p-detail-pool-head {
+    font-size: calc(8.5pt * var(--print-scale, 1));
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #444;
+    margin-bottom: 2pt;
+  }
+  .p-detail .p-detail-pool-member {
+    display: flex;
+    gap: 6pt;
+    font-size: calc(8.5pt * var(--print-scale, 1));
+    padding: 1pt 0;
+  }
+  .p-detail .p-detail-pool-member-name {
+    flex: 0 0 auto;
+    font-weight: 600;
+    min-width: 90pt;
+  }
+  .p-detail .p-detail-pool-member-kw {
+    flex: 1;
+    color: #555;
+    font-style: italic;
   }
 
   /* ============================================================
@@ -3904,16 +4429,28 @@ button:focus-visible,
     font-weight: 700;
     font-size: calc(10pt * var(--print-scale, 1));
   }
-  .p-persons .p-person-name[data-absent="true"]::after {
-    content: " — ABSENT";
+  /* Spec-Fix People-2: ABSENT-Marker raus aus CSS-::after — der String
+     ist jetzt aus i18n und wird in buildPrintPersons() ins HTML gerendert.
+     Hier nur noch die Styling-Klasse. */
+  .p-persons .p-person-absent-marker {
     font-weight: 400;
     font-size: calc(8pt * var(--print-scale, 1));
     color: #c00;
+    margin-left: 4pt;
   }
   .p-persons .p-person-contact {
     font-family: 'IBM Plex Mono', monospace;
     font-size: calc(8.5pt * var(--print-scale, 1));
     color: #333;
+  }
+  .p-persons .p-person-keywords {
+    font-size: calc(7.5pt * var(--print-scale, 1));
+    color: #666;
+    margin-top: 1pt;
+  }
+  .p-persons .p-person-keywords-label {
+    font-weight: 600;
+    color: #555;
   }
   .p-persons .p-person-roles {
     font-size: calc(8pt * var(--print-scale, 1));
@@ -3927,6 +4464,230 @@ button:focus-visible,
     border-radius: 1pt;
     font-size: calc(7.5pt * var(--print-scale, 1));
   }
+  /* Spec-Fix People-3: Primary-Chips deutlich von Sub-Chips abgegrenzt —
+     dunkler Hintergrund + Stern-Marker. */
+  .p-persons .p-person-role-chip[data-rank="primary"] {
+    background: #333;
+    color: #fff;
+    font-weight: 700;
+  }
+  /* Spec-Fix People-5: Buchstaben-Anker. Mini-Header vor jeder neuen
+     Anfangsbuchstaben-Gruppe in der Liste. */
+  .p-persons .p-letter-anchor {
+    break-after: avoid;
+    margin: 6pt 0 2pt 0;
+    padding: 1pt 0 2pt 0;
+    font-size: calc(11pt * var(--print-scale, 1));
+    font-weight: 700;
+    color: #000;
+    border-bottom: 0.5pt solid #999;
+    letter-spacing: 0.05em;
+  }
+}
+
+/* =========================================================================
+   SIDEBAR SEARCH TAB (V2.1 step 6)
+   ========================================================================= */
+.sidebar-search {
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.sidebar-search-hint {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin: 0 0 var(--space-1) 0;
+  line-height: 1.4;
+}
+.sidebar-search-input-row { margin: 0; }
+.sidebar-search-input {
+  width: 100%;
+  padding: 8px 10px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  box-sizing: border-box;
+}
+.sidebar-search-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.sidebar-search-filters {
+  display: flex;
+  gap: 4px;
+}
+.search-filter-btn {
+  flex: 1;
+  padding: 6px 8px;
+  font-size: 11px;
+  font-family: var(--font-sans);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 120ms, border-color 120ms, color 120ms;
+}
+.search-filter-btn:hover { color: var(--text-primary); }
+.search-filter-btn[data-active="true"] {
+  background: var(--accent-bg);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.sidebar-search-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.search-active-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px 3px 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  background: var(--accent-bg);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.search-active-tag-x {
+  font-weight: bold;
+  opacity: 0.7;
+}
+.search-active-tag:hover .search-active-tag-x { opacity: 1; }
+.sidebar-search-keyword-cloud {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+}
+.sidebar-search-keyword-cloud summary {
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding: 2px 0;
+  list-style: revert;
+}
+.sidebar-search-keyword-cloud[open] summary { margin-bottom: 6px; }
+.keyword-cloud-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.keyword-cloud-grid .cloud-empty {
+  font-size: 11px;
+  font-style: italic;
+  color: var(--text-dim);
+  margin: 4px 0;
+}
+.keyword-cloud-chip {
+  padding: 3px 8px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 120ms, border-color 120ms, color 120ms;
+}
+.keyword-cloud-chip:hover {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+.keyword-cloud-chip.is-active {
+  background: var(--accent-bg);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.sidebar-search-count {
+  font-size: 10px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 0;
+}
+.sidebar-search-results {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.search-result-item {
+  padding: var(--space-2);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color 120ms;
+}
+.search-result-item:hover,
+.search-result-item:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+.search-result-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 13px;
+}
+.search-result-status {
+  font-size: 12px;
+  line-height: 1;
+}
+.search-result-status.is-available { color: var(--status-ok); }
+.search-result-status.is-absent { color: var(--status-warn); }
+.search-result-name {
+  flex: 1;
+  color: var(--text-primary);
+}
+.search-result-keywords,
+.search-result-roles,
+.search-result-pools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+  font-size: 10px;
+  align-items: baseline;
+}
+.search-result-pools-label {
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 9px;
+}
+.search-result-kw-mini,
+.search-result-role,
+.search-result-pool {
+  padding: 1px 6px;
+  background: var(--bg-hover);
+  border-radius: 2px;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+}
+.search-result-role { color: var(--text-primary); }
+.sidebar-search-empty {
+  text-align: center;
+  font-style: italic;
+  color: var(--text-secondary);
+  padding: var(--space-3);
+  font-size: 11px;
+}
+
+@media (max-width: 600px) {
+  .sidebar-search-input { min-height: 44px; }
+  .search-filter-btn { min-height: 44px; }
+  .keyword-cloud-chip { min-height: 32px; padding: 6px 10px; }
+  .search-active-tag { min-height: 32px; padding: 6px 8px 6px 10px; }
+  .search-result-item { min-height: 44px; }
 }
 
 /* Page-Size-Direktiven werden per JS per <style id="print-page-size"> gesetzt.
@@ -4001,6 +4762,9 @@ button:focus-visible,
         <button class="panel-tab" data-tab="persons" data-action="tab-persons" role="tab" id="tab-label-persons">
           Personen
         </button>
+        <button class="panel-tab" data-tab="search" data-action="tab-search" role="tab" id="tab-label-search">
+          Suche
+        </button>
         <button class="panel-tab" data-tab="audit" data-action="tab-audit" role="tab" id="tab-label-audit">
           Log
         </button>
@@ -4024,6 +4788,10 @@ button:focus-visible,
     <button class="mobile-nav-btn" data-action="mobile-nav-persons" id="mobile-nav-persons">
       <span class="mobile-nav-icon">☰</span>
       <span class="mobile-nav-label" id="mobile-nav-label-persons">Personen</span>
+    </button>
+    <button class="mobile-nav-btn" data-action="mobile-nav-search" id="mobile-nav-search">
+      <span class="mobile-nav-icon">⌕</span>
+      <span class="mobile-nav-label" id="mobile-nav-label-search">Suche</span>
     </button>
     <button class="mobile-nav-btn" data-action="mobile-nav-audit" id="mobile-nav-audit">
       <span class="mobile-nav-icon">≡</span>
@@ -4196,6 +4964,75 @@ const Storage = (function() {
   const KEY_PREFS = 'cram.prefs.v1';
   const AUDIT_RETENTION_DAYS = 30;
 
+  // V2.1 step 1: config schema bumped 1 -> 3 (v2 never shipped to disk;
+  // the spec speaks of "v2 -> v3" because v2 was a transitional design
+  // doc value, but in the wild the only schemaVersion ever persisted by
+  // 1.x / 2.0.x is 1). Migration is idempotent and dual-triggered: either
+  // the schemaVersion is below 3, OR `config.pools` is undefined, OR any
+  // person is missing the `keywords` field. All three conditions can
+  // appear after a partial multi-tab race; covering them all keeps the
+  // migration self-healing.
+  const CONFIG_SCHEMA_VERSION = 3;
+
+  // V2.1 pre-GA polish — strict-type validator. Defensive layer that
+  // catches malformed JSON imports (e.g. an old config where `persons`
+  // was accidentally serialised as an object, or a foreign tool's
+  // export that has the top-level keys but wrong types). We can't
+  // recover the data, but we can prevent a hard crash in downstream
+  // code that does `.map()` / `.find()` on these arrays. The validator
+  // runs before _configNeedsV3Migration so the migration path sees
+  // sane shapes only.
+  function _validateConfigStructure(cfg) {
+    if (!cfg || typeof cfg !== 'object') return cfg;
+    if ('persons' in cfg && !Array.isArray(cfg.persons)) {
+      console.warn('[migrateConfigV3] persons is not an array, replacing with []');
+      cfg.persons = [];
+    }
+    if ('levels' in cfg && !Array.isArray(cfg.levels)) {
+      console.warn('[migrateConfigV3] levels is not an array, replacing with []');
+      cfg.levels = [];
+    }
+    if ('pools' in cfg && !Array.isArray(cfg.pools)) {
+      console.warn('[migrateConfigV3] pools is not an array, replacing with []');
+      cfg.pools = [];
+    }
+    return cfg;
+  }
+
+  // V2.1 pre-GA polish — length-cap helper. Module-private so the
+  // Storage public methods (which are arrow-functions) can reach it
+  // without `this`-gymnastics. Never throws; logs once per overflow.
+  function _capString(raw, max, label) {
+    const s = (raw != null ? String(raw) : '');
+    if (s.length <= max) return s;
+    console.warn('[Storage] ' + label + ' exceeded ' + max + ' chars (' + s.length + '), truncating');
+    return s.slice(0, max);
+  }
+
+  function _configNeedsV3Migration(cfg) {
+    if (!cfg || typeof cfg !== 'object') return false;
+    if (typeof cfg.schemaVersion !== 'number' || cfg.schemaVersion < CONFIG_SCHEMA_VERSION) return true;
+    if (!Array.isArray(cfg.pools)) return true;
+    if (Array.isArray(cfg.persons) && cfg.persons.some(p => !Array.isArray(p && p.keywords))) return true;
+    return false;
+  }
+
+  function _migrateConfigToV3(cfg) {
+    // Defensive: never mutate caller-supplied object. Build a shallow
+    // clone, deep-clone only the slices we touch (persons array + each
+    // person object that lacks keywords).
+    const next = Object.assign({}, cfg);
+    if (!Array.isArray(next.pools)) next.pools = [];
+    if (Array.isArray(next.persons)) {
+      next.persons = next.persons.map(p => {
+        if (p && Array.isArray(p.keywords)) return p;
+        return Object.assign({}, p, { keywords: [] });
+      });
+    }
+    next.schemaVersion = CONFIG_SCHEMA_VERSION;
+    return next;
+  }
+
   function get(key, fallback) {
     try {
       const raw = localStorage.getItem(key);
@@ -4226,7 +5063,36 @@ const Storage = (function() {
   }
 
   return {
-    loadConfig: () => get(KEY_CONFIG, null),
+    loadConfig: () => {
+      const raw = _validateConfigStructure(get(KEY_CONFIG, null));
+      if (raw === null) return null;
+      if (!_configNeedsV3Migration(raw)) return raw;
+      // Migrate, persist, and mark the V2.1 banner pending. Persist is
+      // best-effort: if localStorage is full we still return the
+      // in-memory migrated copy so the session works; next save attempt
+      // surfaces the quota error through the normal toast path.
+      const migrated = _migrateConfigToV3(raw);
+      try {
+        localStorage.setItem(KEY_CONFIG, JSON.stringify(migrated));
+      } catch (e) {
+        console.warn('Config v3 migration write failed:', e);
+        _handleQuotaError(e, 'Storage.loadConfig:migrate');
+      }
+      // Flag is consumed by the V2.1 Settings -> Pools tab (step 3).
+      // We touch prefs directly to avoid pulling Storage.savePrefs into
+      // the migration path before the prefs schema is loaded.
+      try {
+        const prefsRaw = localStorage.getItem(KEY_PREFS);
+        const prefs = prefsRaw ? JSON.parse(prefsRaw) : {};
+        if (prefs.v21MigrationBannerPending !== true) {
+          prefs.v21MigrationBannerPending = true;
+          localStorage.setItem(KEY_PREFS, JSON.stringify(prefs));
+        }
+      } catch (e) {
+        console.warn('V2.1 migration banner flag write failed:', e);
+      }
+      return migrated;
+    },
     saveConfig: (config) => set(KEY_CONFIG, config),
 
     loadRuntime: () => {
@@ -4257,6 +5123,323 @@ const Storage = (function() {
 
     loadPrefs: () => get(KEY_PREFS, { theme: 'dark', activeTab: 'active', language: 'de', viewSize: 'm', showCascade: false }),
     savePrefs: (prefs) => set(KEY_PREFS, prefs),
+
+    // V2.1 step 1: expose the config migration as a pure helper so that
+    // Sync/QR/JSON import paths (Sync.applyEnvelope, importJSON, ...)
+    // can normalise an incoming config from V1.x or V2.0.x before it is
+    // assigned to State.config. Pure: does not touch localStorage, does
+    // not set the banner-pending flag. The banner flag is reserved for
+    // the loadConfig() boot path, where it correctly fires once per
+    // device when a real upgrade happens.
+    migrateConfigV3: (cfg) => {
+      // V2.1 pre-GA polish: defensive type-validator first so malformed
+      // top-level arrays (persons/levels/pools as non-arrays) get
+      // replaced with [] before any downstream .map/.find/.some runs.
+      cfg = _validateConfigStructure(cfg);
+      if (!_configNeedsV3Migration(cfg)) return cfg;
+      return _migrateConfigToV3(cfg);
+    },
+    configSchemaVersion: () => CONFIG_SCHEMA_VERSION,
+
+    /* =====================================================================
+       V2.1 step 2: pool + keyword CRUD helpers.
+       Pure State + persistence layer. UI helpers (confirm, toast, render)
+       stay in the handle*() functions in the CRUD section near the bottom.
+       Every mutating helper calls saveConfig(), which routes through set()
+       and triggers Sync.markDirty() for auto-sync.
+
+       V2.1 pre-GA polish:
+       - Length-caps on user-supplied strings (defence-in-depth against
+         huge paste accidents and intentional bloat attacks). Overflow is
+         trimmed with a console.warn — never silently truncated without
+         a trace.
+       - Audit-trail for addPool / updatePool / setPersonKeywords. The
+         destructive removePool already wrote audit; the additive paths
+         now match for forensics parity.
+       ===================================================================== */
+
+    // Pool CRUD --------------------------------------------------------------
+
+    addPool: (poolData) => {
+      if (!State || !State.config) throw new Error('Storage.addPool: State.config not initialised');
+      if (!Array.isArray(State.config.pools)) State.config.pools = [];
+      const data = poolData || {};
+      // Trim BEFORE the empty-check so " " stays an error, then cap.
+      const nameRaw = (data.name != null ? String(data.name) : '').trim();
+      if (!nameRaw) throw new Error('Storage.addPool: name required');
+      const name = _capString(nameRaw, 200, 'pool.name');
+      const notes = _capString(data.notes != null ? String(data.notes) : '', 2000, 'pool.notes');
+      const pool = {
+        id: 'pool-' + uid('p').slice(2), // uid('p') = "p-<ts>-<rand>"; strip leading "p-" so the visible id is pool-<ts>-<rand>
+        name,
+        leadRoleId: (data.leadRoleId != null ? String(data.leadRoleId) : null),
+        memberIds: Array.isArray(data.memberIds) ? data.memberIds.slice() : [],
+        notes,
+        secondaryLeadRoleIds: Array.isArray(data.secondaryLeadRoleIds) ? data.secondaryLeadRoleIds.slice() : [],
+      };
+      State.config.pools.push(pool);
+      // V2.1 pre-GA polish — audit. Best-effort, never block on audit failure.
+      try {
+        const log = get(KEY_AUDIT, []);
+        // Look up the lead-role name for human-readable detail.
+        let leadName = '?';
+        if (pool.leadRoleId) {
+          for (const lvl of (State.config.levels || [])) {
+            if (!lvl || !Array.isArray(lvl.roles)) continue;
+            const r = lvl.roles.find(x => x && x.id === pool.leadRoleId);
+            if (r) { leadName = r.name || '?'; break; }
+          }
+        }
+        log.unshift({
+          id: uid('a'),
+          timestamp: new Date().toISOString(),
+          type: 'config_edit',
+          action: 'pool_added',
+          detail: 'Pool added (name=' + name + ', lead=' + leadName + ', members=' + pool.memberIds.length + ')',
+        });
+        set(KEY_AUDIT, log.slice(0, 10000));
+      } catch (e) { /* audit best-effort */ }
+      set(KEY_CONFIG, State.config);
+      return pool;
+    },
+
+    updatePool: (poolId, changes) => {
+      if (!State || !State.config || !Array.isArray(State.config.pools)) {
+        throw new Error('Storage.updatePool: pools not initialised');
+      }
+      const pool = State.config.pools.find(p => p && p.id === poolId);
+      if (!pool) throw new Error('Storage.updatePool: pool not found: ' + poolId);
+      const patch = changes || {};
+      // V2.1 pre-GA polish: track which fields actually changed for the
+      // audit-detail string. Avoids logging "updated everything" when
+      // only one field was touched.
+      const changedFields = [];
+      const beforeMemberCount = Array.isArray(pool.memberIds) ? pool.memberIds.length : 0;
+      // Patch-Style: only touch supplied keys.
+      if (Object.prototype.hasOwnProperty.call(patch, 'name')) {
+        const n = (patch.name != null ? String(patch.name) : '').trim();
+        if (!n) throw new Error('Storage.updatePool: name cannot be empty');
+        const capped = _capString(n, 200, 'pool.name');
+        if (capped !== pool.name) changedFields.push('name');
+        pool.name = capped;
+      }
+      if (Object.prototype.hasOwnProperty.call(patch, 'leadRoleId')) {
+        const lr = patch.leadRoleId;
+        if (lr !== null && lr !== undefined) {
+          // Validate role exists. null is allowed (unassigned).
+          const exists = (State.config.levels || []).some(level =>
+            (level && Array.isArray(level.roles))
+              ? level.roles.some(r => r && r.id === lr)
+              : false
+          );
+          if (!exists) throw new Error('Storage.updatePool: leadRoleId does not exist: ' + lr);
+          if (String(lr) !== pool.leadRoleId) changedFields.push('lead');
+          pool.leadRoleId = String(lr);
+        } else {
+          if (pool.leadRoleId !== null) changedFields.push('lead');
+          pool.leadRoleId = null;
+        }
+      }
+      if (Object.prototype.hasOwnProperty.call(patch, 'memberIds')) {
+        const next = Array.isArray(patch.memberIds) ? patch.memberIds.slice() : [];
+        if (next.length !== beforeMemberCount) changedFields.push('members');
+        pool.memberIds = next;
+      }
+      if (Object.prototype.hasOwnProperty.call(patch, 'notes')) {
+        const capped = _capString(patch.notes != null ? String(patch.notes) : '', 2000, 'pool.notes');
+        if (capped !== pool.notes) changedFields.push('notes');
+        pool.notes = capped;
+      }
+      if (Object.prototype.hasOwnProperty.call(patch, 'secondaryLeadRoleIds')) {
+        const next = Array.isArray(patch.secondaryLeadRoleIds) ? patch.secondaryLeadRoleIds.slice() : [];
+        // Field-change detection is array-shallow; "different membership
+        // OR different length" — good enough for forensic-grain audit.
+        const prev = Array.isArray(pool.secondaryLeadRoleIds) ? pool.secondaryLeadRoleIds : [];
+        if (next.length !== prev.length || next.some((id, i) => id !== prev[i])) {
+          changedFields.push('secondaryLeads');
+        }
+        pool.secondaryLeadRoleIds = next;
+      }
+      // V2.1 pre-GA polish — audit. Skip when nothing actually changed
+      // (patch with no fields, or patch that matched current state).
+      if (changedFields.length > 0) {
+        try {
+          const log = get(KEY_AUDIT, []);
+          log.unshift({
+            id: uid('a'),
+            timestamp: new Date().toISOString(),
+            type: 'config_edit',
+            action: 'pool_updated',
+            detail: 'Pool updated (name=' + (pool.name || '?') + ', fields=' + changedFields.join('/') + ')',
+          });
+          set(KEY_AUDIT, log.slice(0, 10000));
+        } catch (e) { /* audit best-effort */ }
+      }
+      set(KEY_CONFIG, State.config);
+      return pool;
+    },
+
+    removePool: (poolId) => {
+      if (!State || !State.config || !Array.isArray(State.config.pools)) return false;
+      const idx = State.config.pools.findIndex(p => p && p.id === poolId);
+      if (idx === -1) return false;
+      const removed = State.config.pools[idx];
+      State.config.pools.splice(idx, 1);
+      // Audit. Best-effort — never block the mutation if audit write fails.
+      try {
+        const log = get(KEY_AUDIT, []);
+        log.unshift({
+          id: uid('a'),
+          timestamp: new Date().toISOString(),
+          type: 'config_edit',
+          action: 'pool_deleted',
+          detail: 'Pool deleted (name=' + (removed && removed.name ? removed.name : '?') + ')',
+        });
+        set(KEY_AUDIT, log.slice(0, 10000));
+      } catch (e) { /* audit best-effort */ }
+      set(KEY_CONFIG, State.config);
+      return true;
+    },
+
+    addPoolMember: (poolId, personId) => {
+      if (!State || !State.config || !Array.isArray(State.config.pools)) {
+        throw new Error('Storage.addPoolMember: pools not initialised');
+      }
+      const pool = State.config.pools.find(p => p && p.id === poolId);
+      if (!pool) throw new Error('Storage.addPoolMember: pool not found: ' + poolId);
+      const personExists = Array.isArray(State.config.persons)
+        && State.config.persons.some(p => p && p.id === personId);
+      if (!personExists) throw new Error('Storage.addPoolMember: person not found: ' + personId);
+      if (!Array.isArray(pool.memberIds)) pool.memberIds = [];
+      // Idempotent: do nothing if already a member, but still return true so
+      // callers can treat the response as "member is in the pool now".
+      if (pool.memberIds.indexOf(personId) === -1) {
+        pool.memberIds.push(personId);
+        set(KEY_CONFIG, State.config);
+      }
+      return true;
+    },
+
+    removePoolMember: (poolId, personId) => {
+      if (!State || !State.config || !Array.isArray(State.config.pools)) return false;
+      const pool = State.config.pools.find(p => p && p.id === poolId);
+      if (!pool || !Array.isArray(pool.memberIds)) return false;
+      const before = pool.memberIds.length;
+      pool.memberIds = pool.memberIds.filter(id => id !== personId);
+      if (pool.memberIds.length !== before) {
+        set(KEY_CONFIG, State.config);
+        return true;
+      }
+      // Idempotent: silently return false if person was not a member.
+      return false;
+    },
+
+    // Person keyword CRUD ---------------------------------------------------
+
+    setPersonKeywords: (personId, keywords) => {
+      if (!State || !State.config || !Array.isArray(State.config.persons)) {
+        throw new Error('Storage.setPersonKeywords: persons not initialised');
+      }
+      const person = State.config.persons.find(p => p && p.id === personId);
+      if (!person) throw new Error('Storage.setPersonKeywords: person not found: ' + personId);
+      const list = Array.isArray(keywords) ? keywords : [];
+      // V2.1 pre-GA polish: per-keyword cap 64 chars, per-person cap 32 tags.
+      const MAX_KEYWORD_LEN = 64;
+      const MAX_KEYWORDS_PER_PERSON = 32;
+      // Trim, drop empties, dedupe case-insensitively while preserving the
+      // first-seen original case (so "ITSec" survives over "itsec").
+      const seen = new Set();
+      const out = [];
+      for (const raw of list) {
+        if (typeof raw !== 'string') continue;
+        const trimmed = raw.trim();
+        if (!trimmed) continue;
+        const capped = _capString(trimmed, MAX_KEYWORD_LEN, 'keyword');
+        const lc = capped.toLowerCase();
+        if (seen.has(lc)) continue;
+        seen.add(lc);
+        out.push(capped);
+        if (out.length >= MAX_KEYWORDS_PER_PERSON) {
+          if (list.length > out.length) {
+            console.warn('[Storage] keywords-per-person exceeded ' + MAX_KEYWORDS_PER_PERSON
+              + ' (' + list.length + ' supplied), dropping the rest');
+          }
+          break;
+        }
+      }
+      // V2.1 pre-GA polish — audit. Compute add/remove delta for human-
+      // readable detail. Skip when nothing actually changed (idempotent
+      // sets shouldn't pollute the forensic timeline).
+      const prevList = Array.isArray(person.keywords) ? person.keywords : [];
+      const prevSet = new Set(prevList.map(s => s.toLowerCase()));
+      const nextSet = new Set(out.map(s => s.toLowerCase()));
+      const added = out.filter(k => !prevSet.has(k.toLowerCase())).length;
+      const removed = prevList.filter(k => !nextSet.has(k.toLowerCase())).length;
+      person.keywords = out;
+      if (added > 0 || removed > 0) {
+        try {
+          const log = get(KEY_AUDIT, []);
+          log.unshift({
+            id: uid('a'),
+            timestamp: new Date().toISOString(),
+            type: 'config_edit',
+            action: 'person_keywords_updated',
+            detail: 'Keywords updated (person=' + (person.name || '?')
+              + ', +' + added + ', -' + removed + ', total=' + out.length + ')',
+          });
+          set(KEY_AUDIT, log.slice(0, 10000));
+        } catch (e) { /* audit best-effort */ }
+      }
+      set(KEY_CONFIG, State.config);
+      return out.slice();
+    },
+
+    // Read-only: collects all distinct keywords across persons. Returns a
+    // case-insensitively-deduped, alphabetically sorted (locale-aware)
+    // array of original-case strings. No markDirty.
+    getAllKeywords: () => {
+      if (!State || !State.config || !Array.isArray(State.config.persons)) return [];
+      const seen = new Set();
+      const out = [];
+      for (const p of State.config.persons) {
+        if (!p || !Array.isArray(p.keywords)) continue;
+        for (const k of p.keywords) {
+          if (typeof k !== 'string') continue;
+          const trimmed = k.trim();
+          if (!trimmed) continue;
+          const lc = trimmed.toLowerCase();
+          if (seen.has(lc)) continue;
+          seen.add(lc);
+          out.push(trimmed);
+        }
+      }
+      const lang = (typeof State !== 'undefined' && State && State.language) ? State.language : 'de';
+      out.sort((a, b) => a.localeCompare(b, lang, { sensitivity: 'base' }));
+      return out;
+    },
+
+    // Sort helper for chart-render (step 5). Returns the pool's members as
+    // full person objects, ordered: available first, absent last; within
+    // each group alphabetically by name. Missing persons (stale memberIds
+    // after a person was deleted via a non-cleanup path) are skipped.
+    getSortedPoolMembers: (poolId) => {
+      if (!State || !State.config || !Array.isArray(State.config.pools)) return [];
+      const pool = State.config.pools.find(p => p && p.id === poolId);
+      if (!pool || !Array.isArray(pool.memberIds)) return [];
+      const persons = Array.isArray(State.config.persons) ? State.config.persons : [];
+      const unavail = (State.runtime && State.runtime.unavailable) ? State.runtime.unavailable : {};
+      const lang = (State && State.language) ? State.language : 'de';
+      const resolved = pool.memberIds
+        .map(id => persons.find(p => p && p.id === id))
+        .filter(p => !!p);
+      resolved.sort((a, b) => {
+        const aAbs = !!unavail[a.id];
+        const bAbs = !!unavail[b.id];
+        if (aAbs !== bAbs) return aAbs ? 1 : -1; // available first
+        return (a.name || '').localeCompare(b.name || '', lang);
+      });
+      return resolved;
+    },
   };
 })();
 
@@ -4748,7 +5931,11 @@ const Sync = (function() {
     if (envelope.fingerprint && envelope.fingerprint !== localFp) {
       throw new Error('Fingerprint mismatch (local ' + localFp + ', remote ' + envelope.fingerprint + ')');
     }
-    State.config = inner.config;
+    // V2.1 step 2: normalise the incoming config through the schema
+    // migrator before it touches State. A V2.0 peer pushes config without
+    // pools[] / persons[].keywords; without this hop the render layer
+    // crashes on undefined-access in the Pools tab.
+    State.config = Storage.migrateConfigV3(inner.config);
     State.runtime = inner.runtime || { unavailable: {}, manualAssignments: {} };
     Storage.saveConfig(State.config);
     Storage.saveRuntime(State.runtime);
@@ -4825,7 +6012,10 @@ const Sync = (function() {
         });
       } catch (e) { /* audit ist best-effort */ }
     }
-    State.config = inner.config;
+    // V2.1 step 2: migrate before assigning. See applyEnvelope() above for
+    // the rationale — a V2.0 peer's payload would be missing pools[] and
+    // persons[].keywords.
+    State.config = Storage.migrateConfigV3(inner.config);
     State.runtime = inner.runtime || { unavailable: {}, manualAssignments: {} };
     Storage.saveConfig(State.config);
     Storage.saveRuntime(State.runtime);
@@ -6895,7 +8085,15 @@ const SyncPoller = (function() {
    Typische Krisenstab-Struktur für Cyber-Security-Vorfälle als Ausgangspunkt.
    ========================================================================= */
 const DEFAULT_CONFIG = {
-  schemaVersion: 1,
+  // V2.1: schema 3. Fresh installs land on v3 directly — no migration
+  // banner fires, because Storage.loadConfig() only stamps the banner
+  // flag when it actually had to migrate an older persisted config.
+  schemaVersion: 3,
+  // V2.1: pools live at the top of the config tree (alongside levels,
+  // persons, meta). Demo personas in DEFAULT_CONFIG do not yet carry
+  // `keywords: []`; that normalisation runs through migrateConfigV3()
+  // during init() so the per-person field stays consistent.
+  pools: [],
   meta: {
     organizationName: '',
     printTitle: '',
@@ -7053,9 +8251,31 @@ const TRANSLATIONS = {
     'tabs.occupancy': 'Besetzung',
     'tabs.persons': 'Personen',
     'tabs.log': 'Log',
+    'sidebar.tab_search': 'Suche',
+    'search.intro': 'Personen nach Name, Keyword, Telefon oder E-Mail finden.',
+    'search.placeholder': 'Tippen zum Suchen…',
+    'search.filter_group_label': 'Verfügbarkeit',
+    'search.filter_all': 'Alle',
+    'search.filter_available': 'Verfügbar',
+    'search.filter_absent': 'Abwesend',
+    'search.show_keywords': 'Keywords filtern',
+    'search.no_keywords': 'Noch keine Keywords angelegt.',
+    'search.no_results': 'Keine Treffer.',
+    'search.pools_label': 'Pool',
+    'search.results_count': '{n} Treffer',
+    'search.role_primary_marker': '(P)',
+    'search.role_sub_marker': '(S)',
+    'search.clear_keyword': 'Keyword-Filter „{kw}" entfernen',
     'level.prefix': 'EBENE',
     'level.roles_count_one': '{n} Rolle',
     'level.roles_count_other': '{n} Rollen',
+    'chart.pool_of': 'Pool von: {lead}',
+    'chart.pool_empty': 'Keine Mitglieder',
+    'chart.pool_sub_badge_title': 'Auch in der Vertretungskette dieser Rolle',
+    'chart.pool_toggle_expand': 'Pool ausklappen',
+    'chart.pool_toggle_collapse': 'Pool einklappen',
+    'chart.orphaned_pools_title': 'Pools ohne Lead-Rolle',
+    'chart.orphaned_pools_hint': 'Diese Pools haben keine zugewiesene Lead-Rolle. Bearbeite sie in Einstellungen → Pools oder lösche sie.',
     'role.unoccupied': '◯ UNBESETZT',
     'role.no_substitution': 'Keine Vertretung verfügbar',
     'role.replaces': 'Vertritt:',
@@ -7072,6 +8292,10 @@ const TRANSLATIONS = {
     'person.mark_available': '✓ Als verfügbar markieren',
     'person.back_to_overview': '← Zurück zur Übersicht',
     'person.no_roles_assigned': 'Keine Rollen zugeordnet.',
+    'person.keywords_label': 'Schwerpunktthemen / Keywords',
+    'person.keywords_placeholder': 'Tippen und Enter…',
+    'person.keywords_hint': 'Freie Tags. Enter, Komma oder Vorschlag zum Hinzufügen. Backspace entfernt letztes.',
+    'person.keywords_empty': 'Noch keine Schwerpunktthemen',
     'absence.vacation': 'Urlaub',
     'absence.sick': 'Krank',
     'absence.business_trip': 'Dienstreise',
@@ -7309,7 +8533,45 @@ const TRANSLATIONS = {
     'settings.about_license': 'Lizenz',
     'settings.tab_general': 'Allgemein',
     'settings.tab_sync': 'Sync-Sources',
+    'settings.tab_pools': 'Pools',
     'settings.tab_about': 'Info',
+    // V2.1 step 3: Settings-Tab "Pools"
+    'settings.pools.intro': 'Pools sind Mitarbeiter-Gruppen, die einer Lead-Rolle zugeordnet sind. Pool-Mitglieder können Stellvertreter für den Lead sein und tragen ihre Schwerpunktthemen als Keywords.',
+    'settings.pools.empty_state': 'Noch keine Pools. Lege deinen ersten an.',
+    'settings.pools.list_lead_label': 'Pool für: {name}',
+    'settings.pools.list_lead_unassigned': 'Pool ohne Lead',
+    'settings.pools.list_members_label': '{n} Mitglieder',
+    'settings.pools.list_members_label_one': '1 Mitglied',
+    'settings.pools.unassigned_section': 'Pools ohne Lead',
+    'settings.pools.btn_new': '+ Neuen Pool anlegen',
+    'settings.pools.btn_edit': 'Bearbeiten',
+    'settings.pools.btn_delete': 'Löschen',
+    'settings.pools.delete_confirm': 'Pool „{name}" wirklich löschen? Die Mitglieder bleiben als Personen erhalten.',
+    'settings.pools.modal_title_create': 'Neuen Pool anlegen',
+    'settings.pools.modal_title_edit': 'Pool bearbeiten',
+    'settings.pools.field_name': 'Name',
+    'settings.pools.field_name_placeholder': 'z.B. Forensik-Team',
+    'settings.pools.field_lead': 'Lead-Rolle',
+    'settings.pools.field_lead_unassigned': 'Unassigned (kein Lead)',
+    'settings.pools.field_members': 'Mitglieder',
+    'settings.pools.field_members_search': 'Personen suchen…',
+    'settings.pools.field_members_empty': 'Keine Personen vorhanden.',
+    'settings.pools.field_members_no_matches': 'Keine Treffer.',
+    'settings.pools.field_notes': 'Notizen (optional)',
+    'settings.pools.field_notes_placeholder': 'Zweck, Verantwortlichkeiten, Hinweise…',
+    'settings.pools.field_secondary_leads': 'Sekundäre Leads (optional)',
+    'settings.pools.field_secondary_leads_empty': 'Keine weiteren Rollen verfügbar.',
+    'settings.pools.advanced_toggle': 'Erweiterte Optionen',
+    'settings.pools.btn_save': 'Speichern',
+    'settings.pools.btn_cancel': 'Abbrechen',
+    'settings.pools.validation_name_required': 'Name darf nicht leer sein.',
+    'settings.pools.toast_created': 'Pool angelegt.',
+    'settings.pools.toast_updated': 'Pool gespeichert.',
+    'settings.pools.toast_deleted': 'Pool gelöscht.',
+    'settings.pools.migration_banner_title': 'Team-Pools sind neu',
+    'settings.pools.migration_banner_body': 'Du kannst jetzt Mitarbeiter-Pools je Lead-Rolle anlegen, mit freien Keywords zur Suche nach Schwerpunktthemen.',
+    'settings.pools.migration_banner_cta_create': 'Ersten Pool anlegen',
+    'settings.pools.migration_banner_dismiss': 'Verstanden',
     'settings.sync_intro': 'Sync-Sources sind Endpunkte, gegen die manuell synchronisiert werden kann. V1.2 unterstützt HTTP(S)-Backends; weitere Backend-Typen folgen.',
     'settings.sync_no_sources': 'Keine Sync-Sources konfiguriert.',
     'sync.migration_banner.title': 'Auto-Sync ist neu',
@@ -7503,6 +8765,11 @@ const TRANSLATIONS = {
     'print.level_prefix': 'Ebene',
     'print.replaces': 'vertritt',
     'print.currently_absent_note': '{name} nicht verfügbar — Vertretung aktiv',
+    'print.people_absent_marker': 'ABWESEND',
+    'print.role_pool_label': 'Pool',
+    'print.role_pool_members_count': '{n} Mitglieder',
+    'print.person_keywords_label': 'Schwerpunkte',
+    'print.overview_pool_indicator': 'POOL: {name} ({n})',
     'header.panel': 'Panel',
     'header.panel_tooltip': 'Seitenpanel ein-/ausblenden',
     'toast.panel_shown': 'Seitenpanel eingeblendet',
@@ -7510,6 +8777,7 @@ const TRANSLATIONS = {
     'nav.org': 'Chart',
     'nav.active': 'Besetzung',
     'nav.persons': 'Personen',
+    'nav.search': 'Suche',
     'nav.audit': 'Log',
     'data.title': 'Konfiguration sichern / einspielen',
     'data.tab_export': '↑ Export',
@@ -7633,9 +8901,31 @@ const TRANSLATIONS = {
     'tabs.occupancy': 'Roster',
     'tabs.persons': 'People',
     'tabs.log': 'Log',
+    'sidebar.tab_search': 'Search',
+    'search.intro': 'Find people by name, keyword, phone or email.',
+    'search.placeholder': 'Type to search…',
+    'search.filter_group_label': 'Availability',
+    'search.filter_all': 'All',
+    'search.filter_available': 'Available',
+    'search.filter_absent': 'Absent',
+    'search.show_keywords': 'Filter by keyword',
+    'search.no_keywords': 'No keywords yet.',
+    'search.no_results': 'No matches.',
+    'search.pools_label': 'Pool',
+    'search.results_count': '{n} matches',
+    'search.role_primary_marker': '(P)',
+    'search.role_sub_marker': '(S)',
+    'search.clear_keyword': 'Remove keyword filter "{kw}"',
     'level.prefix': 'LEVEL',
     'level.roles_count_one': '{n} role',
     'level.roles_count_other': '{n} roles',
+    'chart.pool_of': 'Pool of: {lead}',
+    'chart.pool_empty': 'No members',
+    'chart.pool_sub_badge_title': 'Also in this role’s substitution chain',
+    'chart.pool_toggle_expand': 'Expand pool',
+    'chart.pool_toggle_collapse': 'Collapse pool',
+    'chart.orphaned_pools_title': 'Unassigned pools',
+    'chart.orphaned_pools_hint': 'These pools have no lead role. Edit them in Settings → Pools, or delete them.',
     'role.unoccupied': '◯ UNOCCUPIED',
     'role.no_substitution': 'No substitute available',
     'role.replaces': 'Replacing:',
@@ -7652,6 +8942,10 @@ const TRANSLATIONS = {
     'person.mark_available': '✓ Mark as available',
     'person.back_to_overview': '← Back to overview',
     'person.no_roles_assigned': 'No roles assigned.',
+    'person.keywords_label': 'Focus areas / Keywords',
+    'person.keywords_placeholder': 'Type and press Enter…',
+    'person.keywords_hint': 'Free tags. Enter, comma or pick a suggestion to add. Backspace removes the last.',
+    'person.keywords_empty': 'No focus areas yet',
     'absence.vacation': 'On leave',
     'absence.sick': 'Sick',
     'absence.business_trip': 'Business trip',
@@ -7886,7 +9180,45 @@ const TRANSLATIONS = {
     'settings.about_license': 'License',
     'settings.tab_general': 'General',
     'settings.tab_sync': 'Sync sources',
+    'settings.tab_pools': 'Pools',
     'settings.tab_about': 'About',
+    // V2.1 step 3: Settings tab "Pools"
+    'settings.pools.intro': 'Pools are groups of staff attached to a lead role. Pool members can stand in for the lead and carry their focus topics as keywords.',
+    'settings.pools.empty_state': 'No pools yet. Create your first one.',
+    'settings.pools.list_lead_label': 'pool of: {name}',
+    'settings.pools.list_lead_unassigned': 'pool without lead',
+    'settings.pools.list_members_label': '{n} members',
+    'settings.pools.list_members_label_one': '1 member',
+    'settings.pools.unassigned_section': 'Pools without a lead',
+    'settings.pools.btn_new': '+ New pool',
+    'settings.pools.btn_edit': 'Edit',
+    'settings.pools.btn_delete': 'Delete',
+    'settings.pools.delete_confirm': 'Delete pool "{name}"? Members remain as persons.',
+    'settings.pools.modal_title_create': 'Create new pool',
+    'settings.pools.modal_title_edit': 'Edit pool',
+    'settings.pools.field_name': 'Name',
+    'settings.pools.field_name_placeholder': 'e.g. Forensics team',
+    'settings.pools.field_lead': 'Lead role',
+    'settings.pools.field_lead_unassigned': 'Unassigned (no lead)',
+    'settings.pools.field_members': 'Members',
+    'settings.pools.field_members_search': 'Search persons…',
+    'settings.pools.field_members_empty': 'No persons available.',
+    'settings.pools.field_members_no_matches': 'No matches.',
+    'settings.pools.field_notes': 'Notes (optional)',
+    'settings.pools.field_notes_placeholder': 'Purpose, responsibilities, notes…',
+    'settings.pools.field_secondary_leads': 'Secondary leads (optional)',
+    'settings.pools.field_secondary_leads_empty': 'No other roles available.',
+    'settings.pools.advanced_toggle': 'Advanced options',
+    'settings.pools.btn_save': 'Save',
+    'settings.pools.btn_cancel': 'Cancel',
+    'settings.pools.validation_name_required': 'Name cannot be empty.',
+    'settings.pools.toast_created': 'Pool created.',
+    'settings.pools.toast_updated': 'Pool saved.',
+    'settings.pools.toast_deleted': 'Pool deleted.',
+    'settings.pools.migration_banner_title': 'Team pools are new',
+    'settings.pools.migration_banner_body': 'You can now create staff pools per lead role, with free-form keywords to search by focus topic.',
+    'settings.pools.migration_banner_cta_create': 'Create first pool',
+    'settings.pools.migration_banner_dismiss': 'Got it',
     'settings.sync_intro': 'Sync sources are endpoints you can manually synchronise against. V1.2 supports HTTP(S) backends; more backend types follow.',
     'settings.sync_no_sources': 'No sync sources configured.',
     'sync.migration_banner.title': 'Auto-sync is new',
@@ -8080,6 +9412,11 @@ const TRANSLATIONS = {
     'print.level_prefix': 'Level',
     'print.replaces': 'substituting for',
     'print.currently_absent_note': '{name} unavailable — substitute active',
+    'print.people_absent_marker': 'ABSENT',
+    'print.role_pool_label': 'Pool',
+    'print.role_pool_members_count': '{n} members',
+    'print.person_keywords_label': 'Focus areas',
+    'print.overview_pool_indicator': 'POOL: {name} ({n})',
     'header.panel': 'Panel',
     'header.panel_tooltip': 'Show/hide side panel',
     'toast.panel_shown': 'Side panel shown',
@@ -8087,6 +9424,7 @@ const TRANSLATIONS = {
     'nav.org': 'Chart',
     'nav.active': 'Roles',
     'nav.persons': 'People',
+    'nav.search': 'Search',
     'nav.audit': 'Log',
     'data.title': 'Backup / restore configuration',
     'data.tab_export': '↑ Export',
@@ -8209,9 +9547,31 @@ const TRANSLATIONS = {
     'tabs.occupancy': 'Asignación',
     'tabs.persons': 'Personas',
     'tabs.log': 'Registro',
+    'sidebar.tab_search': 'Buscar',
+    'search.intro': 'Buscar personas por nombre, palabra clave, teléfono o correo.',
+    'search.placeholder': 'Escribe para buscar…',
+    'search.filter_group_label': 'Disponibilidad',
+    'search.filter_all': 'Todos',
+    'search.filter_available': 'Disponible',
+    'search.filter_absent': 'Ausente',
+    'search.show_keywords': 'Filtrar por palabra clave',
+    'search.no_keywords': 'Aún no hay palabras clave.',
+    'search.no_results': 'Sin resultados.',
+    'search.pools_label': 'Pool',
+    'search.results_count': '{n} resultados',
+    'search.role_primary_marker': '(P)',
+    'search.role_sub_marker': '(S)',
+    'search.clear_keyword': 'Quitar filtro de palabra clave «{kw}»',
     'level.prefix': 'NIVEL',
     'level.roles_count_one': '{n} rol',
     'level.roles_count_other': '{n} roles',
+    'chart.pool_of': 'Grupo de: {lead}',
+    'chart.pool_empty': 'Sin miembros',
+    'chart.pool_sub_badge_title': 'También en la cadena de suplencia de este rol',
+    'chart.pool_toggle_expand': 'Desplegar grupo',
+    'chart.pool_toggle_collapse': 'Plegar grupo',
+    'chart.orphaned_pools_title': 'Grupos sin rol principal',
+    'chart.orphaned_pools_hint': 'Estos grupos no tienen un rol principal asignado. Edítalos en Ajustes → Grupos o elimínalos.',
     'role.unoccupied': '◯ SIN CUBRIR',
     'role.no_substitution': 'Sin suplente disponible',
     'role.replaces': 'Sustituye a:',
@@ -8228,6 +9588,10 @@ const TRANSLATIONS = {
     'person.mark_available': '✓ Marcar como disponible',
     'person.back_to_overview': '← Volver al resumen',
     'person.no_roles_assigned': 'Sin roles asignados.',
+    'person.keywords_label': 'Áreas de enfoque / Palabras clave',
+    'person.keywords_placeholder': 'Escribe y pulsa Enter…',
+    'person.keywords_hint': 'Etiquetas libres. Enter, coma o elige una sugerencia para añadir. Retroceso elimina la última.',
+    'person.keywords_empty': 'Aún no hay áreas de enfoque',
     'absence.vacation': 'Vacaciones',
     'absence.sick': 'Enfermedad',
     'absence.business_trip': 'Viaje de trabajo',
@@ -8462,7 +9826,45 @@ const TRANSLATIONS = {
     'settings.about_license': 'Licencia',
     'settings.tab_general': 'General',
     'settings.tab_sync': 'Fuentes de sync.',
+    'settings.tab_pools': 'Grupos',
     'settings.tab_about': 'Acerca de',
+    // V2.1 step 3: pestaña de configuración "Grupos"
+    'settings.pools.intro': 'Los grupos son conjuntos de personas asociados a un rol líder. Los miembros pueden sustituir al líder y aportan sus temas clave como keywords.',
+    'settings.pools.empty_state': 'Aún no hay grupos. Crea el primero.',
+    'settings.pools.list_lead_label': 'grupo de: {name}',
+    'settings.pools.list_lead_unassigned': 'grupo sin líder',
+    'settings.pools.list_members_label': '{n} miembros',
+    'settings.pools.list_members_label_one': '1 miembro',
+    'settings.pools.unassigned_section': 'Grupos sin líder',
+    'settings.pools.btn_new': '+ Nuevo grupo',
+    'settings.pools.btn_edit': 'Editar',
+    'settings.pools.btn_delete': 'Eliminar',
+    'settings.pools.delete_confirm': '¿Eliminar el grupo «{name}»? Los miembros se conservan como personas.',
+    'settings.pools.modal_title_create': 'Crear nuevo grupo',
+    'settings.pools.modal_title_edit': 'Editar grupo',
+    'settings.pools.field_name': 'Nombre',
+    'settings.pools.field_name_placeholder': 'p. ej. Equipo de forense',
+    'settings.pools.field_lead': 'Rol líder',
+    'settings.pools.field_lead_unassigned': 'Sin asignar (sin líder)',
+    'settings.pools.field_members': 'Miembros',
+    'settings.pools.field_members_search': 'Buscar personas…',
+    'settings.pools.field_members_empty': 'No hay personas disponibles.',
+    'settings.pools.field_members_no_matches': 'Sin coincidencias.',
+    'settings.pools.field_notes': 'Notas (opcional)',
+    'settings.pools.field_notes_placeholder': 'Propósito, responsabilidades, notas…',
+    'settings.pools.field_secondary_leads': 'Líderes secundarios (opcional)',
+    'settings.pools.field_secondary_leads_empty': 'No hay otros roles disponibles.',
+    'settings.pools.advanced_toggle': 'Opciones avanzadas',
+    'settings.pools.btn_save': 'Guardar',
+    'settings.pools.btn_cancel': 'Cancelar',
+    'settings.pools.validation_name_required': 'El nombre no puede estar vacío.',
+    'settings.pools.toast_created': 'Grupo creado.',
+    'settings.pools.toast_updated': 'Grupo guardado.',
+    'settings.pools.toast_deleted': 'Grupo eliminado.',
+    'settings.pools.migration_banner_title': 'Los grupos de equipo son nuevos',
+    'settings.pools.migration_banner_body': 'Ahora puedes crear grupos de personas por rol líder, con keywords libres para buscar por tema.',
+    'settings.pools.migration_banner_cta_create': 'Crear el primer grupo',
+    'settings.pools.migration_banner_dismiss': 'Entendido',
     'settings.sync_intro': 'Las fuentes de sincronización son endpoints contra los que puede sincronizar manualmente. V1.2 admite backends HTTP(S); seguirán más tipos.',
     'settings.sync_no_sources': 'Ninguna fuente configurada.',
     'sync.migration_banner.title': 'La sincronización automática es nueva',
@@ -8656,6 +10058,11 @@ const TRANSLATIONS = {
     'print.level_prefix': 'Nivel',
     'print.replaces': 'sustituye a',
     'print.currently_absent_note': '{name} no disponible — suplente activo',
+    'print.people_absent_marker': 'AUSENTE',
+    'print.role_pool_label': 'Grupo',
+    'print.role_pool_members_count': '{n} miembros',
+    'print.person_keywords_label': 'Áreas de enfoque',
+    'print.overview_pool_indicator': 'GRUPO: {name} ({n})',
     'header.panel': 'Panel',
     'header.panel_tooltip': 'Mostrar/ocultar panel lateral',
     'toast.panel_shown': 'Panel lateral mostrado',
@@ -8663,6 +10070,7 @@ const TRANSLATIONS = {
     'nav.org': 'Gráfico',
     'nav.active': 'Roles',
     'nav.persons': 'Personas',
+    'nav.search': 'Buscar',
     'nav.audit': 'Registro',
     'data.title': 'Copia de seguridad / restaurar configuración',
     'data.tab_export': '↑ Exportar',
@@ -8786,9 +10194,31 @@ const TRANSLATIONS = {
     'tabs.occupancy': 'Affectation',
     'tabs.persons': 'Personnes',
     'tabs.log': 'Journal',
+    'sidebar.tab_search': 'Recherche',
+    'search.intro': 'Trouver des personnes par nom, mot-clé, téléphone ou e-mail.',
+    'search.placeholder': 'Saisir pour rechercher…',
+    'search.filter_group_label': 'Disponibilité',
+    'search.filter_all': 'Tous',
+    'search.filter_available': 'Disponible',
+    'search.filter_absent': 'Absent',
+    'search.show_keywords': 'Filtrer par mot-clé',
+    'search.no_keywords': 'Aucun mot-clé pour le moment.',
+    'search.no_results': 'Aucun résultat.',
+    'search.pools_label': 'Pool',
+    'search.results_count': '{n} résultats',
+    'search.role_primary_marker': '(P)',
+    'search.role_sub_marker': '(S)',
+    'search.clear_keyword': 'Retirer le filtre de mot-clé « {kw} »',
     'level.prefix': 'NIVEAU',
     'level.roles_count_one': '{n} rôle',
     'level.roles_count_other': '{n} rôles',
+    'chart.pool_of': 'Pool de : {lead}',
+    'chart.pool_empty': 'Aucun membre',
+    'chart.pool_sub_badge_title': 'Également dans la chaîne de suppléance de ce rôle',
+    'chart.pool_toggle_expand': 'Déplier le pool',
+    'chart.pool_toggle_collapse': 'Replier le pool',
+    'chart.orphaned_pools_title': 'Pools sans rôle principal',
+    'chart.orphaned_pools_hint': 'Ces pools n’ont pas de rôle principal attribué. Modifie-les dans Paramètres → Pools, ou supprime-les.',
     'role.unoccupied': '◯ NON POURVU',
     'role.no_substitution': 'Aucun suppléant disponible',
     'role.replaces': 'Remplace :',
@@ -8805,6 +10235,10 @@ const TRANSLATIONS = {
     'person.mark_available': '✓ Marquer comme disponible',
     'person.back_to_overview': '← Retour à la vue d\u2019ensemble',
     'person.no_roles_assigned': 'Aucun rôle attribué.',
+    'person.keywords_label': 'Domaines d’expertise / Mots-clés',
+    'person.keywords_placeholder': 'Tapez et appuyez sur Entrée…',
+    'person.keywords_hint': 'Tags libres. Entrée, virgule ou choisir une suggestion pour ajouter. Retour arrière supprime le dernier.',
+    'person.keywords_empty': 'Aucun domaine d’expertise',
     'absence.vacation': 'Congé',
     'absence.sick': 'Maladie',
     'absence.business_trip': 'Déplacement',
@@ -9039,7 +10473,45 @@ const TRANSLATIONS = {
     'settings.about_license': 'Licence',
     'settings.tab_general': 'Général',
     'settings.tab_sync': 'Sources de sync.',
+    'settings.tab_pools': 'Pools',
     'settings.tab_about': 'À propos',
+    // V2.1 step 3: onglet « Pools »
+    'settings.pools.intro': 'Les pools sont des groupes de collaborateurs rattachés à un rôle responsable. Les membres peuvent remplacer le responsable et portent leurs domaines comme mots-clés.',
+    'settings.pools.empty_state': 'Aucun pool pour l’instant. Créez le premier.',
+    'settings.pools.list_lead_label': 'pool de : {name}',
+    'settings.pools.list_lead_unassigned': 'pool sans responsable',
+    'settings.pools.list_members_label': '{n} membres',
+    'settings.pools.list_members_label_one': '1 membre',
+    'settings.pools.unassigned_section': 'Pools sans responsable',
+    'settings.pools.btn_new': '+ Nouveau pool',
+    'settings.pools.btn_edit': 'Modifier',
+    'settings.pools.btn_delete': 'Supprimer',
+    'settings.pools.delete_confirm': 'Supprimer le pool « {name} » ? Les membres restent comme personnes.',
+    'settings.pools.modal_title_create': 'Créer un nouveau pool',
+    'settings.pools.modal_title_edit': 'Modifier le pool',
+    'settings.pools.field_name': 'Nom',
+    'settings.pools.field_name_placeholder': 'ex. Équipe forensic',
+    'settings.pools.field_lead': 'Rôle responsable',
+    'settings.pools.field_lead_unassigned': 'Non attribué (pas de responsable)',
+    'settings.pools.field_members': 'Membres',
+    'settings.pools.field_members_search': 'Rechercher des personnes…',
+    'settings.pools.field_members_empty': 'Aucune personne disponible.',
+    'settings.pools.field_members_no_matches': 'Aucun résultat.',
+    'settings.pools.field_notes': 'Notes (facultatif)',
+    'settings.pools.field_notes_placeholder': 'Objet, responsabilités, remarques…',
+    'settings.pools.field_secondary_leads': 'Responsables secondaires (facultatif)',
+    'settings.pools.field_secondary_leads_empty': 'Aucun autre rôle disponible.',
+    'settings.pools.advanced_toggle': 'Options avancées',
+    'settings.pools.btn_save': 'Enregistrer',
+    'settings.pools.btn_cancel': 'Annuler',
+    'settings.pools.validation_name_required': 'Le nom ne peut pas être vide.',
+    'settings.pools.toast_created': 'Pool créé.',
+    'settings.pools.toast_updated': 'Pool enregistré.',
+    'settings.pools.toast_deleted': 'Pool supprimé.',
+    'settings.pools.migration_banner_title': 'Les pools d’équipe sont nouveaux',
+    'settings.pools.migration_banner_body': 'Vous pouvez désormais créer des pools de collaborateurs par rôle responsable, avec des mots-clés libres pour rechercher par thème.',
+    'settings.pools.migration_banner_cta_create': 'Créer le premier pool',
+    'settings.pools.migration_banner_dismiss': 'Compris',
     'settings.sync_intro': 'Les sources de synchronisation sont des points d’accès contre lesquels vous pouvez synchroniser manuellement. La V1.2 prend en charge les backends HTTP(S); d’autres types suivront.',
     'settings.sync_no_sources': 'Aucune source configurée.',
     'sync.migration_banner.title': 'La synchronisation automatique est nouvelle',
@@ -9233,6 +10705,11 @@ const TRANSLATIONS = {
     'print.level_prefix': 'Niveau',
     'print.replaces': 'remplace',
     'print.currently_absent_note': '{name} indisponible — suppléant actif',
+    'print.people_absent_marker': 'ABSENT',
+    'print.role_pool_label': 'Pool',
+    'print.role_pool_members_count': '{n} membres',
+    'print.person_keywords_label': 'Domaines clés',
+    'print.overview_pool_indicator': 'POOL : {name} ({n})',
     'header.panel': 'Panneau',
     'header.panel_tooltip': 'Afficher/masquer le panneau latéral',
     'toast.panel_shown': 'Panneau latéral affiché',
@@ -9240,6 +10717,7 @@ const TRANSLATIONS = {
     'nav.org': 'Schéma',
     'nav.active': 'Rôles',
     'nav.persons': 'Personnes',
+    'nav.search': 'Recherche',
     'nav.audit': 'Journal',
     'data.title': 'Sauvegarder / restaurer la configuration',
     'data.tab_export': '↑ Exporter',
@@ -9363,9 +10841,32 @@ const TRANSLATIONS = {
     'tabs.occupancy': '岗位',
     'tabs.persons': '人员',
     'tabs.log': '日志',
+    // TODO(i18n-zh): best-effort translations below — native speaker review pending
+    'sidebar.tab_search': '搜索',
+    'search.intro': '按姓名、关键词、电话或邮箱查找人员。',
+    'search.placeholder': '输入以搜索…',
+    'search.filter_group_label': '可用性',
+    'search.filter_all': '全部',
+    'search.filter_available': '可用',
+    'search.filter_absent': '缺席',
+    'search.show_keywords': '按关键词筛选',
+    'search.no_keywords': '尚无关键词。',
+    'search.no_results': '无结果。',
+    'search.pools_label': '团队池',
+    'search.results_count': '{n} 个结果',
+    'search.role_primary_marker': '(主)',
+    'search.role_sub_marker': '(替)',
+    'search.clear_keyword': '清除关键词筛选 "{kw}"',
     'level.prefix': '层级',
     'level.roles_count_one': '{n} 个角色',
     'level.roles_count_other': '{n} 个角色',
+    'chart.pool_of': '池：{lead}', // TODO native review
+    'chart.pool_empty': '无成员', // TODO native review
+    'chart.pool_sub_badge_title': '同时也在该角色的替补链中', // TODO native review
+    'chart.pool_toggle_expand': '展开池', // TODO native review
+    'chart.pool_toggle_collapse': '收起池', // TODO native review
+    'chart.orphaned_pools_title': '无主导角色的池', // TODO native review
+    'chart.orphaned_pools_hint': '这些池没有分配的主导角色。请在 设置 → 池 中编辑或删除它们。', // TODO native review
     'role.unoccupied': '◯ 空缺',
     'role.no_substitution': '无可用替补',
     'role.replaces': '代替：',
@@ -9382,6 +10883,10 @@ const TRANSLATIONS = {
     'person.mark_available': '✓ 标记为可用',
     'person.back_to_overview': '← 返回概览',
     'person.no_roles_assigned': '未分配角色。',
+    'person.keywords_label': '专长领域 / 关键词', // TODO i18n-zh review
+    'person.keywords_placeholder': '输入后按回车…', // TODO i18n-zh review
+    'person.keywords_hint': '自由标签。回车、逗号或选择建议以添加。退格键删除最后一个。', // TODO i18n-zh review
+    'person.keywords_empty': '尚无专长领域', // TODO i18n-zh review
     'absence.vacation': '休假',
     'absence.sick': '病假',
     'absence.business_trip': '出差',
@@ -9617,7 +11122,45 @@ const TRANSLATIONS = {
     'settings.about_license': '许可证',
     'settings.tab_general': '常规',
     'settings.tab_sync': '同步源',
+    'settings.tab_pools': '池',
     'settings.tab_about': '关于',
+    // V2.1 step 3: 设置 "池" 选项卡 (TODO: ZH translations are best-effort, native-speaker review pending)
+    'settings.pools.intro': '池是分配给主管角色的员工组。池成员可作为主管的替代者，并以关键词记录其专长。',
+    'settings.pools.empty_state': '尚无池。请创建第一个。',
+    'settings.pools.list_lead_label': '所属池：{name}',
+    'settings.pools.list_lead_unassigned': '无主管的池',
+    'settings.pools.list_members_label': '{n} 名成员',
+    'settings.pools.list_members_label_one': '1 名成员',
+    'settings.pools.unassigned_section': '无主管的池',
+    'settings.pools.btn_new': '+ 新建池',
+    'settings.pools.btn_edit': '编辑',
+    'settings.pools.btn_delete': '删除',
+    'settings.pools.delete_confirm': '确认删除池「{name}」？成员将保留为人员。',
+    'settings.pools.modal_title_create': '新建池',
+    'settings.pools.modal_title_edit': '编辑池',
+    'settings.pools.field_name': '名称',
+    'settings.pools.field_name_placeholder': '例如：取证团队',
+    'settings.pools.field_lead': '主管角色',
+    'settings.pools.field_lead_unassigned': '未分配（无主管）',
+    'settings.pools.field_members': '成员',
+    'settings.pools.field_members_search': '搜索人员…',
+    'settings.pools.field_members_empty': '无可用人员。',
+    'settings.pools.field_members_no_matches': '无匹配项。',
+    'settings.pools.field_notes': '备注（可选）',
+    'settings.pools.field_notes_placeholder': '目的、职责、备注…',
+    'settings.pools.field_secondary_leads': '次要主管（可选）',
+    'settings.pools.field_secondary_leads_empty': '无其他可用角色。',
+    'settings.pools.advanced_toggle': '高级选项',
+    'settings.pools.btn_save': '保存',
+    'settings.pools.btn_cancel': '取消',
+    'settings.pools.validation_name_required': '名称不能为空。',
+    'settings.pools.toast_created': '已创建池。',
+    'settings.pools.toast_updated': '已保存池。',
+    'settings.pools.toast_deleted': '已删除池。',
+    'settings.pools.migration_banner_title': '团队池是新功能',
+    'settings.pools.migration_banner_body': '您现在可以按主管角色创建员工池，并使用自由关键词按专长进行搜索。',
+    'settings.pools.migration_banner_cta_create': '创建第一个池',
+    'settings.pools.migration_banner_dismiss': '知道了',
     'settings.sync_intro': '同步源是可以手动同步的端点。V1.2 支持 HTTP(S) 后端；后续会增加更多类型。',
     'settings.sync_no_sources': '未配置同步源。',
     /* V2.0 step 1: ZH translations are best-effort; needs a native speaker review (cram-ux-reviewer). */
@@ -9814,6 +11357,11 @@ const TRANSLATIONS = {
     'print.level_prefix': '层级',
     'print.replaces': '替代',
     'print.currently_absent_note': '{name} 不可用 — 替补已激活',
+    'print.people_absent_marker': '缺席',
+    'print.role_pool_label': '人员池',
+    'print.role_pool_members_count': '{n} 名成员',
+    'print.person_keywords_label': '重点领域',
+    'print.overview_pool_indicator': '人员池：{name}（{n}）',
     'header.panel': '面板',
     'header.panel_tooltip': '显示/隐藏侧面板',
     'toast.panel_shown': '已显示侧面板',
@@ -9821,6 +11369,7 @@ const TRANSLATIONS = {
     'nav.org': '图表',
     'nav.active': '角色',
     'nav.persons': '人员',
+    'nav.search': '搜索',
     'nav.audit': '日志',
     'data.title': '备份 / 恢复配置',
     'data.tab_export': '↑ 导出',
@@ -10652,7 +12201,12 @@ function renderOrgChart() {
     </div>
   ` : '';
 
-  container.innerHTML = bannerHTML + levelsHTML + addLevelHTML;
+  // V2.1 Schritt 5: verwaiste Pools (leadRoleId === null) am Chart-Ende.
+  const orphanedPools = (Array.isArray(State.config.pools) ? State.config.pools : [])
+    .filter(p => p && !p.leadRoleId);
+  const orphanedHTML = renderOrphanedPoolsSection(orphanedPools);
+
+  container.innerHTML = bannerHTML + levelsHTML + orphanedHTML + addLevelHTML;
 
   // Alle Click-Handler laufen jetzt über den globalen Dispatcher (data-action).
   // Keyboard-Navigation für Rollenkarten: Enter/Space öffnet Detail
@@ -10695,6 +12249,17 @@ function renderLevel(level, idx) {
     </div>
   ` : '';
 
+  // V2.1 Schritt 5: Pool-Sektionen am Level-Ende. Sammelt alle Pools deren
+  // leadRoleId auf eine Rolle in DIESEM Level zeigt. Pools ohne leadRoleId
+  // (orphaned) werden separat am Chart-Ende über renderOrphanedPoolsSection
+  // gerendert, nicht hier.
+  const levelRoleIds = new Set(level.roles.map(r => r.id));
+  const allPools = Array.isArray(State.config.pools) ? State.config.pools : [];
+  const levelPools = allPools.filter(p => p && p.leadRoleId && levelRoleIds.has(p.leadRoleId));
+  const poolsHTML = levelPools.length > 0
+    ? `<div class="level-pools-container">${levelPools.map(p => renderLevelPool(p, level)).join('')}</div>`
+    : '';
+
   return `
     <div class="level" data-level-idx="${idx}">
       <div class="level-header">
@@ -10704,6 +12269,112 @@ function renderLevel(level, idx) {
         ${editControls}
       </div>
       <div class="roles-grid">${rolesHTML}</div>
+      ${poolsHTML}
+    </div>
+  `;
+}
+
+/* =========================================================================
+   V2.1 Schritt 5: Chart-Pool-Rendering
+   Pro Level eine Klammer-Hülle pro Pool (linker + unterer Border).
+   Pool-Member als Pills mit Status-Icon-Form (verfügbar = filled circle,
+   abwesend = hollow ring → nicht nur Farb-Unterschied, sondern auch Form).
+   SUB-Text-Badge wenn Pool-Member auch in der Substitution-Chain der
+   Lead-Rolle steht (inkl. Primary).
+   Mobile: data-mobile-collapsed="true" per Default (siehe CSS-Block).
+   ========================================================================= */
+function renderLevelPool(pool, level) {
+  const leadRole = level.roles.find(r => r.id === pool.leadRoleId);
+  const leadName = leadRole ? leadRole.name : '?';
+  // Mobile-Default: collapsed. Erkennung via matchMedia, sonst false (kein
+  // matchMedia → Desktop-Fallback expanded).
+  const isMobile = (typeof window !== 'undefined' && typeof window.matchMedia === 'function')
+    ? window.matchMedia('(max-width: 600px)').matches
+    : false;
+  const collapsedAttr = isMobile ? ' data-mobile-collapsed="true"' : '';
+  const expandedAttr = isMobile ? 'false' : 'true';
+  const toggleLabelKey = isMobile ? 'chart.pool_toggle_expand' : 'chart.pool_toggle_collapse';
+
+  return `
+    <div class="level-pool" data-pool-id="${escapeHTML(pool.id)}" aria-expanded="${expandedAttr}"${collapsedAttr}>
+      <div class="level-pool-header">
+        <span class="level-pool-bracket-label">${escapeHTML(t('chart.pool_of', { lead: leadName }))}</span>
+        <button class="level-pool-toggle"
+                data-action="pool-toggle-collapse"
+                data-pool-id="${escapeHTML(pool.id)}"
+                aria-label="${escapeHTML(t(toggleLabelKey))}"
+                title="${escapeHTML(t(toggleLabelKey))}">▾</button>
+      </div>
+      <div class="level-pool-name">${escapeHTML(pool.name || '')}</div>
+      <div class="level-pool-members" data-pool-members>
+        ${renderPoolMemberPills(pool, level)}
+      </div>
+    </div>
+  `;
+}
+
+function renderPoolMemberPills(pool, level) {
+  // Storage.getSortedPoolMembers sortiert verfügbar→abwesend→alphabetisch
+  // und filtert stale memberIds (Person bereits gelöscht) defensiv heraus.
+  const members = Storage.getSortedPoolMembers(pool.id);
+  if (members.length === 0) {
+    return '<div class="level-pool-empty">' + escapeHTML(t('chart.pool_empty')) + '</div>';
+  }
+
+  // SUB-Badge-Logik: Person ist in der Substitution-Chain der Lead-Rolle
+  // (primary rank=0 zählt mit dazu, weil die Pool-Member-Auflistung sonst
+  // den eigentlichen Stelleninhaber visuell unsichtbar machen würde).
+  const leadRole = level.roles.find(r => r.id === pool.leadRoleId);
+  const subPersonIds = new Set();
+  if (leadRole && Array.isArray(leadRole.assignments)) {
+    leadRole.assignments.forEach(a => {
+      if (a && a.personId) subPersonIds.add(a.personId);
+    });
+  }
+
+  return members.map(person => renderPoolMemberPill(person, subPersonIds.has(person.id))).join('');
+}
+
+function renderPoolMemberPill(person, isSubForLead) {
+  const unavail = (State.runtime && State.runtime.unavailable) ? State.runtime.unavailable : {};
+  const isUnavailable = !!unavail[person.id];
+  // Form-Differenzierung (Q2): filled circle vs hollow ring — nicht nur Farbe.
+  const statusIcon = isUnavailable ? '◯' : '●';
+  const statusClass = isUnavailable ? 'pool-pill-absent' : 'pool-pill-available';
+  const subBadge = isSubForLead
+    ? '<span class="pool-pill-sub-badge" title="' + escapeHTML(t('chart.pool_sub_badge_title')) + '">SUB</span>'
+    : '';
+
+  return '<span class="pool-member-pill ' + statusClass + '" data-person-id="' + escapeHTML(person.id) + '" title="' + escapeHTML(person.name || '') + '">'
+    + '<span class="pool-pill-icon" aria-hidden="true">' + statusIcon + '</span>'
+    + '<span class="pool-pill-name">' + escapeHTML(person.name || '') + '</span>'
+    + subBadge
+    + '</span>';
+}
+
+/* Verwaiste Pools (leadRoleId === null): eigene Sektion nach allen Levels.
+   Ein User-Hinweis erklärt, wie der Pool wieder zugewiesen oder gelöscht
+   wird. */
+function renderOrphanedPoolsSection(pools) {
+  if (!pools || pools.length === 0) return '';
+  const items = pools.map(pool => {
+    return `
+      <div class="level-pool" data-pool-id="${escapeHTML(pool.id)}" aria-expanded="true">
+        <div class="level-pool-header">
+          <span class="level-pool-bracket-label">${escapeHTML(pool.name || '')}</span>
+        </div>
+        <div class="level-pool-members">
+          ${renderPoolMemberPills(pool, { roles: [] })}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <div class="orphaned-pools-section" data-orphaned-pools>
+      <div class="orphaned-pools-header">${escapeHTML(t('chart.orphaned_pools_title'))}</div>
+      <div class="orphaned-pools-hint">${escapeHTML(t('chart.orphaned_pools_hint'))}</div>
+      ${items}
     </div>
   `;
 }
@@ -10881,6 +12552,12 @@ function renderSidePanel() {
     return;
   }
 
+  if (State.activeTab === 'search') {
+    content.innerHTML = renderSidebarSearch();
+    attachSidebarSearchHandlers();
+    return;
+  }
+
   // Default: aktive Besetzung
   content.innerHTML = renderActiveList();
   attachActiveListHandlers();
@@ -11003,6 +12680,283 @@ function attachPersonsListHandlers() {
     });
   }
   attachPersonListItemHandlers();
+}
+
+/* =========================================================================
+   SIDEBAR SEARCH TAB (V2.1 step 6)
+   Ephemerer State, nicht persistiert. Reine Client-Side-Filterung über
+   State.config.persons. Treffer-Click oeffnet das Person-Edit-Modal.
+   ========================================================================= */
+const sidebarSearchState = {
+  query: '',
+  keywordFilters: [], // array of lowercased strings
+  availability: 'all', // 'all' | 'available' | 'absent'
+};
+
+let _sidebarSearchDebounce = null;
+
+function _filterSearchResults(opts) {
+  const persons = (State && State.config && Array.isArray(State.config.persons))
+    ? State.config.persons
+    : [];
+  const query = (opts.query || '').toLowerCase().trim();
+  const keywordFilters = (opts.keywordFilters || []).map(k => String(k).toLowerCase());
+  const availabilityFilter = opts.availability || 'all';
+  const unavail = (State && State.runtime && State.runtime.unavailable) ? State.runtime.unavailable : {};
+
+  return persons.filter(person => {
+    if (!person) return false;
+    const isUnavailable = !!unavail[person.id];
+
+    if (availabilityFilter === 'available' && isUnavailable) return false;
+    if (availabilityFilter === 'absent' && !isUnavailable) return false;
+
+    if (query) {
+      const nameMatch    = (person.name || '').toLowerCase().includes(query);
+      const keywordMatch = Array.isArray(person.keywords) && person.keywords.some(kw =>
+        String(kw || '').toLowerCase().includes(query)
+      );
+      const phoneMatch   = (person.phone || '').toLowerCase().includes(query);
+      const emailMatch   = (person.email || '').toLowerCase().includes(query);
+      if (!nameMatch && !keywordMatch && !phoneMatch && !emailMatch) return false;
+    }
+
+    if (keywordFilters.length > 0) {
+      const personKwLower = Array.isArray(person.keywords)
+        ? person.keywords.map(k => String(k || '').toLowerCase())
+        : [];
+      for (const kwFilter of keywordFilters) {
+        if (!personKwLower.includes(kwFilter)) return false;
+      }
+    }
+
+    return true;
+  });
+}
+
+function renderSearchResultItem(person) {
+  const unavail = (State && State.runtime && State.runtime.unavailable) ? State.runtime.unavailable : {};
+  const isUnavailable = !!unavail[person.id];
+  // Filled circle for available, hollow for absent — not just color (a11y)
+  const statusIcon = isUnavailable ? '○' : '●';
+  const statusClass = isUnavailable ? 'is-absent' : 'is-available';
+
+  // Roles: rank 0 = Primary, >0 = Substitute
+  const personRoles = [];
+  (State.config.levels || []).forEach(level => {
+    (level.roles || []).forEach(role => {
+      (role.assignments || []).forEach(asg => {
+        if (asg && asg.personId === person.id) {
+          personRoles.push({
+            roleName: role.name || '',
+            rank: typeof asg.rank === 'number' ? asg.rank : 0,
+          });
+        }
+      });
+    });
+  });
+  personRoles.sort((a, b) => a.rank - b.rank);
+
+  const personPools = Array.isArray(State.config.pools)
+    ? State.config.pools.filter(p => p && Array.isArray(p.memberIds) && p.memberIds.includes(person.id))
+    : [];
+
+  const keywordsHTML = (Array.isArray(person.keywords) && person.keywords.length > 0)
+    ? `<div class="search-result-keywords">${
+        person.keywords.map(kw => `<span class="search-result-kw-mini">${escapeHTML(String(kw))}</span>`).join('')
+      }</div>`
+    : '';
+
+  const rolesHTML = personRoles.length > 0
+    ? `<div class="search-result-roles">${
+        personRoles.map(r => {
+          const marker = r.rank === 0
+            ? escapeHTML(t('search.role_primary_marker'))
+            : escapeHTML(t('search.role_sub_marker'));
+          return `<span class="search-result-role">${escapeHTML(r.roleName)} ${marker}</span>`;
+        }).join('')
+      }</div>`
+    : '';
+
+  const poolsHTML = personPools.length > 0
+    ? `<div class="search-result-pools"><span class="search-result-pools-label">${escapeHTML(t('search.pools_label'))}:</span> ${
+        personPools.map(p => `<span class="search-result-pool">${escapeHTML(p.name || '')}</span>`).join('')
+      }</div>`
+    : '';
+
+  return `
+    <div class="search-result-item"
+         data-person-id="${escapeHTML(String(person.id))}"
+         data-action="search-open-person"
+         role="button"
+         tabindex="0"
+         aria-label="${escapeHTML(person.name || '')}">
+      <div class="search-result-header">
+        <span class="search-result-status ${statusClass}" aria-hidden="true">${statusIcon}</span>
+        <span class="search-result-name">${escapeHTML(person.name || '')}</span>
+      </div>
+      ${keywordsHTML}
+      ${rolesHTML}
+      ${poolsHTML}
+    </div>
+  `;
+}
+
+function renderSearchKeywordCloud(activeFilters) {
+  let all = [];
+  try { all = Storage.getAllKeywords(); }
+  catch (e) { all = []; }
+  if (all.length === 0) {
+    return `<p class="cloud-empty">${escapeHTML(t('search.no_keywords'))}</p>`;
+  }
+  return all.map(kw => {
+    const isActive = activeFilters.includes(String(kw).toLowerCase());
+    return `<button type="button"
+              class="keyword-cloud-chip${isActive ? ' is-active' : ''}"
+              data-action="search-toggle-keyword"
+              data-keyword="${escapeHTML(String(kw))}">${escapeHTML(String(kw))}</button>`;
+  }).join('');
+}
+
+function renderSearchActiveTagChips(activeFilters) {
+  if (activeFilters.length === 0) return '';
+  return activeFilters.map(kw => `
+    <span class="search-active-tag" data-action="search-clear-keyword" data-keyword="${escapeHTML(kw)}" role="button" tabindex="0"
+          aria-label="${escapeHTML(t('search.clear_keyword', { kw: kw }))}">
+      ${escapeHTML(kw)}<span class="search-active-tag-x" aria-hidden="true">×</span>
+    </span>
+  `).join('');
+}
+
+function renderSidebarSearch() {
+  const s = sidebarSearchState;
+  const results = _filterSearchResults(s);
+
+  const filterBtn = (id, labelKey) => `
+    <button type="button"
+            class="search-filter-btn"
+            data-action="search-filter"
+            data-filter="${escapeHTML(id)}"
+            ${s.availability === id ? 'data-active="true"' : ''}>
+      ${escapeHTML(t(labelKey))}
+    </button>
+  `;
+
+  const resultsHTML = results.length === 0
+    ? `<div class="sidebar-search-empty">${escapeHTML(t('search.no_results'))}</div>`
+    : results.map(renderSearchResultItem).join('');
+
+  const countLabel = escapeHTML(t('search.results_count', { n: results.length }));
+
+  const activeTagsHTML = renderSearchActiveTagChips(s.keywordFilters);
+  const cloudHTML = renderSearchKeywordCloud(s.keywordFilters);
+
+  return `
+    <div class="sidebar-search">
+      <p class="sidebar-search-hint">${escapeHTML(t('search.intro'))}</p>
+      <div class="sidebar-search-input-row">
+        <input type="text"
+               id="sidebar-search-input"
+               class="sidebar-search-input"
+               data-search-input
+               placeholder="${escapeHTML(t('search.placeholder'))}"
+               value="${escapeHTML(s.query)}"
+               autocomplete="off"
+               aria-label="${escapeHTML(t('search.placeholder'))}" />
+      </div>
+      <div class="sidebar-search-filters" role="group" aria-label="${escapeHTML(t('search.filter_group_label'))}">
+        ${filterBtn('all',       'search.filter_all')}
+        ${filterBtn('available', 'search.filter_available')}
+        ${filterBtn('absent',    'search.filter_absent')}
+      </div>
+      ${activeTagsHTML ? `<div class="sidebar-search-tags" data-search-tags>${activeTagsHTML}</div>` : ''}
+      <details class="sidebar-search-keyword-cloud" ${s.keywordFilters.length > 0 ? 'open' : ''}>
+        <summary>${escapeHTML(t('search.show_keywords'))}</summary>
+        <div class="keyword-cloud-grid" data-keyword-cloud>${cloudHTML}</div>
+      </details>
+      <div class="sidebar-search-count" data-search-count>${countLabel}</div>
+      <div class="sidebar-search-results" data-search-results>${resultsHTML}</div>
+    </div>
+  `;
+}
+
+function renderSidebarSearchInline() {
+  // Re-render only the dynamic parts so the input keeps focus + caret.
+  const content = document.getElementById('panel-content');
+  if (!content) return;
+  const s = sidebarSearchState;
+  const results = _filterSearchResults(s);
+
+  // Update filter-button active states
+  content.querySelectorAll('.search-filter-btn').forEach(btn => {
+    if (btn.dataset.filter === s.availability) btn.dataset.active = 'true';
+    else btn.removeAttribute('data-active');
+  });
+
+  // Update keyword cloud
+  const cloud = content.querySelector('[data-keyword-cloud]');
+  if (cloud) cloud.innerHTML = renderSearchKeywordCloud(s.keywordFilters);
+
+  // Update active-tags row (insert/remove)
+  let tagsEl = content.querySelector('[data-search-tags]');
+  const activeTagsHTML = renderSearchActiveTagChips(s.keywordFilters);
+  if (activeTagsHTML) {
+    if (!tagsEl) {
+      tagsEl = document.createElement('div');
+      tagsEl.className = 'sidebar-search-tags';
+      tagsEl.setAttribute('data-search-tags', '');
+      const filterRow = content.querySelector('.sidebar-search-filters');
+      if (filterRow && filterRow.parentNode) filterRow.parentNode.insertBefore(tagsEl, filterRow.nextSibling);
+    }
+    tagsEl.innerHTML = activeTagsHTML;
+  } else if (tagsEl) {
+    tagsEl.remove();
+  }
+
+  // Update count label
+  const countEl = content.querySelector('[data-search-count]');
+  if (countEl) countEl.textContent = t('search.results_count', { n: results.length });
+
+  // Update results
+  const resultsEl = content.querySelector('[data-search-results]');
+  if (resultsEl) {
+    resultsEl.innerHTML = results.length === 0
+      ? `<div class="sidebar-search-empty">${escapeHTML(t('search.no_results'))}</div>`
+      : results.map(renderSearchResultItem).join('');
+  }
+}
+
+function searchToggleKeyword(kw) {
+  if (!kw) return;
+  const lc = String(kw).toLowerCase();
+  const idx = sidebarSearchState.keywordFilters.indexOf(lc);
+  if (idx >= 0) sidebarSearchState.keywordFilters.splice(idx, 1);
+  else sidebarSearchState.keywordFilters.push(lc);
+  renderSidebarSearchInline();
+}
+
+function attachSidebarSearchHandlers() {
+  const input = document.getElementById('sidebar-search-input');
+  if (input) {
+    input.addEventListener('input', (e) => {
+      const val = e.target.value;
+      if (_sidebarSearchDebounce) clearTimeout(_sidebarSearchDebounce);
+      _sidebarSearchDebounce = setTimeout(() => {
+        sidebarSearchState.query = val;
+        renderSidebarSearchInline();
+      }, 200);
+    });
+  }
+  // Keyboard support for result items (Enter/Space)
+  document.querySelectorAll('.search-result-item').forEach(item => {
+    item.addEventListener('keydown', (e) => {
+      if (e.target !== item) return;
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        if (item.dataset.personId) openEditPersonModal(item.dataset.personId);
+      }
+    });
+  });
 }
 
 // Rendert nur die Liste + Empty-Message neu, damit Filter-Input-Fokus erhalten bleibt
@@ -11428,7 +13382,7 @@ function openMarkUnavailableModal(personId) {
 let markUnavailState = { personId: null };
 let editLevelState   = { idx: null };
 let editRoleState    = { levelIdx: null, roleIdx: null, role: null, draftAssignments: [] };
-let editPersonState  = { personId: null };
+let editPersonState  = { personId: null, keywordsDraft: [], keywordSuggestPick: null };
 let manualAssignState = { roleId: null };
 
 const CLICK_HANDLERS = {
@@ -11449,13 +13403,21 @@ const CLICK_HANDLERS = {
   // Side-Panel-Tabs
   'tab-active':  () => switchTab('active'),
   'tab-persons': () => switchTab('persons'),
+  'tab-search':  () => switchTab('search'),
   'tab-audit':   () => switchTab('audit'),
 
   // Mobile Bottom-Nav (nur auf Phone sichtbar)
   'mobile-nav-org':     () => setMobileView('org'),
   'mobile-nav-active':  () => { setMobileView('panel'); switchTab('active'); },
   'mobile-nav-persons': () => { setMobileView('panel'); switchTab('persons'); },
+  'mobile-nav-search':  () => { setMobileView('panel'); switchTab('search'); },
   'mobile-nav-audit':   () => { setMobileView('panel'); switchTab('audit'); },
+
+  // Search-Tab (V2.1 step 6)
+  'search-filter':          (el) => { sidebarSearchState.availability = el.dataset.filter || 'all'; renderSidebarSearchInline(); },
+  'search-toggle-keyword':  (el) => { searchToggleKeyword(el.dataset.keyword); },
+  'search-clear-keyword':   (el) => { searchToggleKeyword(el.dataset.keyword); },
+  'search-open-person':     (el) => { openEditPersonModal(el.dataset.personId); },
 
   // Org chart — Interaktion
   'open-person-detail': (el) => openPersonDetail(el.dataset.personId),
@@ -11496,7 +13458,9 @@ const CLICK_HANDLERS = {
   'role-assign-remove': (el) => roleModalRemoveAssignment(parseInt(el.dataset.idx, 10)),
 
   // Edit-Person-Modal
-  'edit-person-save': () => saveEditPersonModal(),
+  'edit-person-save':            () => saveEditPersonModal(),
+  'person-keyword-remove':       (el) => personKeywordRemove(el.dataset.keyword),
+  'person-keyword-suggest-pick': (el) => personKeywordSuggestPick(el.dataset.keyword),
 
   // Manual-Assignment-Modal
   'manual-save':    () => saveManualAssignmentFromModal(),
@@ -11620,6 +13584,24 @@ const CLICK_HANDLERS = {
   'sync-auto-retry-push':       (el) => syncAutoRetryPush(el.dataset.sourceId),
   'sync-auto-discard-push':     (el) => syncAutoDiscardPush(el.dataset.sourceId),
   'sync-auto-enter-passphrase': (el) => syncAutoEnterPassphrase(el.dataset.sourceId),
+
+  // V2.1 step 3: Settings-Tab "Pools" + Pool-Edit-Modal.
+  'pool-new':                       () => poolNew(),
+  'pool-edit':                      (el) => poolEdit(el.dataset.poolId),
+  'pool-delete':                    (el) => poolDelete(el.dataset.poolId),
+  'pool-save':                      () => poolSave(),
+  'pool-cancel':                    () => poolCancel(),
+  // Member-Toggle: data-action sitzt auf der Checkbox selbst, el.checked
+  // spiegelt den neuen Zustand (Browser-Order: state flip vor click-listener).
+  'pool-member-toggle':             (el) => poolMemberToggle(el.dataset.personId, !!el.checked),
+  'pool-secondary-toggle':          (el) => poolSecondaryToggle(el.dataset.roleId, !!el.checked),
+  'pool-advanced-toggle':           () => poolAdvancedToggle(),
+  'pool-migration-banner-dismiss':  () => poolMigrationBannerDismiss(),
+  'pool-migration-banner-cta':      () => poolMigrationBannerCta(),
+
+  // V2.1 step 5: Pool im Chart kollabieren/expandieren (Mobile-Default
+  // collapsed, Desktop ignoriert das mobile-collapsed-Attribut via CSS).
+  'pool-toggle-collapse':           (el) => poolToggleCollapse(el.dataset.poolId),
 };
 
 // V2.0 Schritt 6: Toast-Actions enthalten Source-IDs als Suffix
@@ -11806,8 +13788,17 @@ function saveEditPersonModal() {
     if (errEl) { errEl.textContent = t('edit.err_email_invalid'); errEl.style.display = 'block'; }
     return;
   }
+  // Pending Keyword-Input flushen: was im Feld steht, beim Save als Tag aufnehmen.
+  const kwInput = document.getElementById('person-keyword-input');
+  if (kwInput && kwInput.value.trim()) {
+    personKeywordAdd(kwInput.value);
+    kwInput.value = '';
+  }
+  const keywordsDraft = Array.isArray(editPersonState.keywordsDraft) ? editPersonState.keywordsDraft.slice() : [];
+  let targetPersonId = pid;
   if (isNew) {
-    State.config.persons.push({ id: uid('p'), name, phone, email });
+    targetPersonId = uid('p');
+    State.config.persons.push({ id: targetPersonId, name, phone, email, keywords: [] });
     logConfigEdit('Person added', { name });
   } else {
     const target = findPerson(pid);
@@ -11817,6 +13808,14 @@ function saveEditPersonModal() {
       target.email = email;
       logConfigEdit('Person edited', { name });
     }
+  }
+  // Keywords über Storage-Helper persistieren (trim + ci-dedupe + saveConfig).
+  // Wirft theoretisch, wenn die Person fehlt — sollte nach push() oben nicht
+  // passieren, aber defensiv abfangen.
+  try {
+    Storage.setPersonKeywords(targetPersonId, keywordsDraft);
+  } catch (e) {
+    console.warn('setPersonKeywords failed:', e && e.message);
   }
   closeModal();
   saveConfigAndRerender();
@@ -11860,7 +13859,7 @@ function closeModal() {
   markUnavailState = { personId: null };
   editLevelState   = { idx: null };
   editRoleState    = { levelIdx: null, roleIdx: null, role: null, draftAssignments: [] };
-  editPersonState  = { personId: null };
+  editPersonState  = { personId: null, keywordsDraft: [], keywordSuggestPick: null };
   manualAssignState = { roleId: null };
   // QR-Autocycle stoppen, falls aktiv
   if (typeof qrCleanupOnModalClose === 'function') qrCleanupOnModalClose();
@@ -12844,7 +14843,10 @@ function qrApplyReceivedPayload() {
       if (!Array.isArray(payload.config.levels) || !Array.isArray(payload.config.persons)) {
         throw new Error(t('qr.err_invalid_config'));
       }
-      State.config = payload.config;
+      // V2.1 step 2: route through the schema migrator before assignment.
+      // QR transfer between mixed V2.0/V2.1 devices would otherwise hand
+      // the receiver a config without pools[] / keywords[].
+      State.config = Storage.migrateConfigV3(payload.config);
       State.config.meta = State.config.meta || {};
       State.config.meta.lastModified = now;
       Storage.saveConfig(State.config);
@@ -13928,6 +15930,8 @@ function applyLanguage(lang) {
   if (navActive) navActive.textContent = t('nav.active');
   const navPersons = document.getElementById('mobile-nav-label-persons');
   if (navPersons) navPersons.textContent = t('nav.persons');
+  const navSearch = document.getElementById('mobile-nav-label-search');
+  if (navSearch) navSearch.textContent = t('nav.search');
   const navAudit = document.getElementById('mobile-nav-label-audit');
   if (navAudit) navAudit.textContent = t('nav.audit');
   const langSel = document.getElementById('lang-select');
@@ -13939,9 +15943,11 @@ function applyLanguage(lang) {
   // Tabs
   const tActive  = document.getElementById('tab-label-active');
   const tPersons = document.getElementById('tab-label-persons');
+  const tSearch  = document.getElementById('tab-label-search');
   const tAudit   = document.getElementById('tab-label-audit');
   if (tActive)  tActive.textContent  = t('tabs.occupancy');
   if (tPersons) tPersons.textContent = t('tabs.persons');
+  if (tSearch)  tSearch.textContent  = t('sidebar.tab_search');
   if (tAudit)   tAudit.textContent   = t('tabs.log');
 
   // Neu rendern damit alles die neue Sprache bekommt
@@ -14087,6 +16093,12 @@ function handleDeleteRole(roleId) {
   if (!loc) return;
   const role = State.config.levels[loc.levelIdx].roles[loc.roleIdx];
   if (!confirm(t('edit.confirm_delete_role', { name: role.name }))) return;
+  // V2.1 step 2: orphan any pools that referenced this role as their Lead.
+  // Patrick decision (docs/specs/v2.1-team-pools.md): do NOT cascade-delete
+  // the pool — members keep their grouping, the slot becomes unassigned and
+  // is re-pickable in the Pools tab. Secondary leads are filtered down by
+  // dropping the deleted role-id from the list.
+  _orphanPoolsForLead(roleId);
   State.config.levels[loc.levelIdx].roles.splice(loc.roleIdx, 1);
   // Manuelle Zuordnung für diese Rolle entfernen
   if (State.runtime.manualAssignments && State.runtime.manualAssignments[roleId]) {
@@ -14096,6 +16108,23 @@ function handleDeleteRole(roleId) {
   logConfigEdit('Role deleted', { name: role.name });
   saveConfigAndRerender();
   showToast(t('toast.edit_deleted'), 'success');
+}
+
+// V2.1 step 2: helper used by handleDeleteRole. Pure State mutation; the
+// caller persists via saveConfigAndRerender(). Idempotent — a no-op if no
+// pool references this role-id.
+function _orphanPoolsForLead(roleId) {
+  const pools = State.config && State.config.pools;
+  if (!Array.isArray(pools)) return;
+  pools.forEach(pool => {
+    if (!pool) return;
+    if (pool.leadRoleId === roleId) {
+      pool.leadRoleId = null;
+    }
+    if (Array.isArray(pool.secondaryLeadRoleIds)) {
+      pool.secondaryLeadRoleIds = pool.secondaryLeadRoleIds.filter(id => id !== roleId);
+    }
+  });
 }
 
 function openEditRoleModalById(roleId) {
@@ -14222,6 +16251,16 @@ function handleDeletePerson(personId) {
         .map((a, i) => ({ personId: a.personId, rank: i }));
     });
   });
+  // V2.1 step 2: clean up pool memberships before removing the person, so
+  // no pool is left holding a stale id. Notes/leadRoleId are untouched —
+  // only memberIds reference person-ids.
+  if (Array.isArray(State.config.pools)) {
+    State.config.pools.forEach(pool => {
+      if (pool && Array.isArray(pool.memberIds)) {
+        pool.memberIds = pool.memberIds.filter(id => id !== personId);
+      }
+    });
+  }
   // Aus Personen-Liste entfernen
   State.config.persons = State.config.persons.filter(x => x.id !== personId);
   // Aus unavailable entfernen falls vorhanden
@@ -14250,10 +16289,13 @@ function handleDeletePerson(personId) {
 
 function openEditPersonModal(personId) {
   const isNew = !personId;
-  const person = isNew ? { name: '', phone: '', email: '' } : findPerson(personId);
+  const person = isNew ? { name: '', phone: '', email: '', keywords: [] } : findPerson(personId);
   if (!person) return;
 
   editPersonState.personId = isNew ? null : personId;
+  // Draft-Copy: bis Save kein Persist. Storage normalisiert beim Setzen
+  // ohnehin (trim, case-insensitive dedupe).
+  editPersonState.keywordsDraft = Array.isArray(person.keywords) ? person.keywords.slice() : [];
 
   const title = document.getElementById('modal-title');
   const body = document.getElementById('modal-body');
@@ -14273,6 +16315,18 @@ function openEditPersonModal(personId) {
       <label class="form-label" for="person-email">${escapeHTML(t('edit.field_person_email'))}</label>
       <input type="email" id="person-email" class="form-input" value="${escapeHTML(person.email || '')}" autocomplete="off" />
     </div>
+    <div class="person-edit-keywords">
+      <label>${escapeHTML(t('person.keywords_label'))}</label>
+      <div class="keyword-chips" data-keyword-chips id="person-keyword-chips"></div>
+      <input type="text"
+             class="keyword-input"
+             id="person-keyword-input"
+             data-keyword-input
+             placeholder="${escapeHTML(t('person.keywords_placeholder'))}"
+             autocomplete="off" />
+      <div class="keyword-suggestions" id="person-keyword-suggestions" data-keyword-suggestions hidden></div>
+      <p class="keyword-hint">${escapeHTML(t('person.keywords_hint'))}</p>
+    </div>
     <div id="person-error" class="sync-error" style="display:none;"></div>
   `;
   footer.innerHTML = `
@@ -14281,7 +16335,134 @@ function openEditPersonModal(personId) {
   `;
 
   document.getElementById('modal-backdrop').style.display = 'flex';
+  renderPersonKeywordChips();
+  attachPersonKeywordInputHandlers();
   setTimeout(() => document.getElementById('person-name').focus(), 50);
+}
+
+/* =========================================================================
+   PERSON KEYWORDS (V2.1 Schritt 4)
+   ----------------------------------------------------------------
+   Chips + Autocomplete-Input innerhalb des Person-Edit-Modals.
+   Draft-State in editPersonState.keywordsDraft; Persist erst beim Save.
+   ========================================================================= */
+function renderPersonKeywordChips() {
+  const wrap = document.getElementById('person-keyword-chips');
+  if (!wrap) return;
+  const list = Array.isArray(editPersonState.keywordsDraft) ? editPersonState.keywordsDraft : [];
+  if (list.length === 0) {
+    wrap.innerHTML = `<span class="keyword-chips-empty">${escapeHTML(t('person.keywords_empty'))}</span>`;
+    return;
+  }
+  wrap.innerHTML = list.map(kw => `
+    <span class="keyword-chip">
+      ${escapeHTML(kw)}
+      <button type="button" class="keyword-chip-remove" data-action="person-keyword-remove" data-keyword="${escapeHTML(kw)}" aria-label="${escapeHTML(t('btn.cancel'))}">×</button>
+    </span>
+  `).join('');
+}
+
+function renderPersonKeywordSuggestions(query) {
+  const box = document.getElementById('person-keyword-suggestions');
+  if (!box) return;
+  const q = (query || '').trim().toLowerCase();
+  const draft = Array.isArray(editPersonState.keywordsDraft) ? editPersonState.keywordsDraft : [];
+  const draftLc = new Set(draft.map(k => k.toLowerCase()));
+  let all = [];
+  try { all = Storage.getAllKeywords(); }
+  catch (e) { all = []; }
+  const filtered = all
+    .filter(kw => !draftLc.has(kw.toLowerCase()))
+    .filter(kw => q ? kw.toLowerCase().includes(q) : true)
+    .slice(0, 5);
+  if (filtered.length === 0) {
+    box.hidden = true;
+    box.innerHTML = '';
+    return;
+  }
+  box.hidden = false;
+  box.innerHTML = filtered.map(kw => `
+    <div class="keyword-suggestion-item" data-action="person-keyword-suggest-pick" data-keyword="${escapeHTML(kw)}">${escapeHTML(kw)}</div>
+  `).join('');
+}
+
+function personKeywordAdd(raw) {
+  if (typeof raw !== 'string') return false;
+  const trimmed = raw.trim();
+  if (!trimmed) return false;
+  const lc = trimmed.toLowerCase();
+  const draft = Array.isArray(editPersonState.keywordsDraft) ? editPersonState.keywordsDraft : [];
+  if (draft.some(k => k.toLowerCase() === lc)) return false; // dedupe ci
+  draft.push(trimmed);
+  editPersonState.keywordsDraft = draft;
+  renderPersonKeywordChips();
+  return true;
+}
+
+function personKeywordRemove(keyword) {
+  if (typeof keyword !== 'string') return;
+  const lc = keyword.toLowerCase();
+  const draft = Array.isArray(editPersonState.keywordsDraft) ? editPersonState.keywordsDraft : [];
+  editPersonState.keywordsDraft = draft.filter(k => k.toLowerCase() !== lc);
+  renderPersonKeywordChips();
+  const input = document.getElementById('person-keyword-input');
+  if (input) renderPersonKeywordSuggestions(input.value);
+}
+
+function personKeywordSuggestPick(keyword) {
+  if (typeof keyword !== 'string') return;
+  personKeywordAdd(keyword);
+  const input = document.getElementById('person-keyword-input');
+  if (input) {
+    input.value = '';
+    input.focus();
+  }
+  const box = document.getElementById('person-keyword-suggestions');
+  if (box) { box.hidden = true; box.innerHTML = ''; }
+}
+
+function attachPersonKeywordInputHandlers() {
+  const input = document.getElementById('person-keyword-input');
+  if (!input) return;
+  input.addEventListener('input', (e) => {
+    renderPersonKeywordSuggestions(e.target.value);
+  });
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      // Komma + Enter: aktuelles Eingabewort als Tag hinzufügen.
+      const raw = input.value;
+      if (raw.trim()) {
+        e.preventDefault();
+        personKeywordAdd(raw);
+        input.value = '';
+        renderPersonKeywordSuggestions('');
+      } else if (e.key === 'Enter') {
+        // Leeres Enter darf nicht das Form submitten (Modal kennt keinen
+        // Submit, aber wir blocken die Default-Action trotzdem defensiv).
+        e.preventDefault();
+      }
+    } else if (e.key === 'Backspace' && input.value === '') {
+      const draft = Array.isArray(editPersonState.keywordsDraft) ? editPersonState.keywordsDraft : [];
+      if (draft.length > 0) {
+        e.preventDefault();
+        draft.pop();
+        editPersonState.keywordsDraft = draft;
+        renderPersonKeywordChips();
+        renderPersonKeywordSuggestions('');
+      }
+    }
+  });
+  // Dropdown ausblenden, wenn der Fokus weg ist (mit kleinem Delay, damit
+  // ein Click auf einen Vorschlag noch durchgeht).
+  input.addEventListener('blur', () => {
+    setTimeout(() => {
+      const box = document.getElementById('person-keyword-suggestions');
+      if (box) { box.hidden = true; }
+    }, 150);
+  });
+  input.addEventListener('focus', () => {
+    renderPersonKeywordSuggestions(input.value);
+  });
 }
 
 /* =========================================================================
@@ -14624,7 +16805,7 @@ function updateMobileNavUI() {
   const activeId = view === 'org'
     ? 'mobile-nav-org'
     : 'mobile-nav-' + tab;
-  ['mobile-nav-org', 'mobile-nav-active', 'mobile-nav-persons', 'mobile-nav-audit'].forEach(id => {
+  ['mobile-nav-org', 'mobile-nav-active', 'mobile-nav-persons', 'mobile-nav-search', 'mobile-nav-audit'].forEach(id => {
     const btn = document.getElementById(id);
     if (btn) btn.dataset.active = (id === activeId) ? 'true' : 'false';
   });
@@ -14644,7 +16825,7 @@ function updateMobileNavUI() {
    }
    ========================================================================= */
 const EXPORT_FORMAT_VERSION = 1;
-const APP_VERSION = '2.0.0';
+const APP_VERSION = '2.1.0';
 
 // State für Import-Modal (parsed file content + ursprünglicher Filename)
 let dataModalState = {
@@ -15195,7 +17376,10 @@ function applyImport() {
   const overwriteRuntimeEl = document.getElementById('import-overwrite-runtime');
   const overwriteRuntime = overwriteRuntimeEl ? overwriteRuntimeEl.checked : false;
 
-  State.config = parsed.config;
+  // V2.1 step 2: JSON files exported by V1.x / V2.0.x lack pools[] and
+  // persons[].keywords. Pipe through the migrator so the render layer
+  // never sees a partial v3 shape.
+  State.config = Storage.migrateConfigV3(parsed.config);
   Storage.saveConfig(State.config);
 
   if (overwriteRuntime && parsed.runtime) {
@@ -15411,6 +17595,40 @@ function computeOverviewColumns(format, orientation, totalRoles) {
   return Math.min(cols, 6);
 }
 
+// V2.1 step 7: lookup helpers for print templates -----------------------
+// Findet den primären Pool, der eine Rolle als Lead hat. Sekundär-Leads
+// werden bewusst nicht berücksichtigt — die Print-Anzeige zeigt den Pool
+// dort, wo er „heimisch" ist, sonst entsteht Doppel-Listung.
+function _getPrimaryPoolForLeadRole(roleId) {
+  const pools = State.config && State.config.pools;
+  if (!Array.isArray(pools) || !roleId) return null;
+  return pools.find(p => p && p.leadRoleId === roleId) || null;
+}
+
+// Filtert die memberIds eines Pools auf existierende Personen und gibt
+// sortierte Person-Objekte zurück (alphabetisch nach Name, Sprach-Locale
+// folgt der aktuellen UI-Sprache).
+function _resolvePoolMembers(pool) {
+  if (!pool || !Array.isArray(pool.memberIds)) return [];
+  const persons = pool.memberIds
+    .map(id => findPerson(id))
+    .filter(p => !!p);
+  persons.sort((a, b) => a.name.localeCompare(b.name, State.language || 'de'));
+  return persons;
+}
+
+// Berechnet eine dynamische Spaltenzahl für die Overview-Variante
+// basierend auf der Länge des längsten Rollennamens. Spec-Fix Overview-3:
+// 6-Spalten-Cap brach lange Namen wie „Stellvertretender Vorsitz
+// Krisenstab" auf 3 Zeilen. Wenn Namen lang sind → weniger, aber breitere
+// Spalten.
+function _adaptiveColumnCount(baseCount, longestNameLen) {
+  if (!Number.isFinite(longestNameLen) || longestNameLen <= 0) return baseCount;
+  if (longestNameLen > 28) return Math.min(baseCount, 3);
+  if (longestNameLen > 20) return Math.min(baseCount, 4);
+  return baseCount;
+}
+
 function buildPrintHTML(variant, format, orientation) {
   // Defensiv: Occupancy frisch berechnen, falls render() noch nie lief
   // oder die Daten aus irgendeinem Grund stale sind
@@ -15457,8 +17675,21 @@ function buildPrintHTML(variant, format, orientation) {
 }
 
 function buildPrintOverview(format, orientation) {
-  const totalRoles = State.config.levels.reduce((a, l) => a + l.roles.length, 0);
-  const cols = computeOverviewColumns(format, orientation, State.config.levels.length);
+  // Spec-Fix Overview-3: Spaltenzahl ist jetzt zweistufig.
+  // 1) computeOverviewColumns liefert das Format-bedingte Maximum (Papier-
+  //    breite vs. 62mm Ziel-Spalten-Breite, gedeckelt auf 6).
+  // 2) _adaptiveColumnCount drückt das herunter, wenn der längste
+  //    Rollenname das Layout brechen würde. Lieber 3 breite Spalten als
+  //    6 enge mit 3-Zeilen-Rollennamen.
+  const baseCols = computeOverviewColumns(format, orientation, State.config.levels.length);
+  let longestNameLen = 0;
+  State.config.levels.forEach(level => {
+    (level.roles || []).forEach(role => {
+      const n = (role && role.name) ? role.name.length : 0;
+      if (n > longestNameLen) longestNameLen = n;
+    });
+  });
+  const cols = _adaptiveColumnCount(baseCols, longestNameLen);
 
   // Pro Level ein Block mit den Rollen drin. Wir packen die Level in
   // ein Grid mit auto-berechneter Spaltenzahl.
@@ -15489,16 +17720,30 @@ function buildPrintOverview(format, orientation) {
         unoccupied = true;
       }
 
-      const critBadge = role.critical
-        ? `<span class="p-critical-badge">${escapeHTML(t('print.critical_marker'))}</span>`
-        : '';
+      // V2.1 step 7: Pool-Indikator unter dem Lead, kompakt mit Count.
+      // Nur primary lead-Pools (siehe _getPrimaryPoolForLeadRole) — kein
+      // Doppel-Listing für Sekundär-Leads.
+      let poolIndicator = '';
+      const pool = _getPrimaryPoolForLeadRole(role.id);
+      if (pool) {
+        const memberCount = Array.isArray(pool.memberIds) ? pool.memberIds.length : 0;
+        const poolLabel = t('print.overview_pool_indicator', {
+          name: pool.name,
+          n: memberCount,
+        });
+        poolIndicator = `<div class="p-role-pool-indicator">${escapeHTML(poolLabel)}</div>`;
+      }
 
+      // Spec-Fix Overview-1+5: kein CRITICAL-Badge mehr — der linke
+      // 3pt-Balken ist die einzige Codierung (data-critical Attribut
+      // triggert das CSS).
       return `
         <div class="p-role-card" data-critical="${role.critical || false}">
-          <div class="p-role-name">${escapeHTML(role.name)}${critBadge ? ' ' + critBadge : ''}</div>
+          <div class="p-role-name">${escapeHTML(role.name)}</div>
           <div class="p-role-person"${unoccupied ? ' data-unoccupied="true"' : ''}>${escapeHTML(personName)}</div>
           ${phone ? `<div class="p-role-phone">${escapeHTML(phone)}</div>` : ''}
           ${subHint ? `<div class="p-role-sub-hint">${escapeHTML(subHint)}</div>` : ''}
+          ${poolIndicator}
         </div>
       `;
     }).join('');
@@ -15554,13 +17799,31 @@ function buildPrintDetail() {
 
       // Manuelle Zuordnung: separater Hinweis über der Kette, da sie
       // nicht Teil der assignments ist, aber der aktuell Besetzende.
+      // Spec-Fix Detail-2: zusätzlich Skip-Indikator unterhalb der Note,
+      // damit der Leser erkennt, welcher Ketten-Eintrag übergangen wurde.
       let manualNote = '';
       if (occ && occ.manual && occ.personId) {
         const mp = findPerson(occ.personId);
         const mphone = mp && mp.phone ? ' — ' + mp.phone : '';
+        // Was wäre OHNE manuelle Zuweisung aktiv gewesen? Erster nicht-
+        // abwesender Eintrag in der Kette.
+        let skipName = null;
+        const sortedForSkip = [...role.assignments].sort((a, b) => a.rank - b.rank);
+        for (const a of sortedForSkip) {
+          const isAbsent = !!(State.runtime.unavailable && State.runtime.unavailable[a.personId]);
+          if (!isAbsent) {
+            const sp = findPerson(a.personId);
+            if (sp) skipName = sp.name;
+            break;
+          }
+        }
+        const skipHTML = skipName
+          ? `<div class="p-detail-manual-skip">→ skipped: ${escapeHTML(skipName)}</div>`
+          : '';
         manualNote = `
           <div class="p-detail-manual-note">
             🔒 ${escapeHTML(t('manual.badge'))}: <strong>${escapeHTML(mp ? mp.name : '?')}</strong>${escapeHTML(mphone)}
+            ${skipHTML}
           </div>
         `;
       }
@@ -15571,19 +17834,47 @@ function buildPrintDetail() {
         emptyNote = `<div class="p-no-chain"><em>${escapeHTML(t('print.no_person'))}</em></div>`;
       }
 
-      const critBadge = role.critical
-        ? `<span class="p-critical-badge">${escapeHTML(t('print.critical_marker'))}</span>`
-        : '';
+      // V2.1 step 7: Pool-Member-Sektion am Ende der Rolle.
+      // Member-Liste sortiert (siehe _resolvePoolMembers), pro Eintrag
+      // Name + Keywords (inline, kursiv). Keine Telefonnummer hier —
+      // die Personen sind in der People-list mit Kontakt.
+      let poolSection = '';
+      const pool = _getPrimaryPoolForLeadRole(role.id);
+      if (pool) {
+        const members = _resolvePoolMembers(pool);
+        const count = members.length;
+        const countLabel = t('print.role_pool_members_count', { n: count });
+        const memberRows = members.map(m => {
+          const kws = Array.isArray(m.keywords) ? m.keywords.filter(Boolean) : [];
+          const kwHTML = kws.length
+            ? `<span class="p-detail-pool-member-kw">${escapeHTML(kws.join(', '))}</span>`
+            : '';
+          return `
+            <div class="p-detail-pool-member">
+              <span class="p-detail-pool-member-name">${escapeHTML(m.name)}</span>
+              ${kwHTML}
+            </div>
+          `;
+        }).join('');
+        poolSection = `
+          <div class="p-detail-pool-section">
+            <div class="p-detail-pool-head">${escapeHTML(t('print.role_pool_label'))}: ${escapeHTML(pool.name)} (${escapeHTML(countLabel)})</div>
+            ${memberRows}
+          </div>
+        `;
+      }
 
+      // Spec-Fix Detail (single critical encoding): kein Badge mehr,
+      // nur das data-critical-Attribut für den linken Balken.
       return `
         <div class="p-detail-role" data-critical="${role.critical || false}">
           <div class="p-detail-role-head">
             <div class="p-detail-role-name">${escapeHTML(role.name)}</div>
-            ${critBadge}
           </div>
           ${role.description ? `<div class="p-small" style="margin-bottom: 3pt;">${escapeHTML(role.description)}</div>` : ''}
           ${manualNote}
           ${chainHTML || emptyNote}
+          ${poolSection}
         </div>
       `;
     }).join('');
@@ -15613,24 +17904,41 @@ function buildPrintPersons() {
     const absent = !!(State.runtime.unavailable && State.runtime.unavailable[p.id]);
     const absence = absent ? State.runtime.unavailable[p.id] : null;
 
-    const rolesHTML = roles.length === 0
+    // Spec-Fix People-3: Rang-Priorität sichtbar. Roles nach rank
+    // sortieren, Primary mit Stern + data-rank-Attribut für CSS-Style.
+    const sortedRoles = roles.slice().sort((a, b) => a.rank - b.rank);
+    const rolesHTML = sortedRoles.length === 0
       ? `<span class="p-small"><em>${escapeHTML(t('print.persons_no_roles'))}</em></span>`
-      : roles.map(r => {
-          const rankLbl = r.rank === 0
+      : sortedRoles.map(r => {
+          const isPrimary = r.rank === 0;
+          const rankLbl = isPrimary
             ? t('print.rank_primary')
             : t('print.rank_substitute', { n: r.rank });
-          return `<span class="p-person-role-chip">${escapeHTML(r.role.name)} · ${escapeHTML(rankLbl)}</span>`;
+          const star = isPrimary ? '★ ' : '';
+          return `<span class="p-person-role-chip" data-rank="${isPrimary ? 'primary' : 'sub'}">${escapeHTML(star + r.role.name)} · ${escapeHTML(rankLbl)}</span>`;
         }).join('');
 
     const absenceInfo = absence
       ? ` <span class="p-small">(${escapeHTML(categoryLabel(absence.category))}${absence.note ? ' — ' + escapeHTML(absence.note) : ''})</span>`
       : '';
 
+    // Spec-Fix People-2: ABSENT-Marker aus i18n, im HTML statt CSS-::after.
+    const absentMarker = absent
+      ? ` <span class="p-person-absent-marker">— ${escapeHTML(t('print.people_absent_marker'))}</span>`
+      : '';
+
+    // V2.1 step 7: Keywords als eigene Sub-Zeile, kompakt unter Kontakt.
+    const kws = Array.isArray(p.keywords) ? p.keywords.filter(Boolean) : [];
+    const keywordsHTML = kws.length
+      ? `<div class="p-person-keywords"><span class="p-person-keywords-label">${escapeHTML(t('print.person_keywords_label'))}:</span> ${escapeHTML(kws.join(', '))}</div>`
+      : '';
+
     return `
       <div class="p-person-row" data-absent="${absent}">
         <div class="p-person-main">
-          <div class="p-person-name" data-absent="${absent}">${escapeHTML(p.name)}${absenceInfo}</div>
+          <div class="p-person-name" data-absent="${absent}">${escapeHTML(p.name)}${absentMarker}${absenceInfo}</div>
           <div class="p-person-contact">${p.phone ? escapeHTML(p.phone) : ''}${p.phone && p.email ? ' · ' : ''}${p.email ? escapeHTML(p.email) : ''}</div>
+          ${keywordsHTML}
         </div>
         <div class="p-person-roles">
           <span class="p-small">${escapeHTML(t('print.persons_roles_label'))}:</span> ${rolesHTML}
@@ -15639,19 +17947,45 @@ function buildPrintPersons() {
     `;
   };
 
+  // Spec-Fix People-5: Buchstaben-Anker. Hilfsfunktion liefert die
+  // erste Initiale einer Person; verlustfrei (Unicode-aware via
+  // String.prototype[Symbol.iterator]).
+  const initialOf = (name) => {
+    if (!name) return '#';
+    const it = name.trim()[Symbol.iterator]();
+    const first = it.next();
+    if (first.done || !first.value) return '#';
+    return first.value.toLocaleUpperCase(State.language || 'de');
+  };
+
+  // Rendert eine Sektion mit Letter-Anchors zwischen Personen-Zeilen.
+  // Erwartet eine bereits sortierte Liste.
+  const renderSectionWithAnchors = (persons) => {
+    let lastLetter = null;
+    return persons.map(p => {
+      const letter = initialOf(p.name);
+      let anchor = '';
+      if (letter !== lastLetter) {
+        anchor = `<div class="p-letter-anchor">${escapeHTML(letter)}</div>`;
+        lastLetter = letter;
+      }
+      return anchor + buildRow(p);
+    }).join('');
+  };
+
   let html = '';
   if (absentPersons.length > 0) {
     html += `
       <div class="p-person-section">
         <div class="p-h2">${escapeHTML(t('print.persons_absent_section'))} (${absentPersons.length})</div>
-        ${absentPersons.map(buildRow).join('')}
+        ${renderSectionWithAnchors(absentPersons)}
       </div>
     `;
   }
   html += `
     <div class="p-person-section">
       <div class="p-h2">${escapeHTML(t('print.persons_available_section'))} (${availablePersons.length})</div>
-      ${availablePersons.map(buildRow).join('')}
+      ${renderSectionWithAnchors(availablePersons)}
     </div>
   `;
   return html;
@@ -15678,12 +18012,22 @@ let settingsState = {
   // V2.0 Schritt 5: expandedAccordions ist nur RAM, nicht persistiert.
   // Set<sourceId>: welche Auto-Sync-Akkordeons sind aktuell aufgeklappt.
   expandedAccordions: new Set(),
+  // V2.1 step 3: Pool-Edit-Form (inline im Pools-Tab).
+  // poolFormMode: 'create' | 'edit' | null
+  // poolFormDraft: { id?, name, leadRoleId, memberIds, notes, secondaryLeadRoleIds }
+  // poolMemberFilter: live-Filterstring im Member-Picker
+  // poolFormAdvancedOpen: bool — sekundäre Leads-Sektion aufgeklappt
+  poolFormMode: null,
+  poolFormDraft: null,
+  poolMemberFilter: '',
+  poolFormAdvancedOpen: false,
 };
 
 function openSettingsModal() {
   settingsState = {
     activeTab: 'general', editingSourceId: null, formMode: null, formSourceType: null,
     expandedAccordions: new Set(),
+    poolFormMode: null, poolFormDraft: null, poolMemberFilter: '', poolFormAdvancedOpen: false,
   };
   renderSettingsModal();
 }
@@ -15693,6 +18037,11 @@ function switchSettingsTab(tab) {
   settingsState.editingSourceId = null;
   settingsState.formMode = null;
   settingsState.formSourceType = null;
+  // V2.1 step 3: Pool-Form beim Tab-Wechsel auch verwerfen.
+  settingsState.poolFormMode = null;
+  settingsState.poolFormDraft = null;
+  settingsState.poolMemberFilter = '';
+  settingsState.poolFormAdvancedOpen = false;
   delete settingsState._pendingDirHandle;
   delete settingsState._pendingDirName;
   renderSettingsModal();
@@ -15708,6 +18057,9 @@ function renderSettingsModal() {
   const tabs = [
     { id: 'general', label: t('settings.tab_general') },
     { id: 'sync',    label: t('settings.tab_sync') },
+    // V2.1 step 3: Pools-Tab zwischen Sync-Sources und About — logisch
+    // konfigurations-nah, aber Pool-spezifisch.
+    { id: 'pools',   label: t('settings.tab_pools') },
     { id: 'about',   label: t('settings.tab_about') },
   ];
 
@@ -15725,17 +18077,24 @@ function renderSettingsModal() {
   let panelHTML;
   if (settingsState.activeTab === 'general')      panelHTML = renderSettingsGeneral();
   else if (settingsState.activeTab === 'sync')    panelHTML = renderSettingsSync();
+  else if (settingsState.activeTab === 'pools')   panelHTML = renderSettingsPools();
   else                                            panelHTML = renderSettingsAbout();
 
   body.innerHTML = tabsHTML + '<div class="settings-panel">' + panelHTML + '</div>';
 
   // Footer per Tab:
   // - 'general' hat Save-Button (für Org-Name / Print-Title)
-  // - 'sync' und 'about' sind self-contained / read-only → nur Close
+  // - 'pools' + poolFormMode: Save/Cancel für Pool-Edit-Modal (inline-Form)
+  // - 'sync' und 'about' und 'pools' (list-mode) sind self-contained → nur Close
   if (settingsState.activeTab === 'general') {
     footer.innerHTML = `
       <button class="btn-secondary" data-action="modal-cancel">${escapeHTML(t('btn.cancel'))}</button>
       <button class="btn-primary" data-action="settings-save">${escapeHTML(t('settings.save'))}</button>
+    `;
+  } else if (settingsState.activeTab === 'pools' && settingsState.poolFormMode) {
+    footer.innerHTML = `
+      <button class="btn-secondary" data-action="pool-cancel">${escapeHTML(t('settings.pools.btn_cancel'))}</button>
+      <button class="btn-primary" data-action="pool-save">${escapeHTML(t('settings.pools.btn_save'))}</button>
     `;
   } else {
     footer.innerHTML = `
@@ -15777,6 +18136,21 @@ function renderSettingsModal() {
           syncAutoIntervalChange(el.dataset.sourceId, el.value);
         });
       });
+  } else if (settingsState.activeTab === 'pools' && settingsState.poolFormMode) {
+    // V2.1 step 3: Pool-Edit-Modal Bindings.
+    // - Name-Input: auto-focus
+    // - Member-Search: live-filter (re-render member-picker only to keep search focus)
+    setTimeout(() => {
+      const nameEl = document.getElementById('pool-edit-name');
+      if (nameEl) nameEl.focus();
+    }, 50);
+    const searchEl = document.getElementById('pool-member-search-input');
+    if (searchEl) {
+      searchEl.addEventListener('input', (e) => {
+        settingsState.poolMemberFilter = e.target.value || '';
+        renderPoolMemberPickerInline();
+      });
+    }
   }
 }
 
@@ -16311,6 +18685,501 @@ function renderSettingsAbout() {
       </div>
     </div>
   `;
+}
+
+/* =========================================================================
+   V2.1 step 3: Settings-Tab "Pools".
+   - Liste aller Pools mit Edit/Delete-Aktionen
+   - Migration-Banner (prefs.v21MigrationBannerPending)
+   - Inline-Pool-Edit-Form (1-spaltig vertikal, Q5)
+   - Storage: addPool/updatePool/removePool aus Schritt 2
+   Chart-Render-Integration ist Schritt 5 — Pools sind hier UI-only.
+   ========================================================================= */
+
+function _lookupRoleName(roleId) {
+  if (!roleId) return '';
+  const levels = (State.config && Array.isArray(State.config.levels)) ? State.config.levels : [];
+  for (const lvl of levels) {
+    if (!lvl || !Array.isArray(lvl.roles)) continue;
+    for (const r of lvl.roles) {
+      if (r && r.id === roleId) return r.name || '';
+    }
+  }
+  return '';
+}
+
+function _collectAllRoles() {
+  // Liefert flache [{id, name, levelName}]-Liste für Dropdowns.
+  const out = [];
+  const levels = (State.config && Array.isArray(State.config.levels)) ? State.config.levels : [];
+  for (const lvl of levels) {
+    if (!lvl || !Array.isArray(lvl.roles)) continue;
+    for (const r of lvl.roles) {
+      if (r && r.id) out.push({ id: r.id, name: r.name || '', levelName: lvl.name || '' });
+    }
+  }
+  return out;
+}
+
+function renderPoolsMigrationBanner() {
+  const prefs = State.prefs || {};
+  if (prefs.v21MigrationBannerPending !== true) return '';
+  return `
+    <div class="pools-migration-banner" role="status">
+      <strong>${escapeHTML(t('settings.pools.migration_banner_title'))}</strong>
+      <div class="pools-migration-banner-body">${escapeHTML(t('settings.pools.migration_banner_body'))}</div>
+      <div class="pools-migration-banner-actions">
+        <button class="btn-secondary" data-action="pool-migration-banner-cta">${escapeHTML(t('settings.pools.migration_banner_cta_create'))}</button>
+        <button class="btn-ghost" data-action="pool-migration-banner-dismiss">${escapeHTML(t('settings.pools.migration_banner_dismiss'))}</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderSettingsPools() {
+  // Falls Pool-Edit-Form aktiv ist, statt der Liste das Form anzeigen.
+  if (settingsState.poolFormMode) {
+    return renderPoolEditForm();
+  }
+
+  let html = renderPoolsMigrationBanner();
+  html += `<div class="sync-explain">${escapeHTML(t('settings.pools.intro'))}</div>`;
+
+  const pools = (State.config && Array.isArray(State.config.pools)) ? State.config.pools : [];
+
+  if (pools.length === 0) {
+    html += `<div class="pools-empty" style="margin-top: 12px;">${escapeHTML(t('settings.pools.empty_state'))}</div>`;
+  } else {
+    const assigned = pools.filter(p => p && p.leadRoleId);
+    const unassigned = pools.filter(p => p && !p.leadRoleId);
+
+    if (assigned.length > 0) {
+      html += '<div class="pools-list">';
+      html += assigned.map(renderPoolListItem).join('');
+      html += '</div>';
+    }
+
+    if (unassigned.length > 0) {
+      html += `<div class="pools-section-title">${escapeHTML(t('settings.pools.unassigned_section'))}</div>`;
+      html += '<div class="pools-list">';
+      html += unassigned.map(renderPoolListItem).join('');
+      html += '</div>';
+    }
+  }
+
+  html += `
+    <div class="pools-new-btn-row">
+      <button class="btn-secondary" data-action="pool-new">${escapeHTML(t('settings.pools.btn_new'))}</button>
+    </div>
+  `;
+
+  return html;
+}
+
+function renderPoolListItem(pool) {
+  if (!pool) return '';
+  const memberCount = Array.isArray(pool.memberIds) ? pool.memberIds.length : 0;
+  const leadName = pool.leadRoleId ? _lookupRoleName(pool.leadRoleId) : '';
+  const leadHTML = pool.leadRoleId && leadName
+    ? `<span class="pool-list-lead">${escapeHTML(t('settings.pools.list_lead_label', { name: leadName }))}</span>`
+    : `<span class="pool-list-lead pool-list-lead-unassigned">${escapeHTML(t('settings.pools.list_lead_unassigned'))}</span>`;
+  const membersLabel = memberCount === 1
+    ? t('settings.pools.list_members_label_one')
+    : t('settings.pools.list_members_label', { n: String(memberCount) });
+  return `
+    <div class="pool-list-item">
+      <div class="pool-list-meta">
+        <strong>${escapeHTML(pool.name || '')}</strong>
+        ${leadHTML}
+        <span class="pool-list-members">${escapeHTML(membersLabel)}</span>
+      </div>
+      <div class="pool-list-actions">
+        <button class="btn-secondary" data-action="pool-edit" data-pool-id="${escapeHTML(pool.id)}">${escapeHTML(t('settings.pools.btn_edit'))}</button>
+        <button class="btn-secondary" data-action="pool-delete" data-pool-id="${escapeHTML(pool.id)}">${escapeHTML(t('settings.pools.btn_delete'))}</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderPoolEditForm() {
+  const draft = settingsState.poolFormDraft || {};
+  const isEdit = settingsState.poolFormMode === 'edit';
+  const title = isEdit ? t('settings.pools.modal_title_edit') : t('settings.pools.modal_title_create');
+
+  const allRoles = _collectAllRoles();
+  // Lead-Dropdown
+  const leadOptions = allRoles.map(r => {
+    const sel = (draft.leadRoleId === r.id) ? ' selected' : '';
+    const label = r.levelName ? `${r.name} (${r.levelName})` : r.name;
+    return `<option value="${escapeHTML(r.id)}"${sel}>${escapeHTML(label)}</option>`;
+  }).join('');
+
+  // Sekundäre Leads: alle Rollen außer der primären Lead-Rolle
+  const secondaryIds = Array.isArray(draft.secondaryLeadRoleIds) ? draft.secondaryLeadRoleIds : [];
+  const secondaryRoles = allRoles.filter(r => r.id !== draft.leadRoleId);
+  const secondaryHTML = secondaryRoles.length === 0
+    ? `<div class="pool-member-empty">${escapeHTML(t('settings.pools.field_secondary_leads_empty'))}</div>`
+    : secondaryRoles.map(r => {
+        const checked = secondaryIds.indexOf(r.id) !== -1 ? ' checked' : '';
+        const label = r.levelName ? `${r.name} (${r.levelName})` : r.name;
+        return `
+          <label class="pool-secondary-lead-row">
+            <input type="checkbox" data-action="pool-secondary-toggle" data-role-id="${escapeHTML(r.id)}"${checked} />
+            <span>${escapeHTML(label)}</span>
+          </label>
+        `;
+      }).join('');
+
+  const advancedOpen = !!settingsState.poolFormAdvancedOpen;
+  // Wenn beim Edit bereits sekundäre Leads existieren, Sektion aufklappen.
+  const effectiveAdvancedOpen = advancedOpen || (isEdit && secondaryIds.length > 0);
+
+  return `
+    <div class="pool-edit-modal">
+      <div class="settings-about-row" style="margin-bottom: 4px;">
+        <strong style="font-size: 14px;">${escapeHTML(title)}</strong>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label" for="pool-edit-name">${escapeHTML(t('settings.pools.field_name'))}</label>
+        <input type="text" id="pool-edit-name" class="form-input"
+               maxlength="100"
+               value="${escapeHTML(draft.name || '')}"
+               placeholder="${escapeHTML(t('settings.pools.field_name_placeholder'))}"
+               autocomplete="off" />
+      </div>
+
+      <div class="form-field">
+        <label class="form-label" for="pool-edit-lead">${escapeHTML(t('settings.pools.field_lead'))}</label>
+        <select id="pool-edit-lead" class="form-select">
+          <option value=""${!draft.leadRoleId ? ' selected' : ''}>${escapeHTML(t('settings.pools.field_lead_unassigned'))}</option>
+          ${leadOptions}
+        </select>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label">${escapeHTML(t('settings.pools.field_members'))}</label>
+        ${renderPoolMemberPicker()}
+      </div>
+
+      <div class="form-field">
+        <label class="form-label" for="pool-edit-notes">${escapeHTML(t('settings.pools.field_notes'))}</label>
+        <textarea id="pool-edit-notes" class="form-textarea"
+                  maxlength="1000"
+                  placeholder="${escapeHTML(t('settings.pools.field_notes_placeholder'))}">${escapeHTML(draft.notes || '')}</textarea>
+      </div>
+
+      <button class="pool-edit-advanced-toggle" data-action="pool-advanced-toggle" type="button">
+        ${effectiveAdvancedOpen ? '▾' : '▸'} ${escapeHTML(t('settings.pools.advanced_toggle'))}
+      </button>
+
+      ${effectiveAdvancedOpen ? `
+        <div class="form-field">
+          <label class="form-label">${escapeHTML(t('settings.pools.field_secondary_leads'))}</label>
+          <div class="pool-edit-secondary-leads">
+            ${secondaryHTML}
+          </div>
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+
+function renderPoolMemberPicker() {
+  const draft = settingsState.poolFormDraft || {};
+  const memberIds = Array.isArray(draft.memberIds) ? draft.memberIds : [];
+  const allPersons = (State.config && Array.isArray(State.config.persons))
+    ? [...State.config.persons].sort((a, b) =>
+        (a.name || '').localeCompare(b.name || '', State.language || 'de'))
+    : [];
+
+  if (allPersons.length === 0) {
+    return `<div class="pool-member-picker"><div class="pool-member-empty">${escapeHTML(t('settings.pools.field_members_empty'))}</div></div>`;
+  }
+
+  // Search-Feld zeigen wenn > 30 Personen
+  const showSearch = allPersons.length > 30;
+  const filter = (settingsState.poolMemberFilter || '').trim().toLowerCase();
+  const filtered = filter
+    ? allPersons.filter(p => (p.name || '').toLowerCase().indexOf(filter) !== -1)
+    : allPersons;
+
+  const unavail = (State.runtime && State.runtime.unavailable) ? State.runtime.unavailable : {};
+  const rowsHTML = filtered.length === 0
+    ? `<div class="pool-member-empty">${escapeHTML(t('settings.pools.field_members_no_matches'))}</div>`
+    : filtered.map(p => {
+        const checked = memberIds.indexOf(p.id) !== -1 ? ' checked' : '';
+        const absent = !!unavail[p.id];
+        return `
+          <label class="pool-member-row${absent ? ' is-absent' : ''}">
+            <input type="checkbox" data-action="pool-member-toggle" data-person-id="${escapeHTML(p.id)}"${checked} />
+            <span>${escapeHTML(p.name || '')}</span>
+          </label>
+        `;
+      }).join('');
+
+  return `
+    <div class="pool-member-picker" id="pool-member-picker-container">
+      ${showSearch ? `
+        <div class="pool-member-search">
+          <input type="text" id="pool-member-search-input" class="form-input"
+                 placeholder="${escapeHTML(t('settings.pools.field_members_search'))}"
+                 value="${escapeHTML(settingsState.poolMemberFilter || '')}"
+                 autocomplete="off" />
+        </div>
+      ` : ''}
+      <div id="pool-member-picker-list">${rowsHTML}</div>
+    </div>
+  `;
+}
+
+// Re-rendert nur die Member-Liste, damit Search-Input-Fokus erhalten bleibt.
+function renderPoolMemberPickerInline() {
+  // Vor dem Re-Render aktuellen DOM-State (Notes-Textarea, Name, Lead, Checkbox-States)
+  // in den Draft schreiben, damit nichts verloren geht.
+  _syncPoolFormDraftFromDOM();
+  const container = document.getElementById('pool-member-picker-list');
+  if (!container) return;
+  const draft = settingsState.poolFormDraft || {};
+  const memberIds = Array.isArray(draft.memberIds) ? draft.memberIds : [];
+  const allPersons = (State.config && Array.isArray(State.config.persons))
+    ? [...State.config.persons].sort((a, b) =>
+        (a.name || '').localeCompare(b.name || '', State.language || 'de'))
+    : [];
+  const filter = (settingsState.poolMemberFilter || '').trim().toLowerCase();
+  const filtered = filter
+    ? allPersons.filter(p => (p.name || '').toLowerCase().indexOf(filter) !== -1)
+    : allPersons;
+  const unavail = (State.runtime && State.runtime.unavailable) ? State.runtime.unavailable : {};
+  const rowsHTML = filtered.length === 0
+    ? `<div class="pool-member-empty">${escapeHTML(t('settings.pools.field_members_no_matches'))}</div>`
+    : filtered.map(p => {
+        const checked = memberIds.indexOf(p.id) !== -1 ? ' checked' : '';
+        const absent = !!unavail[p.id];
+        return `
+          <label class="pool-member-row${absent ? ' is-absent' : ''}">
+            <input type="checkbox" data-action="pool-member-toggle" data-person-id="${escapeHTML(p.id)}"${checked} />
+            <span>${escapeHTML(p.name || '')}</span>
+          </label>
+        `;
+      }).join('');
+  container.innerHTML = rowsHTML;
+}
+
+// Liest aktuelle Form-Inputs in settingsState.poolFormDraft, ohne zu speichern.
+// Wird vor Tab-Wechsel / Re-Render aufgerufen.
+function _syncPoolFormDraftFromDOM() {
+  if (!settingsState.poolFormDraft) return;
+  const draft = settingsState.poolFormDraft;
+  const nameEl = document.getElementById('pool-edit-name');
+  const leadEl = document.getElementById('pool-edit-lead');
+  const notesEl = document.getElementById('pool-edit-notes');
+  if (nameEl) draft.name = nameEl.value;
+  if (leadEl) draft.leadRoleId = leadEl.value || null;
+  if (notesEl) draft.notes = notesEl.value;
+  // Member-Checkboxen einsammeln
+  const memberIds = [];
+  document.querySelectorAll('input[type="checkbox"][data-action="pool-member-toggle"]').forEach((el) => {
+    if (el.checked && el.dataset.personId) memberIds.push(el.dataset.personId);
+  });
+  // Wenn der Picker gefiltert ist, würden ungesehene Members verloren gehen.
+  // Strategie: bestehende memberIds, die NICHT im aktuell-sichtbaren Filter-Set sind,
+  // mit den neuen Checkbox-Ids vereinen.
+  const visibleIds = new Set();
+  document.querySelectorAll('input[type="checkbox"][data-action="pool-member-toggle"]').forEach((el) => {
+    if (el.dataset.personId) visibleIds.add(el.dataset.personId);
+  });
+  const existing = Array.isArray(draft.memberIds) ? draft.memberIds : [];
+  const merged = existing.filter(id => !visibleIds.has(id)).concat(memberIds);
+  draft.memberIds = merged;
+  // Sekundäre Leads
+  const secIds = [];
+  document.querySelectorAll('input[type="checkbox"][data-action="pool-secondary-toggle"]').forEach((el) => {
+    if (el.checked && el.dataset.roleId) secIds.push(el.dataset.roleId);
+  });
+  // Analog: nur sichtbar-toggelbare berücksichtigen, andere beibehalten.
+  // In der Praxis sind alle sekundären Leads sichtbar (kein Filter), daher
+  // einfacher Overwrite.
+  draft.secondaryLeadRoleIds = secIds;
+}
+
+/* ---- Pool-Action-Handler ---- */
+
+function poolNew() {
+  settingsState.poolFormMode = 'create';
+  settingsState.poolFormDraft = {
+    name: '',
+    leadRoleId: null,
+    memberIds: [],
+    notes: '',
+    secondaryLeadRoleIds: [],
+  };
+  settingsState.poolMemberFilter = '';
+  settingsState.poolFormAdvancedOpen = false;
+  renderSettingsModal();
+}
+
+function poolEdit(poolId) {
+  if (!poolId) return;
+  const pools = (State.config && Array.isArray(State.config.pools)) ? State.config.pools : [];
+  const pool = pools.find(p => p && p.id === poolId);
+  if (!pool) {
+    console.warn('[pools] edit: pool not found', poolId);
+    return;
+  }
+  settingsState.poolFormMode = 'edit';
+  settingsState.poolFormDraft = {
+    id: pool.id,
+    name: pool.name || '',
+    leadRoleId: pool.leadRoleId || null,
+    memberIds: Array.isArray(pool.memberIds) ? pool.memberIds.slice() : [],
+    notes: pool.notes || '',
+    secondaryLeadRoleIds: Array.isArray(pool.secondaryLeadRoleIds) ? pool.secondaryLeadRoleIds.slice() : [],
+  };
+  settingsState.poolMemberFilter = '';
+  settingsState.poolFormAdvancedOpen = false;
+  renderSettingsModal();
+}
+
+function poolDelete(poolId) {
+  if (!poolId) return;
+  const pools = (State.config && Array.isArray(State.config.pools)) ? State.config.pools : [];
+  const pool = pools.find(p => p && p.id === poolId);
+  if (!pool) return;
+  const confirmMsg = t('settings.pools.delete_confirm', { name: pool.name || '' });
+  if (!window.confirm(confirmMsg)) return;
+  try {
+    Storage.removePool(poolId);
+    logConfigEdit('Pool deleted', { name: pool.name || '' });
+    showToast(t('settings.pools.toast_deleted'), 'success');
+    // Render: Settings-Modal neu zeichnen + Chart unaffected (Schritt 5).
+    renderSettingsModal();
+  } catch (e) {
+    console.warn('[pools] delete failed', e);
+    showToast(String(e && e.message ? e.message : e), 'warning');
+  }
+}
+
+function poolCancel() {
+  settingsState.poolFormMode = null;
+  settingsState.poolFormDraft = null;
+  settingsState.poolMemberFilter = '';
+  settingsState.poolFormAdvancedOpen = false;
+  renderSettingsModal();
+}
+
+function poolSave() {
+  // Aktuelle DOM-Werte einsammeln.
+  _syncPoolFormDraftFromDOM();
+  const draft = settingsState.poolFormDraft || {};
+  const name = (draft.name || '').trim();
+  if (!name) {
+    showToast(t('settings.pools.validation_name_required'), 'warning');
+    const nameEl = document.getElementById('pool-edit-name');
+    if (nameEl) nameEl.focus();
+    return;
+  }
+  const payload = {
+    name,
+    leadRoleId: draft.leadRoleId || null,
+    memberIds: Array.isArray(draft.memberIds) ? draft.memberIds.slice() : [],
+    notes: draft.notes || '',
+    secondaryLeadRoleIds: Array.isArray(draft.secondaryLeadRoleIds) ? draft.secondaryLeadRoleIds.slice() : [],
+  };
+  try {
+    if (settingsState.poolFormMode === 'edit' && draft.id) {
+      Storage.updatePool(draft.id, payload);
+      logConfigEdit('Pool updated', { name });
+      showToast(t('settings.pools.toast_updated'), 'success');
+    } else {
+      Storage.addPool(payload);
+      logConfigEdit('Pool created', { name });
+      showToast(t('settings.pools.toast_created'), 'success');
+    }
+  } catch (e) {
+    console.warn('[pools] save failed', e);
+    showToast(String(e && e.message ? e.message : e), 'warning');
+    return;
+  }
+  settingsState.poolFormMode = null;
+  settingsState.poolFormDraft = null;
+  settingsState.poolMemberFilter = '';
+  settingsState.poolFormAdvancedOpen = false;
+  // Note: kein render() — Chart-Integration ist Schritt 5. Settings-Modal reicht.
+  renderSettingsModal();
+}
+
+function poolMemberToggle(personId, checked) {
+  if (!personId || !settingsState.poolFormDraft) return;
+  const draft = settingsState.poolFormDraft;
+  if (!Array.isArray(draft.memberIds)) draft.memberIds = [];
+  const idx = draft.memberIds.indexOf(personId);
+  if (checked && idx === -1) {
+    draft.memberIds.push(personId);
+  } else if (!checked && idx !== -1) {
+    draft.memberIds.splice(idx, 1);
+  }
+  // Kein Re-Render: Checkbox-State im DOM ist die Source of Truth bis poolSave.
+}
+
+function poolSecondaryToggle(roleId, checked) {
+  if (!roleId || !settingsState.poolFormDraft) return;
+  const draft = settingsState.poolFormDraft;
+  if (!Array.isArray(draft.secondaryLeadRoleIds)) draft.secondaryLeadRoleIds = [];
+  const idx = draft.secondaryLeadRoleIds.indexOf(roleId);
+  if (checked && idx === -1) {
+    draft.secondaryLeadRoleIds.push(roleId);
+  } else if (!checked && idx !== -1) {
+    draft.secondaryLeadRoleIds.splice(idx, 1);
+  }
+}
+
+function poolAdvancedToggle() {
+  _syncPoolFormDraftFromDOM();
+  settingsState.poolFormAdvancedOpen = !settingsState.poolFormAdvancedOpen;
+  renderSettingsModal();
+}
+
+function poolMigrationBannerDismiss() {
+  if (!State.prefs) State.prefs = {};
+  State.prefs.v21MigrationBannerPending = false;
+  Storage.savePrefs(State.prefs);
+  renderSettingsModal();
+}
+
+function poolMigrationBannerCta() {
+  // CTA dismisst implizit nicht — beim ersten Pool-Anlegen bleibt der Banner
+  // sichtbar, bis Save oder Cancel zurück zur Liste führt. Beim Save wird er
+  // weiter angezeigt, bis dismiss geklickt wird. Pragmatisch — Spec-Diskussion
+  // für Schritt 5 vermerkt.
+  poolNew();
+}
+
+/* V2.1 Schritt 5: Chart-Pool kollabieren/expandieren.
+   Toggle des `data-mobile-collapsed`-Attributs + `aria-expanded` für ARIA.
+   Auf Desktop ohne sichtbare Wirkung (CSS-Regel greift nur ≤600px), aber
+   wir aktualisieren aria-expanded trotzdem korrekt. Kein Re-Render — DOM-
+   Mutation reicht. Persistenz absichtlich nicht — User-Erwartung ist
+   ephemerer Zustand pro Session. */
+function poolToggleCollapse(poolId) {
+  if (!poolId) return;
+  const pool = document.querySelector('.level-pool[data-pool-id="' + CSS.escape(poolId) + '"]');
+  if (!pool) return;
+  const isCollapsed = pool.getAttribute('data-mobile-collapsed') === 'true';
+  if (isCollapsed) {
+    pool.removeAttribute('data-mobile-collapsed');
+    pool.setAttribute('aria-expanded', 'true');
+  } else {
+    pool.setAttribute('data-mobile-collapsed', 'true');
+    pool.setAttribute('aria-expanded', 'false');
+  }
+  // Aria-Label des Toggle-Buttons aktualisieren
+  const btn = pool.querySelector('.level-pool-toggle');
+  if (btn) {
+    const labelKey = isCollapsed ? 'chart.pool_toggle_collapse' : 'chart.pool_toggle_expand';
+    btn.setAttribute('aria-label', t(labelKey));
+    btn.setAttribute('title', t(labelKey));
+  }
 }
 
 function saveSettingsModal() {
@@ -17257,10 +20126,14 @@ function setupPWA() {
    INITIALIZATION
    ========================================================================= */
 function init() {
-  // Config laden oder Default setzen
+  // Config laden oder Default setzen. loadConfig() runs v1/v2 -> v3
+  // migration internally. For fresh installs we still pass DEFAULT_CONFIG
+  // through migrateConfigV3() so any per-person field that DEFAULT_CONFIG
+  // intentionally leaves unset (currently `keywords`) is normalised
+  // before we save it.
   State.config = Storage.loadConfig();
   if (!State.config) {
-    State.config = DEFAULT_CONFIG;
+    State.config = Storage.migrateConfigV3(DEFAULT_CONFIG);
     Storage.saveConfig(State.config);
   }
 
