@@ -4400,6 +4400,211 @@ button:focus-visible,
   }
 }
 
+/* =========================================================================
+   SIDEBAR SEARCH TAB (V2.1 step 6)
+   ========================================================================= */
+.sidebar-search {
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.sidebar-search-hint {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin: 0 0 var(--space-1) 0;
+  line-height: 1.4;
+}
+.sidebar-search-input-row { margin: 0; }
+.sidebar-search-input {
+  width: 100%;
+  padding: 8px 10px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  box-sizing: border-box;
+}
+.sidebar-search-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.sidebar-search-filters {
+  display: flex;
+  gap: 4px;
+}
+.search-filter-btn {
+  flex: 1;
+  padding: 6px 8px;
+  font-size: 11px;
+  font-family: var(--font-sans);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 120ms, border-color 120ms, color 120ms;
+}
+.search-filter-btn:hover { color: var(--text-primary); }
+.search-filter-btn[data-active="true"] {
+  background: var(--accent-bg);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.sidebar-search-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.search-active-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px 3px 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  background: var(--accent-bg);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.search-active-tag-x {
+  font-weight: bold;
+  opacity: 0.7;
+}
+.search-active-tag:hover .search-active-tag-x { opacity: 1; }
+.sidebar-search-keyword-cloud {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+}
+.sidebar-search-keyword-cloud summary {
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding: 2px 0;
+  list-style: revert;
+}
+.sidebar-search-keyword-cloud[open] summary { margin-bottom: 6px; }
+.keyword-cloud-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.keyword-cloud-grid .cloud-empty {
+  font-size: 11px;
+  font-style: italic;
+  color: var(--text-dim);
+  margin: 4px 0;
+}
+.keyword-cloud-chip {
+  padding: 3px 8px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 120ms, border-color 120ms, color 120ms;
+}
+.keyword-cloud-chip:hover {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+.keyword-cloud-chip.is-active {
+  background: var(--accent-bg);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.sidebar-search-count {
+  font-size: 10px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 0;
+}
+.sidebar-search-results {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.search-result-item {
+  padding: var(--space-2);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color 120ms;
+}
+.search-result-item:hover,
+.search-result-item:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+.search-result-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 13px;
+}
+.search-result-status {
+  font-size: 12px;
+  line-height: 1;
+}
+.search-result-status.is-available { color: var(--status-ok); }
+.search-result-status.is-absent { color: var(--status-warn); }
+.search-result-name {
+  flex: 1;
+  color: var(--text-primary);
+}
+.search-result-keywords,
+.search-result-roles,
+.search-result-pools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+  font-size: 10px;
+  align-items: baseline;
+}
+.search-result-pools-label {
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 9px;
+}
+.search-result-kw-mini,
+.search-result-role,
+.search-result-pool {
+  padding: 1px 6px;
+  background: var(--bg-hover);
+  border-radius: 2px;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+}
+.search-result-role { color: var(--text-primary); }
+.sidebar-search-empty {
+  text-align: center;
+  font-style: italic;
+  color: var(--text-secondary);
+  padding: var(--space-3);
+  font-size: 11px;
+}
+
+@media (max-width: 600px) {
+  .sidebar-search-input { min-height: 44px; }
+  .search-filter-btn { min-height: 44px; }
+  .keyword-cloud-chip { min-height: 32px; padding: 6px 10px; }
+  .search-active-tag { min-height: 32px; padding: 6px 8px 6px 10px; }
+  .search-result-item { min-height: 44px; }
+}
+
 /* Page-Size-Direktiven werden per JS per <style id="print-page-size"> gesetzt.
    Das Default @page oben wird dann spezifischer überschrieben. */
 
@@ -4472,6 +4677,9 @@ button:focus-visible,
         <button class="panel-tab" data-tab="persons" data-action="tab-persons" role="tab" id="tab-label-persons">
           Personen
         </button>
+        <button class="panel-tab" data-tab="search" data-action="tab-search" role="tab" id="tab-label-search">
+          Suche
+        </button>
         <button class="panel-tab" data-tab="audit" data-action="tab-audit" role="tab" id="tab-label-audit">
           Log
         </button>
@@ -4495,6 +4703,10 @@ button:focus-visible,
     <button class="mobile-nav-btn" data-action="mobile-nav-persons" id="mobile-nav-persons">
       <span class="mobile-nav-icon">☰</span>
       <span class="mobile-nav-label" id="mobile-nav-label-persons">Personen</span>
+    </button>
+    <button class="mobile-nav-btn" data-action="mobile-nav-search" id="mobile-nav-search">
+      <span class="mobile-nav-icon">⌕</span>
+      <span class="mobile-nav-label" id="mobile-nav-label-search">Suche</span>
     </button>
     <button class="mobile-nav-btn" data-action="mobile-nav-audit" id="mobile-nav-audit">
       <span class="mobile-nav-icon">≡</span>
@@ -7816,6 +8028,21 @@ const TRANSLATIONS = {
     'tabs.occupancy': 'Besetzung',
     'tabs.persons': 'Personen',
     'tabs.log': 'Log',
+    'sidebar.tab_search': 'Suche',
+    'search.intro': 'Personen nach Name, Keyword, Telefon oder E-Mail finden.',
+    'search.placeholder': 'Tippen zum Suchen…',
+    'search.filter_group_label': 'Verfügbarkeit',
+    'search.filter_all': 'Alle',
+    'search.filter_available': 'Verfügbar',
+    'search.filter_absent': 'Abwesend',
+    'search.show_keywords': 'Keywords filtern',
+    'search.no_keywords': 'Noch keine Keywords angelegt.',
+    'search.no_results': 'Keine Treffer.',
+    'search.pools_label': 'Pool',
+    'search.results_count': '{n} Treffer',
+    'search.role_primary_marker': '(P)',
+    'search.role_sub_marker': '(S)',
+    'search.clear_keyword': 'Keyword-Filter „{kw}" entfernen',
     'level.prefix': 'EBENE',
     'level.roles_count_one': '{n} Rolle',
     'level.roles_count_other': '{n} Rollen',
@@ -8322,6 +8549,7 @@ const TRANSLATIONS = {
     'nav.org': 'Chart',
     'nav.active': 'Besetzung',
     'nav.persons': 'Personen',
+    'nav.search': 'Suche',
     'nav.audit': 'Log',
     'data.title': 'Konfiguration sichern / einspielen',
     'data.tab_export': '↑ Export',
@@ -8445,6 +8673,21 @@ const TRANSLATIONS = {
     'tabs.occupancy': 'Roster',
     'tabs.persons': 'People',
     'tabs.log': 'Log',
+    'sidebar.tab_search': 'Search',
+    'search.intro': 'Find people by name, keyword, phone or email.',
+    'search.placeholder': 'Type to search…',
+    'search.filter_group_label': 'Availability',
+    'search.filter_all': 'All',
+    'search.filter_available': 'Available',
+    'search.filter_absent': 'Absent',
+    'search.show_keywords': 'Filter by keyword',
+    'search.no_keywords': 'No keywords yet.',
+    'search.no_results': 'No matches.',
+    'search.pools_label': 'Pool',
+    'search.results_count': '{n} matches',
+    'search.role_primary_marker': '(P)',
+    'search.role_sub_marker': '(S)',
+    'search.clear_keyword': 'Remove keyword filter "{kw}"',
     'level.prefix': 'LEVEL',
     'level.roles_count_one': '{n} role',
     'level.roles_count_other': '{n} roles',
@@ -8948,6 +9191,7 @@ const TRANSLATIONS = {
     'nav.org': 'Chart',
     'nav.active': 'Roles',
     'nav.persons': 'People',
+    'nav.search': 'Search',
     'nav.audit': 'Log',
     'data.title': 'Backup / restore configuration',
     'data.tab_export': '↑ Export',
@@ -9070,6 +9314,21 @@ const TRANSLATIONS = {
     'tabs.occupancy': 'Asignación',
     'tabs.persons': 'Personas',
     'tabs.log': 'Registro',
+    'sidebar.tab_search': 'Buscar',
+    'search.intro': 'Buscar personas por nombre, palabra clave, teléfono o correo.',
+    'search.placeholder': 'Escribe para buscar…',
+    'search.filter_group_label': 'Disponibilidad',
+    'search.filter_all': 'Todos',
+    'search.filter_available': 'Disponible',
+    'search.filter_absent': 'Ausente',
+    'search.show_keywords': 'Filtrar por palabra clave',
+    'search.no_keywords': 'Aún no hay palabras clave.',
+    'search.no_results': 'Sin resultados.',
+    'search.pools_label': 'Pool',
+    'search.results_count': '{n} resultados',
+    'search.role_primary_marker': '(P)',
+    'search.role_sub_marker': '(S)',
+    'search.clear_keyword': 'Quitar filtro de palabra clave «{kw}»',
     'level.prefix': 'NIVEL',
     'level.roles_count_one': '{n} rol',
     'level.roles_count_other': '{n} roles',
@@ -9573,6 +9832,7 @@ const TRANSLATIONS = {
     'nav.org': 'Gráfico',
     'nav.active': 'Roles',
     'nav.persons': 'Personas',
+    'nav.search': 'Buscar',
     'nav.audit': 'Registro',
     'data.title': 'Copia de seguridad / restaurar configuración',
     'data.tab_export': '↑ Exportar',
@@ -9696,6 +9956,21 @@ const TRANSLATIONS = {
     'tabs.occupancy': 'Affectation',
     'tabs.persons': 'Personnes',
     'tabs.log': 'Journal',
+    'sidebar.tab_search': 'Recherche',
+    'search.intro': 'Trouver des personnes par nom, mot-clé, téléphone ou e-mail.',
+    'search.placeholder': 'Saisir pour rechercher…',
+    'search.filter_group_label': 'Disponibilité',
+    'search.filter_all': 'Tous',
+    'search.filter_available': 'Disponible',
+    'search.filter_absent': 'Absent',
+    'search.show_keywords': 'Filtrer par mot-clé',
+    'search.no_keywords': 'Aucun mot-clé pour le moment.',
+    'search.no_results': 'Aucun résultat.',
+    'search.pools_label': 'Pool',
+    'search.results_count': '{n} résultats',
+    'search.role_primary_marker': '(P)',
+    'search.role_sub_marker': '(S)',
+    'search.clear_keyword': 'Retirer le filtre de mot-clé « {kw} »',
     'level.prefix': 'NIVEAU',
     'level.roles_count_one': '{n} rôle',
     'level.roles_count_other': '{n} rôles',
@@ -10199,6 +10474,7 @@ const TRANSLATIONS = {
     'nav.org': 'Schéma',
     'nav.active': 'Rôles',
     'nav.persons': 'Personnes',
+    'nav.search': 'Recherche',
     'nav.audit': 'Journal',
     'data.title': 'Sauvegarder / restaurer la configuration',
     'data.tab_export': '↑ Exporter',
@@ -10322,6 +10598,22 @@ const TRANSLATIONS = {
     'tabs.occupancy': '岗位',
     'tabs.persons': '人员',
     'tabs.log': '日志',
+    // TODO(i18n-zh): best-effort translations below — native speaker review pending
+    'sidebar.tab_search': '搜索',
+    'search.intro': '按姓名、关键词、电话或邮箱查找人员。',
+    'search.placeholder': '输入以搜索…',
+    'search.filter_group_label': '可用性',
+    'search.filter_all': '全部',
+    'search.filter_available': '可用',
+    'search.filter_absent': '缺席',
+    'search.show_keywords': '按关键词筛选',
+    'search.no_keywords': '尚无关键词。',
+    'search.no_results': '无结果。',
+    'search.pools_label': '团队池',
+    'search.results_count': '{n} 个结果',
+    'search.role_primary_marker': '(主)',
+    'search.role_sub_marker': '(替)',
+    'search.clear_keyword': '清除关键词筛选 "{kw}"',
     'level.prefix': '层级',
     'level.roles_count_one': '{n} 个角色',
     'level.roles_count_other': '{n} 个角色',
@@ -10829,6 +11121,7 @@ const TRANSLATIONS = {
     'nav.org': '图表',
     'nav.active': '角色',
     'nav.persons': '人员',
+    'nav.search': '搜索',
     'nav.audit': '日志',
     'data.title': '备份 / 恢复配置',
     'data.tab_export': '↑ 导出',
@@ -12011,6 +12304,12 @@ function renderSidePanel() {
     return;
   }
 
+  if (State.activeTab === 'search') {
+    content.innerHTML = renderSidebarSearch();
+    attachSidebarSearchHandlers();
+    return;
+  }
+
   // Default: aktive Besetzung
   content.innerHTML = renderActiveList();
   attachActiveListHandlers();
@@ -12133,6 +12432,283 @@ function attachPersonsListHandlers() {
     });
   }
   attachPersonListItemHandlers();
+}
+
+/* =========================================================================
+   SIDEBAR SEARCH TAB (V2.1 step 6)
+   Ephemerer State, nicht persistiert. Reine Client-Side-Filterung über
+   State.config.persons. Treffer-Click oeffnet das Person-Edit-Modal.
+   ========================================================================= */
+const sidebarSearchState = {
+  query: '',
+  keywordFilters: [], // array of lowercased strings
+  availability: 'all', // 'all' | 'available' | 'absent'
+};
+
+let _sidebarSearchDebounce = null;
+
+function _filterSearchResults(opts) {
+  const persons = (State && State.config && Array.isArray(State.config.persons))
+    ? State.config.persons
+    : [];
+  const query = (opts.query || '').toLowerCase().trim();
+  const keywordFilters = (opts.keywordFilters || []).map(k => String(k).toLowerCase());
+  const availabilityFilter = opts.availability || 'all';
+  const unavail = (State && State.runtime && State.runtime.unavailable) ? State.runtime.unavailable : {};
+
+  return persons.filter(person => {
+    if (!person) return false;
+    const isUnavailable = !!unavail[person.id];
+
+    if (availabilityFilter === 'available' && isUnavailable) return false;
+    if (availabilityFilter === 'absent' && !isUnavailable) return false;
+
+    if (query) {
+      const nameMatch    = (person.name || '').toLowerCase().includes(query);
+      const keywordMatch = Array.isArray(person.keywords) && person.keywords.some(kw =>
+        String(kw || '').toLowerCase().includes(query)
+      );
+      const phoneMatch   = (person.phone || '').toLowerCase().includes(query);
+      const emailMatch   = (person.email || '').toLowerCase().includes(query);
+      if (!nameMatch && !keywordMatch && !phoneMatch && !emailMatch) return false;
+    }
+
+    if (keywordFilters.length > 0) {
+      const personKwLower = Array.isArray(person.keywords)
+        ? person.keywords.map(k => String(k || '').toLowerCase())
+        : [];
+      for (const kwFilter of keywordFilters) {
+        if (!personKwLower.includes(kwFilter)) return false;
+      }
+    }
+
+    return true;
+  });
+}
+
+function renderSearchResultItem(person) {
+  const unavail = (State && State.runtime && State.runtime.unavailable) ? State.runtime.unavailable : {};
+  const isUnavailable = !!unavail[person.id];
+  // Filled circle for available, hollow for absent — not just color (a11y)
+  const statusIcon = isUnavailable ? '○' : '●';
+  const statusClass = isUnavailable ? 'is-absent' : 'is-available';
+
+  // Roles: rank 0 = Primary, >0 = Substitute
+  const personRoles = [];
+  (State.config.levels || []).forEach(level => {
+    (level.roles || []).forEach(role => {
+      (role.assignments || []).forEach(asg => {
+        if (asg && asg.personId === person.id) {
+          personRoles.push({
+            roleName: role.name || '',
+            rank: typeof asg.rank === 'number' ? asg.rank : 0,
+          });
+        }
+      });
+    });
+  });
+  personRoles.sort((a, b) => a.rank - b.rank);
+
+  const personPools = Array.isArray(State.config.pools)
+    ? State.config.pools.filter(p => p && Array.isArray(p.memberIds) && p.memberIds.includes(person.id))
+    : [];
+
+  const keywordsHTML = (Array.isArray(person.keywords) && person.keywords.length > 0)
+    ? `<div class="search-result-keywords">${
+        person.keywords.map(kw => `<span class="search-result-kw-mini">${escapeHTML(String(kw))}</span>`).join('')
+      }</div>`
+    : '';
+
+  const rolesHTML = personRoles.length > 0
+    ? `<div class="search-result-roles">${
+        personRoles.map(r => {
+          const marker = r.rank === 0
+            ? escapeHTML(t('search.role_primary_marker'))
+            : escapeHTML(t('search.role_sub_marker'));
+          return `<span class="search-result-role">${escapeHTML(r.roleName)} ${marker}</span>`;
+        }).join('')
+      }</div>`
+    : '';
+
+  const poolsHTML = personPools.length > 0
+    ? `<div class="search-result-pools"><span class="search-result-pools-label">${escapeHTML(t('search.pools_label'))}:</span> ${
+        personPools.map(p => `<span class="search-result-pool">${escapeHTML(p.name || '')}</span>`).join('')
+      }</div>`
+    : '';
+
+  return `
+    <div class="search-result-item"
+         data-person-id="${escapeHTML(String(person.id))}"
+         data-action="search-open-person"
+         role="button"
+         tabindex="0"
+         aria-label="${escapeHTML(person.name || '')}">
+      <div class="search-result-header">
+        <span class="search-result-status ${statusClass}" aria-hidden="true">${statusIcon}</span>
+        <span class="search-result-name">${escapeHTML(person.name || '')}</span>
+      </div>
+      ${keywordsHTML}
+      ${rolesHTML}
+      ${poolsHTML}
+    </div>
+  `;
+}
+
+function renderSearchKeywordCloud(activeFilters) {
+  let all = [];
+  try { all = Storage.getAllKeywords(); }
+  catch (e) { all = []; }
+  if (all.length === 0) {
+    return `<p class="cloud-empty">${escapeHTML(t('search.no_keywords'))}</p>`;
+  }
+  return all.map(kw => {
+    const isActive = activeFilters.includes(String(kw).toLowerCase());
+    return `<button type="button"
+              class="keyword-cloud-chip${isActive ? ' is-active' : ''}"
+              data-action="search-toggle-keyword"
+              data-keyword="${escapeHTML(String(kw))}">${escapeHTML(String(kw))}</button>`;
+  }).join('');
+}
+
+function renderSearchActiveTagChips(activeFilters) {
+  if (activeFilters.length === 0) return '';
+  return activeFilters.map(kw => `
+    <span class="search-active-tag" data-action="search-clear-keyword" data-keyword="${escapeHTML(kw)}" role="button" tabindex="0"
+          aria-label="${escapeHTML(t('search.clear_keyword', { kw: kw }))}">
+      ${escapeHTML(kw)}<span class="search-active-tag-x" aria-hidden="true">×</span>
+    </span>
+  `).join('');
+}
+
+function renderSidebarSearch() {
+  const s = sidebarSearchState;
+  const results = _filterSearchResults(s);
+
+  const filterBtn = (id, labelKey) => `
+    <button type="button"
+            class="search-filter-btn"
+            data-action="search-filter"
+            data-filter="${escapeHTML(id)}"
+            ${s.availability === id ? 'data-active="true"' : ''}>
+      ${escapeHTML(t(labelKey))}
+    </button>
+  `;
+
+  const resultsHTML = results.length === 0
+    ? `<div class="sidebar-search-empty">${escapeHTML(t('search.no_results'))}</div>`
+    : results.map(renderSearchResultItem).join('');
+
+  const countLabel = escapeHTML(t('search.results_count', { n: results.length }));
+
+  const activeTagsHTML = renderSearchActiveTagChips(s.keywordFilters);
+  const cloudHTML = renderSearchKeywordCloud(s.keywordFilters);
+
+  return `
+    <div class="sidebar-search">
+      <p class="sidebar-search-hint">${escapeHTML(t('search.intro'))}</p>
+      <div class="sidebar-search-input-row">
+        <input type="text"
+               id="sidebar-search-input"
+               class="sidebar-search-input"
+               data-search-input
+               placeholder="${escapeHTML(t('search.placeholder'))}"
+               value="${escapeHTML(s.query)}"
+               autocomplete="off"
+               aria-label="${escapeHTML(t('search.placeholder'))}" />
+      </div>
+      <div class="sidebar-search-filters" role="group" aria-label="${escapeHTML(t('search.filter_group_label'))}">
+        ${filterBtn('all',       'search.filter_all')}
+        ${filterBtn('available', 'search.filter_available')}
+        ${filterBtn('absent',    'search.filter_absent')}
+      </div>
+      ${activeTagsHTML ? `<div class="sidebar-search-tags" data-search-tags>${activeTagsHTML}</div>` : ''}
+      <details class="sidebar-search-keyword-cloud" ${s.keywordFilters.length > 0 ? 'open' : ''}>
+        <summary>${escapeHTML(t('search.show_keywords'))}</summary>
+        <div class="keyword-cloud-grid" data-keyword-cloud>${cloudHTML}</div>
+      </details>
+      <div class="sidebar-search-count" data-search-count>${countLabel}</div>
+      <div class="sidebar-search-results" data-search-results>${resultsHTML}</div>
+    </div>
+  `;
+}
+
+function renderSidebarSearchInline() {
+  // Re-render only the dynamic parts so the input keeps focus + caret.
+  const content = document.getElementById('panel-content');
+  if (!content) return;
+  const s = sidebarSearchState;
+  const results = _filterSearchResults(s);
+
+  // Update filter-button active states
+  content.querySelectorAll('.search-filter-btn').forEach(btn => {
+    if (btn.dataset.filter === s.availability) btn.dataset.active = 'true';
+    else btn.removeAttribute('data-active');
+  });
+
+  // Update keyword cloud
+  const cloud = content.querySelector('[data-keyword-cloud]');
+  if (cloud) cloud.innerHTML = renderSearchKeywordCloud(s.keywordFilters);
+
+  // Update active-tags row (insert/remove)
+  let tagsEl = content.querySelector('[data-search-tags]');
+  const activeTagsHTML = renderSearchActiveTagChips(s.keywordFilters);
+  if (activeTagsHTML) {
+    if (!tagsEl) {
+      tagsEl = document.createElement('div');
+      tagsEl.className = 'sidebar-search-tags';
+      tagsEl.setAttribute('data-search-tags', '');
+      const filterRow = content.querySelector('.sidebar-search-filters');
+      if (filterRow && filterRow.parentNode) filterRow.parentNode.insertBefore(tagsEl, filterRow.nextSibling);
+    }
+    tagsEl.innerHTML = activeTagsHTML;
+  } else if (tagsEl) {
+    tagsEl.remove();
+  }
+
+  // Update count label
+  const countEl = content.querySelector('[data-search-count]');
+  if (countEl) countEl.textContent = t('search.results_count', { n: results.length });
+
+  // Update results
+  const resultsEl = content.querySelector('[data-search-results]');
+  if (resultsEl) {
+    resultsEl.innerHTML = results.length === 0
+      ? `<div class="sidebar-search-empty">${escapeHTML(t('search.no_results'))}</div>`
+      : results.map(renderSearchResultItem).join('');
+  }
+}
+
+function searchToggleKeyword(kw) {
+  if (!kw) return;
+  const lc = String(kw).toLowerCase();
+  const idx = sidebarSearchState.keywordFilters.indexOf(lc);
+  if (idx >= 0) sidebarSearchState.keywordFilters.splice(idx, 1);
+  else sidebarSearchState.keywordFilters.push(lc);
+  renderSidebarSearchInline();
+}
+
+function attachSidebarSearchHandlers() {
+  const input = document.getElementById('sidebar-search-input');
+  if (input) {
+    input.addEventListener('input', (e) => {
+      const val = e.target.value;
+      if (_sidebarSearchDebounce) clearTimeout(_sidebarSearchDebounce);
+      _sidebarSearchDebounce = setTimeout(() => {
+        sidebarSearchState.query = val;
+        renderSidebarSearchInline();
+      }, 200);
+    });
+  }
+  // Keyboard support for result items (Enter/Space)
+  document.querySelectorAll('.search-result-item').forEach(item => {
+    item.addEventListener('keydown', (e) => {
+      if (e.target !== item) return;
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        if (item.dataset.personId) openEditPersonModal(item.dataset.personId);
+      }
+    });
+  });
 }
 
 // Rendert nur die Liste + Empty-Message neu, damit Filter-Input-Fokus erhalten bleibt
@@ -12579,13 +13155,21 @@ const CLICK_HANDLERS = {
   // Side-Panel-Tabs
   'tab-active':  () => switchTab('active'),
   'tab-persons': () => switchTab('persons'),
+  'tab-search':  () => switchTab('search'),
   'tab-audit':   () => switchTab('audit'),
 
   // Mobile Bottom-Nav (nur auf Phone sichtbar)
   'mobile-nav-org':     () => setMobileView('org'),
   'mobile-nav-active':  () => { setMobileView('panel'); switchTab('active'); },
   'mobile-nav-persons': () => { setMobileView('panel'); switchTab('persons'); },
+  'mobile-nav-search':  () => { setMobileView('panel'); switchTab('search'); },
   'mobile-nav-audit':   () => { setMobileView('panel'); switchTab('audit'); },
+
+  // Search-Tab (V2.1 step 6)
+  'search-filter':          (el) => { sidebarSearchState.availability = el.dataset.filter || 'all'; renderSidebarSearchInline(); },
+  'search-toggle-keyword':  (el) => { searchToggleKeyword(el.dataset.keyword); },
+  'search-clear-keyword':   (el) => { searchToggleKeyword(el.dataset.keyword); },
+  'search-open-person':     (el) => { openEditPersonModal(el.dataset.personId); },
 
   // Org chart — Interaktion
   'open-person-detail': (el) => openPersonDetail(el.dataset.personId),
@@ -15098,6 +15682,8 @@ function applyLanguage(lang) {
   if (navActive) navActive.textContent = t('nav.active');
   const navPersons = document.getElementById('mobile-nav-label-persons');
   if (navPersons) navPersons.textContent = t('nav.persons');
+  const navSearch = document.getElementById('mobile-nav-label-search');
+  if (navSearch) navSearch.textContent = t('nav.search');
   const navAudit = document.getElementById('mobile-nav-label-audit');
   if (navAudit) navAudit.textContent = t('nav.audit');
   const langSel = document.getElementById('lang-select');
@@ -15109,9 +15695,11 @@ function applyLanguage(lang) {
   // Tabs
   const tActive  = document.getElementById('tab-label-active');
   const tPersons = document.getElementById('tab-label-persons');
+  const tSearch  = document.getElementById('tab-label-search');
   const tAudit   = document.getElementById('tab-label-audit');
   if (tActive)  tActive.textContent  = t('tabs.occupancy');
   if (tPersons) tPersons.textContent = t('tabs.persons');
+  if (tSearch)  tSearch.textContent  = t('sidebar.tab_search');
   if (tAudit)   tAudit.textContent   = t('tabs.log');
 
   // Neu rendern damit alles die neue Sprache bekommt
@@ -15969,7 +16557,7 @@ function updateMobileNavUI() {
   const activeId = view === 'org'
     ? 'mobile-nav-org'
     : 'mobile-nav-' + tab;
-  ['mobile-nav-org', 'mobile-nav-active', 'mobile-nav-persons', 'mobile-nav-audit'].forEach(id => {
+  ['mobile-nav-org', 'mobile-nav-active', 'mobile-nav-persons', 'mobile-nav-search', 'mobile-nav-audit'].forEach(id => {
     const btn = document.getElementById(id);
     if (btn) btn.dataset.active = (id === activeId) ? 'true' : 'false';
   });
