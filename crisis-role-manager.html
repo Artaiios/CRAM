@@ -3048,6 +3048,215 @@ button:focus-visible,
   }
 }
 
+/* ---- V2.1 step 3: Settings-Tab "Pools" + Pool-Edit-Modal ---- */
+.pools-migration-banner {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-bg);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--text-primary);
+}
+.pools-migration-banner strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+.pools-migration-banner-body {
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+.pools-migration-banner-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.pools-migration-banner-actions button {
+  font-size: 11px;
+  padding: 4px 10px;
+}
+.pools-migration-banner-actions .btn-ghost {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-radius: var(--radius-sm);
+}
+.pools-migration-banner-actions .btn-ghost:hover {
+  color: var(--text-primary);
+}
+
+.pools-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+.pool-list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+.pool-list-meta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.pool-list-meta strong {
+  font-size: 13px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pool-list-lead,
+.pool-list-members {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  letter-spacing: 0.03em;
+}
+.pool-list-lead-unassigned {
+  color: var(--text-dim);
+  font-style: italic;
+}
+.pool-list-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.pool-list-actions button {
+  font-size: 11px;
+  padding: 4px 10px;
+}
+.pools-section-title {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-top: 16px;
+  margin-bottom: 6px;
+}
+.pools-empty {
+  padding: 16px;
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 13px;
+  text-align: center;
+}
+.pools-new-btn-row {
+  margin-top: 12px;
+  display: flex;
+}
+
+/* Pool-Edit-Modal (1-spaltig vertikal, Q5) */
+.pool-edit-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.pool-edit-modal .form-field {
+  gap: 4px;
+}
+.pool-member-picker {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-base);
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 6px 8px;
+}
+.pool-member-search {
+  margin-bottom: 6px;
+}
+.pool-member-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.pool-member-row:last-child { border-bottom: none; }
+.pool-member-row input[type="checkbox"] {
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.pool-member-row.is-absent {
+  color: var(--text-secondary);
+}
+.pool-member-empty {
+  padding: 12px 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+.pool-edit-advanced-toggle {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 4px 0;
+  text-align: left;
+}
+.pool-edit-advanced-toggle:hover { color: var(--text-primary); }
+.pool-edit-secondary-leads {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-base);
+  max-height: 160px;
+  overflow-y: auto;
+  padding: 6px 8px;
+}
+.pool-secondary-lead-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+@media (max-width: 600px) {
+  .pools-migration-banner-actions button,
+  .pools-migration-banner-actions .btn-ghost,
+  .pool-list-actions button,
+  .pools-new-btn-row button,
+  .pool-edit-modal button,
+  .pool-edit-advanced-toggle,
+  .pool-edit-modal .form-input,
+  .pool-edit-modal .form-select,
+  .pool-edit-modal .form-textarea,
+  .pool-member-row,
+  .pool-secondary-lead-row {
+    min-height: 44px;
+  }
+  .pool-list-actions button,
+  .pools-migration-banner-actions button {
+    padding: 10px 14px;
+    font-size: 12px;
+  }
+}
+
 /* ---- Sync-Modal Online-Tab (V1.2 → V1.3 Karten-Layout) ---- */
 .sync-online-list {
   display: flex;
@@ -7601,7 +7810,45 @@ const TRANSLATIONS = {
     'settings.about_license': 'Lizenz',
     'settings.tab_general': 'Allgemein',
     'settings.tab_sync': 'Sync-Sources',
+    'settings.tab_pools': 'Pools',
     'settings.tab_about': 'Info',
+    // V2.1 step 3: Settings-Tab "Pools"
+    'settings.pools.intro': 'Pools sind Mitarbeiter-Gruppen, die einer Lead-Rolle zugeordnet sind. Pool-Mitglieder können Stellvertreter für den Lead sein und tragen ihre Schwerpunktthemen als Keywords.',
+    'settings.pools.empty_state': 'Noch keine Pools. Lege deinen ersten an.',
+    'settings.pools.list_lead_label': 'Pool für: {name}',
+    'settings.pools.list_lead_unassigned': 'Pool ohne Lead',
+    'settings.pools.list_members_label': '{n} Mitglieder',
+    'settings.pools.list_members_label_one': '1 Mitglied',
+    'settings.pools.unassigned_section': 'Pools ohne Lead',
+    'settings.pools.btn_new': '+ Neuen Pool anlegen',
+    'settings.pools.btn_edit': 'Bearbeiten',
+    'settings.pools.btn_delete': 'Löschen',
+    'settings.pools.delete_confirm': 'Pool „{name}" wirklich löschen? Die Mitglieder bleiben als Personen erhalten.',
+    'settings.pools.modal_title_create': 'Neuen Pool anlegen',
+    'settings.pools.modal_title_edit': 'Pool bearbeiten',
+    'settings.pools.field_name': 'Name',
+    'settings.pools.field_name_placeholder': 'z.B. Forensik-Team',
+    'settings.pools.field_lead': 'Lead-Rolle',
+    'settings.pools.field_lead_unassigned': 'Unassigned (kein Lead)',
+    'settings.pools.field_members': 'Mitglieder',
+    'settings.pools.field_members_search': 'Personen suchen…',
+    'settings.pools.field_members_empty': 'Keine Personen vorhanden.',
+    'settings.pools.field_members_no_matches': 'Keine Treffer.',
+    'settings.pools.field_notes': 'Notizen (optional)',
+    'settings.pools.field_notes_placeholder': 'Zweck, Verantwortlichkeiten, Hinweise…',
+    'settings.pools.field_secondary_leads': 'Sekundäre Leads (optional)',
+    'settings.pools.field_secondary_leads_empty': 'Keine weiteren Rollen verfügbar.',
+    'settings.pools.advanced_toggle': 'Erweiterte Optionen',
+    'settings.pools.btn_save': 'Speichern',
+    'settings.pools.btn_cancel': 'Abbrechen',
+    'settings.pools.validation_name_required': 'Name darf nicht leer sein.',
+    'settings.pools.toast_created': 'Pool angelegt.',
+    'settings.pools.toast_updated': 'Pool gespeichert.',
+    'settings.pools.toast_deleted': 'Pool gelöscht.',
+    'settings.pools.migration_banner_title': 'Team-Pools sind neu',
+    'settings.pools.migration_banner_body': 'Du kannst jetzt Mitarbeiter-Pools je Lead-Rolle anlegen, mit freien Keywords zur Suche nach Schwerpunktthemen.',
+    'settings.pools.migration_banner_cta_create': 'Ersten Pool anlegen',
+    'settings.pools.migration_banner_dismiss': 'Verstanden',
     'settings.sync_intro': 'Sync-Sources sind Endpunkte, gegen die manuell synchronisiert werden kann. V1.2 unterstützt HTTP(S)-Backends; weitere Backend-Typen folgen.',
     'settings.sync_no_sources': 'Keine Sync-Sources konfiguriert.',
     'sync.migration_banner.title': 'Auto-Sync ist neu',
@@ -8178,7 +8425,45 @@ const TRANSLATIONS = {
     'settings.about_license': 'License',
     'settings.tab_general': 'General',
     'settings.tab_sync': 'Sync sources',
+    'settings.tab_pools': 'Pools',
     'settings.tab_about': 'About',
+    // V2.1 step 3: Settings tab "Pools"
+    'settings.pools.intro': 'Pools are groups of staff attached to a lead role. Pool members can stand in for the lead and carry their focus topics as keywords.',
+    'settings.pools.empty_state': 'No pools yet. Create your first one.',
+    'settings.pools.list_lead_label': 'pool of: {name}',
+    'settings.pools.list_lead_unassigned': 'pool without lead',
+    'settings.pools.list_members_label': '{n} members',
+    'settings.pools.list_members_label_one': '1 member',
+    'settings.pools.unassigned_section': 'Pools without a lead',
+    'settings.pools.btn_new': '+ New pool',
+    'settings.pools.btn_edit': 'Edit',
+    'settings.pools.btn_delete': 'Delete',
+    'settings.pools.delete_confirm': 'Delete pool "{name}"? Members remain as persons.',
+    'settings.pools.modal_title_create': 'Create new pool',
+    'settings.pools.modal_title_edit': 'Edit pool',
+    'settings.pools.field_name': 'Name',
+    'settings.pools.field_name_placeholder': 'e.g. Forensics team',
+    'settings.pools.field_lead': 'Lead role',
+    'settings.pools.field_lead_unassigned': 'Unassigned (no lead)',
+    'settings.pools.field_members': 'Members',
+    'settings.pools.field_members_search': 'Search persons…',
+    'settings.pools.field_members_empty': 'No persons available.',
+    'settings.pools.field_members_no_matches': 'No matches.',
+    'settings.pools.field_notes': 'Notes (optional)',
+    'settings.pools.field_notes_placeholder': 'Purpose, responsibilities, notes…',
+    'settings.pools.field_secondary_leads': 'Secondary leads (optional)',
+    'settings.pools.field_secondary_leads_empty': 'No other roles available.',
+    'settings.pools.advanced_toggle': 'Advanced options',
+    'settings.pools.btn_save': 'Save',
+    'settings.pools.btn_cancel': 'Cancel',
+    'settings.pools.validation_name_required': 'Name cannot be empty.',
+    'settings.pools.toast_created': 'Pool created.',
+    'settings.pools.toast_updated': 'Pool saved.',
+    'settings.pools.toast_deleted': 'Pool deleted.',
+    'settings.pools.migration_banner_title': 'Team pools are new',
+    'settings.pools.migration_banner_body': 'You can now create staff pools per lead role, with free-form keywords to search by focus topic.',
+    'settings.pools.migration_banner_cta_create': 'Create first pool',
+    'settings.pools.migration_banner_dismiss': 'Got it',
     'settings.sync_intro': 'Sync sources are endpoints you can manually synchronise against. V1.2 supports HTTP(S) backends; more backend types follow.',
     'settings.sync_no_sources': 'No sync sources configured.',
     'sync.migration_banner.title': 'Auto-sync is new',
@@ -8754,7 +9039,45 @@ const TRANSLATIONS = {
     'settings.about_license': 'Licencia',
     'settings.tab_general': 'General',
     'settings.tab_sync': 'Fuentes de sync.',
+    'settings.tab_pools': 'Grupos',
     'settings.tab_about': 'Acerca de',
+    // V2.1 step 3: pestaña de configuración "Grupos"
+    'settings.pools.intro': 'Los grupos son conjuntos de personas asociados a un rol líder. Los miembros pueden sustituir al líder y aportan sus temas clave como keywords.',
+    'settings.pools.empty_state': 'Aún no hay grupos. Crea el primero.',
+    'settings.pools.list_lead_label': 'grupo de: {name}',
+    'settings.pools.list_lead_unassigned': 'grupo sin líder',
+    'settings.pools.list_members_label': '{n} miembros',
+    'settings.pools.list_members_label_one': '1 miembro',
+    'settings.pools.unassigned_section': 'Grupos sin líder',
+    'settings.pools.btn_new': '+ Nuevo grupo',
+    'settings.pools.btn_edit': 'Editar',
+    'settings.pools.btn_delete': 'Eliminar',
+    'settings.pools.delete_confirm': '¿Eliminar el grupo «{name}»? Los miembros se conservan como personas.',
+    'settings.pools.modal_title_create': 'Crear nuevo grupo',
+    'settings.pools.modal_title_edit': 'Editar grupo',
+    'settings.pools.field_name': 'Nombre',
+    'settings.pools.field_name_placeholder': 'p. ej. Equipo de forense',
+    'settings.pools.field_lead': 'Rol líder',
+    'settings.pools.field_lead_unassigned': 'Sin asignar (sin líder)',
+    'settings.pools.field_members': 'Miembros',
+    'settings.pools.field_members_search': 'Buscar personas…',
+    'settings.pools.field_members_empty': 'No hay personas disponibles.',
+    'settings.pools.field_members_no_matches': 'Sin coincidencias.',
+    'settings.pools.field_notes': 'Notas (opcional)',
+    'settings.pools.field_notes_placeholder': 'Propósito, responsabilidades, notas…',
+    'settings.pools.field_secondary_leads': 'Líderes secundarios (opcional)',
+    'settings.pools.field_secondary_leads_empty': 'No hay otros roles disponibles.',
+    'settings.pools.advanced_toggle': 'Opciones avanzadas',
+    'settings.pools.btn_save': 'Guardar',
+    'settings.pools.btn_cancel': 'Cancelar',
+    'settings.pools.validation_name_required': 'El nombre no puede estar vacío.',
+    'settings.pools.toast_created': 'Grupo creado.',
+    'settings.pools.toast_updated': 'Grupo guardado.',
+    'settings.pools.toast_deleted': 'Grupo eliminado.',
+    'settings.pools.migration_banner_title': 'Los grupos de equipo son nuevos',
+    'settings.pools.migration_banner_body': 'Ahora puedes crear grupos de personas por rol líder, con keywords libres para buscar por tema.',
+    'settings.pools.migration_banner_cta_create': 'Crear el primer grupo',
+    'settings.pools.migration_banner_dismiss': 'Entendido',
     'settings.sync_intro': 'Las fuentes de sincronización son endpoints contra los que puede sincronizar manualmente. V1.2 admite backends HTTP(S); seguirán más tipos.',
     'settings.sync_no_sources': 'Ninguna fuente configurada.',
     'sync.migration_banner.title': 'La sincronización automática es nueva',
@@ -9331,7 +9654,45 @@ const TRANSLATIONS = {
     'settings.about_license': 'Licence',
     'settings.tab_general': 'Général',
     'settings.tab_sync': 'Sources de sync.',
+    'settings.tab_pools': 'Pools',
     'settings.tab_about': 'À propos',
+    // V2.1 step 3: onglet « Pools »
+    'settings.pools.intro': 'Les pools sont des groupes de collaborateurs rattachés à un rôle responsable. Les membres peuvent remplacer le responsable et portent leurs domaines comme mots-clés.',
+    'settings.pools.empty_state': 'Aucun pool pour l’instant. Créez le premier.',
+    'settings.pools.list_lead_label': 'pool de : {name}',
+    'settings.pools.list_lead_unassigned': 'pool sans responsable',
+    'settings.pools.list_members_label': '{n} membres',
+    'settings.pools.list_members_label_one': '1 membre',
+    'settings.pools.unassigned_section': 'Pools sans responsable',
+    'settings.pools.btn_new': '+ Nouveau pool',
+    'settings.pools.btn_edit': 'Modifier',
+    'settings.pools.btn_delete': 'Supprimer',
+    'settings.pools.delete_confirm': 'Supprimer le pool « {name} » ? Les membres restent comme personnes.',
+    'settings.pools.modal_title_create': 'Créer un nouveau pool',
+    'settings.pools.modal_title_edit': 'Modifier le pool',
+    'settings.pools.field_name': 'Nom',
+    'settings.pools.field_name_placeholder': 'ex. Équipe forensic',
+    'settings.pools.field_lead': 'Rôle responsable',
+    'settings.pools.field_lead_unassigned': 'Non attribué (pas de responsable)',
+    'settings.pools.field_members': 'Membres',
+    'settings.pools.field_members_search': 'Rechercher des personnes…',
+    'settings.pools.field_members_empty': 'Aucune personne disponible.',
+    'settings.pools.field_members_no_matches': 'Aucun résultat.',
+    'settings.pools.field_notes': 'Notes (facultatif)',
+    'settings.pools.field_notes_placeholder': 'Objet, responsabilités, remarques…',
+    'settings.pools.field_secondary_leads': 'Responsables secondaires (facultatif)',
+    'settings.pools.field_secondary_leads_empty': 'Aucun autre rôle disponible.',
+    'settings.pools.advanced_toggle': 'Options avancées',
+    'settings.pools.btn_save': 'Enregistrer',
+    'settings.pools.btn_cancel': 'Annuler',
+    'settings.pools.validation_name_required': 'Le nom ne peut pas être vide.',
+    'settings.pools.toast_created': 'Pool créé.',
+    'settings.pools.toast_updated': 'Pool enregistré.',
+    'settings.pools.toast_deleted': 'Pool supprimé.',
+    'settings.pools.migration_banner_title': 'Les pools d’équipe sont nouveaux',
+    'settings.pools.migration_banner_body': 'Vous pouvez désormais créer des pools de collaborateurs par rôle responsable, avec des mots-clés libres pour rechercher par thème.',
+    'settings.pools.migration_banner_cta_create': 'Créer le premier pool',
+    'settings.pools.migration_banner_dismiss': 'Compris',
     'settings.sync_intro': 'Les sources de synchronisation sont des points d’accès contre lesquels vous pouvez synchroniser manuellement. La V1.2 prend en charge les backends HTTP(S); d’autres types suivront.',
     'settings.sync_no_sources': 'Aucune source configurée.',
     'sync.migration_banner.title': 'La synchronisation automatique est nouvelle',
@@ -9909,7 +10270,45 @@ const TRANSLATIONS = {
     'settings.about_license': '许可证',
     'settings.tab_general': '常规',
     'settings.tab_sync': '同步源',
+    'settings.tab_pools': '池',
     'settings.tab_about': '关于',
+    // V2.1 step 3: 设置 "池" 选项卡 (TODO: ZH translations are best-effort, native-speaker review pending)
+    'settings.pools.intro': '池是分配给主管角色的员工组。池成员可作为主管的替代者，并以关键词记录其专长。',
+    'settings.pools.empty_state': '尚无池。请创建第一个。',
+    'settings.pools.list_lead_label': '所属池：{name}',
+    'settings.pools.list_lead_unassigned': '无主管的池',
+    'settings.pools.list_members_label': '{n} 名成员',
+    'settings.pools.list_members_label_one': '1 名成员',
+    'settings.pools.unassigned_section': '无主管的池',
+    'settings.pools.btn_new': '+ 新建池',
+    'settings.pools.btn_edit': '编辑',
+    'settings.pools.btn_delete': '删除',
+    'settings.pools.delete_confirm': '确认删除池「{name}」？成员将保留为人员。',
+    'settings.pools.modal_title_create': '新建池',
+    'settings.pools.modal_title_edit': '编辑池',
+    'settings.pools.field_name': '名称',
+    'settings.pools.field_name_placeholder': '例如：取证团队',
+    'settings.pools.field_lead': '主管角色',
+    'settings.pools.field_lead_unassigned': '未分配（无主管）',
+    'settings.pools.field_members': '成员',
+    'settings.pools.field_members_search': '搜索人员…',
+    'settings.pools.field_members_empty': '无可用人员。',
+    'settings.pools.field_members_no_matches': '无匹配项。',
+    'settings.pools.field_notes': '备注（可选）',
+    'settings.pools.field_notes_placeholder': '目的、职责、备注…',
+    'settings.pools.field_secondary_leads': '次要主管（可选）',
+    'settings.pools.field_secondary_leads_empty': '无其他可用角色。',
+    'settings.pools.advanced_toggle': '高级选项',
+    'settings.pools.btn_save': '保存',
+    'settings.pools.btn_cancel': '取消',
+    'settings.pools.validation_name_required': '名称不能为空。',
+    'settings.pools.toast_created': '已创建池。',
+    'settings.pools.toast_updated': '已保存池。',
+    'settings.pools.toast_deleted': '已删除池。',
+    'settings.pools.migration_banner_title': '团队池是新功能',
+    'settings.pools.migration_banner_body': '您现在可以按主管角色创建员工池，并使用自由关键词按专长进行搜索。',
+    'settings.pools.migration_banner_cta_create': '创建第一个池',
+    'settings.pools.migration_banner_dismiss': '知道了',
     'settings.sync_intro': '同步源是可以手动同步的端点。V1.2 支持 HTTP(S) 后端；后续会增加更多类型。',
     'settings.sync_no_sources': '未配置同步源。',
     /* V2.0 step 1: ZH translations are best-effort; needs a native speaker review (cram-ux-reviewer). */
@@ -11912,6 +12311,20 @@ const CLICK_HANDLERS = {
   'sync-auto-retry-push':       (el) => syncAutoRetryPush(el.dataset.sourceId),
   'sync-auto-discard-push':     (el) => syncAutoDiscardPush(el.dataset.sourceId),
   'sync-auto-enter-passphrase': (el) => syncAutoEnterPassphrase(el.dataset.sourceId),
+
+  // V2.1 step 3: Settings-Tab "Pools" + Pool-Edit-Modal.
+  'pool-new':                       () => poolNew(),
+  'pool-edit':                      (el) => poolEdit(el.dataset.poolId),
+  'pool-delete':                    (el) => poolDelete(el.dataset.poolId),
+  'pool-save':                      () => poolSave(),
+  'pool-cancel':                    () => poolCancel(),
+  // Member-Toggle: data-action sitzt auf der Checkbox selbst, el.checked
+  // spiegelt den neuen Zustand (Browser-Order: state flip vor click-listener).
+  'pool-member-toggle':             (el) => poolMemberToggle(el.dataset.personId, !!el.checked),
+  'pool-secondary-toggle':          (el) => poolSecondaryToggle(el.dataset.roleId, !!el.checked),
+  'pool-advanced-toggle':           () => poolAdvancedToggle(),
+  'pool-migration-banner-dismiss':  () => poolMigrationBannerDismiss(),
+  'pool-migration-banner-cta':      () => poolMigrationBannerCta(),
 };
 
 // V2.0 Schritt 6: Toast-Actions enthalten Source-IDs als Suffix
@@ -16009,12 +16422,22 @@ let settingsState = {
   // V2.0 Schritt 5: expandedAccordions ist nur RAM, nicht persistiert.
   // Set<sourceId>: welche Auto-Sync-Akkordeons sind aktuell aufgeklappt.
   expandedAccordions: new Set(),
+  // V2.1 step 3: Pool-Edit-Form (inline im Pools-Tab).
+  // poolFormMode: 'create' | 'edit' | null
+  // poolFormDraft: { id?, name, leadRoleId, memberIds, notes, secondaryLeadRoleIds }
+  // poolMemberFilter: live-Filterstring im Member-Picker
+  // poolFormAdvancedOpen: bool — sekundäre Leads-Sektion aufgeklappt
+  poolFormMode: null,
+  poolFormDraft: null,
+  poolMemberFilter: '',
+  poolFormAdvancedOpen: false,
 };
 
 function openSettingsModal() {
   settingsState = {
     activeTab: 'general', editingSourceId: null, formMode: null, formSourceType: null,
     expandedAccordions: new Set(),
+    poolFormMode: null, poolFormDraft: null, poolMemberFilter: '', poolFormAdvancedOpen: false,
   };
   renderSettingsModal();
 }
@@ -16024,6 +16447,11 @@ function switchSettingsTab(tab) {
   settingsState.editingSourceId = null;
   settingsState.formMode = null;
   settingsState.formSourceType = null;
+  // V2.1 step 3: Pool-Form beim Tab-Wechsel auch verwerfen.
+  settingsState.poolFormMode = null;
+  settingsState.poolFormDraft = null;
+  settingsState.poolMemberFilter = '';
+  settingsState.poolFormAdvancedOpen = false;
   delete settingsState._pendingDirHandle;
   delete settingsState._pendingDirName;
   renderSettingsModal();
@@ -16039,6 +16467,9 @@ function renderSettingsModal() {
   const tabs = [
     { id: 'general', label: t('settings.tab_general') },
     { id: 'sync',    label: t('settings.tab_sync') },
+    // V2.1 step 3: Pools-Tab zwischen Sync-Sources und About — logisch
+    // konfigurations-nah, aber Pool-spezifisch.
+    { id: 'pools',   label: t('settings.tab_pools') },
     { id: 'about',   label: t('settings.tab_about') },
   ];
 
@@ -16056,17 +16487,24 @@ function renderSettingsModal() {
   let panelHTML;
   if (settingsState.activeTab === 'general')      panelHTML = renderSettingsGeneral();
   else if (settingsState.activeTab === 'sync')    panelHTML = renderSettingsSync();
+  else if (settingsState.activeTab === 'pools')   panelHTML = renderSettingsPools();
   else                                            panelHTML = renderSettingsAbout();
 
   body.innerHTML = tabsHTML + '<div class="settings-panel">' + panelHTML + '</div>';
 
   // Footer per Tab:
   // - 'general' hat Save-Button (für Org-Name / Print-Title)
-  // - 'sync' und 'about' sind self-contained / read-only → nur Close
+  // - 'pools' + poolFormMode: Save/Cancel für Pool-Edit-Modal (inline-Form)
+  // - 'sync' und 'about' und 'pools' (list-mode) sind self-contained → nur Close
   if (settingsState.activeTab === 'general') {
     footer.innerHTML = `
       <button class="btn-secondary" data-action="modal-cancel">${escapeHTML(t('btn.cancel'))}</button>
       <button class="btn-primary" data-action="settings-save">${escapeHTML(t('settings.save'))}</button>
+    `;
+  } else if (settingsState.activeTab === 'pools' && settingsState.poolFormMode) {
+    footer.innerHTML = `
+      <button class="btn-secondary" data-action="pool-cancel">${escapeHTML(t('settings.pools.btn_cancel'))}</button>
+      <button class="btn-primary" data-action="pool-save">${escapeHTML(t('settings.pools.btn_save'))}</button>
     `;
   } else {
     footer.innerHTML = `
@@ -16108,6 +16546,21 @@ function renderSettingsModal() {
           syncAutoIntervalChange(el.dataset.sourceId, el.value);
         });
       });
+  } else if (settingsState.activeTab === 'pools' && settingsState.poolFormMode) {
+    // V2.1 step 3: Pool-Edit-Modal Bindings.
+    // - Name-Input: auto-focus
+    // - Member-Search: live-filter (re-render member-picker only to keep search focus)
+    setTimeout(() => {
+      const nameEl = document.getElementById('pool-edit-name');
+      if (nameEl) nameEl.focus();
+    }, 50);
+    const searchEl = document.getElementById('pool-member-search-input');
+    if (searchEl) {
+      searchEl.addEventListener('input', (e) => {
+        settingsState.poolMemberFilter = e.target.value || '';
+        renderPoolMemberPickerInline();
+      });
+    }
   }
 }
 
@@ -16642,6 +17095,474 @@ function renderSettingsAbout() {
       </div>
     </div>
   `;
+}
+
+/* =========================================================================
+   V2.1 step 3: Settings-Tab "Pools".
+   - Liste aller Pools mit Edit/Delete-Aktionen
+   - Migration-Banner (prefs.v21MigrationBannerPending)
+   - Inline-Pool-Edit-Form (1-spaltig vertikal, Q5)
+   - Storage: addPool/updatePool/removePool aus Schritt 2
+   Chart-Render-Integration ist Schritt 5 — Pools sind hier UI-only.
+   ========================================================================= */
+
+function _lookupRoleName(roleId) {
+  if (!roleId) return '';
+  const levels = (State.config && Array.isArray(State.config.levels)) ? State.config.levels : [];
+  for (const lvl of levels) {
+    if (!lvl || !Array.isArray(lvl.roles)) continue;
+    for (const r of lvl.roles) {
+      if (r && r.id === roleId) return r.name || '';
+    }
+  }
+  return '';
+}
+
+function _collectAllRoles() {
+  // Liefert flache [{id, name, levelName}]-Liste für Dropdowns.
+  const out = [];
+  const levels = (State.config && Array.isArray(State.config.levels)) ? State.config.levels : [];
+  for (const lvl of levels) {
+    if (!lvl || !Array.isArray(lvl.roles)) continue;
+    for (const r of lvl.roles) {
+      if (r && r.id) out.push({ id: r.id, name: r.name || '', levelName: lvl.name || '' });
+    }
+  }
+  return out;
+}
+
+function renderPoolsMigrationBanner() {
+  const prefs = State.prefs || {};
+  if (prefs.v21MigrationBannerPending !== true) return '';
+  return `
+    <div class="pools-migration-banner" role="status">
+      <strong>${escapeHTML(t('settings.pools.migration_banner_title'))}</strong>
+      <div class="pools-migration-banner-body">${escapeHTML(t('settings.pools.migration_banner_body'))}</div>
+      <div class="pools-migration-banner-actions">
+        <button class="btn-secondary" data-action="pool-migration-banner-cta">${escapeHTML(t('settings.pools.migration_banner_cta_create'))}</button>
+        <button class="btn-ghost" data-action="pool-migration-banner-dismiss">${escapeHTML(t('settings.pools.migration_banner_dismiss'))}</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderSettingsPools() {
+  // Falls Pool-Edit-Form aktiv ist, statt der Liste das Form anzeigen.
+  if (settingsState.poolFormMode) {
+    return renderPoolEditForm();
+  }
+
+  let html = renderPoolsMigrationBanner();
+  html += `<div class="sync-explain">${escapeHTML(t('settings.pools.intro'))}</div>`;
+
+  const pools = (State.config && Array.isArray(State.config.pools)) ? State.config.pools : [];
+
+  if (pools.length === 0) {
+    html += `<div class="pools-empty" style="margin-top: 12px;">${escapeHTML(t('settings.pools.empty_state'))}</div>`;
+  } else {
+    const assigned = pools.filter(p => p && p.leadRoleId);
+    const unassigned = pools.filter(p => p && !p.leadRoleId);
+
+    if (assigned.length > 0) {
+      html += '<div class="pools-list">';
+      html += assigned.map(renderPoolListItem).join('');
+      html += '</div>';
+    }
+
+    if (unassigned.length > 0) {
+      html += `<div class="pools-section-title">${escapeHTML(t('settings.pools.unassigned_section'))}</div>`;
+      html += '<div class="pools-list">';
+      html += unassigned.map(renderPoolListItem).join('');
+      html += '</div>';
+    }
+  }
+
+  html += `
+    <div class="pools-new-btn-row">
+      <button class="btn-secondary" data-action="pool-new">${escapeHTML(t('settings.pools.btn_new'))}</button>
+    </div>
+  `;
+
+  return html;
+}
+
+function renderPoolListItem(pool) {
+  if (!pool) return '';
+  const memberCount = Array.isArray(pool.memberIds) ? pool.memberIds.length : 0;
+  const leadName = pool.leadRoleId ? _lookupRoleName(pool.leadRoleId) : '';
+  const leadHTML = pool.leadRoleId && leadName
+    ? `<span class="pool-list-lead">${escapeHTML(t('settings.pools.list_lead_label', { name: leadName }))}</span>`
+    : `<span class="pool-list-lead pool-list-lead-unassigned">${escapeHTML(t('settings.pools.list_lead_unassigned'))}</span>`;
+  const membersLabel = memberCount === 1
+    ? t('settings.pools.list_members_label_one')
+    : t('settings.pools.list_members_label', { n: String(memberCount) });
+  return `
+    <div class="pool-list-item">
+      <div class="pool-list-meta">
+        <strong>${escapeHTML(pool.name || '')}</strong>
+        ${leadHTML}
+        <span class="pool-list-members">${escapeHTML(membersLabel)}</span>
+      </div>
+      <div class="pool-list-actions">
+        <button class="btn-secondary" data-action="pool-edit" data-pool-id="${escapeHTML(pool.id)}">${escapeHTML(t('settings.pools.btn_edit'))}</button>
+        <button class="btn-secondary" data-action="pool-delete" data-pool-id="${escapeHTML(pool.id)}">${escapeHTML(t('settings.pools.btn_delete'))}</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderPoolEditForm() {
+  const draft = settingsState.poolFormDraft || {};
+  const isEdit = settingsState.poolFormMode === 'edit';
+  const title = isEdit ? t('settings.pools.modal_title_edit') : t('settings.pools.modal_title_create');
+
+  const allRoles = _collectAllRoles();
+  // Lead-Dropdown
+  const leadOptions = allRoles.map(r => {
+    const sel = (draft.leadRoleId === r.id) ? ' selected' : '';
+    const label = r.levelName ? `${r.name} (${r.levelName})` : r.name;
+    return `<option value="${escapeHTML(r.id)}"${sel}>${escapeHTML(label)}</option>`;
+  }).join('');
+
+  // Sekundäre Leads: alle Rollen außer der primären Lead-Rolle
+  const secondaryIds = Array.isArray(draft.secondaryLeadRoleIds) ? draft.secondaryLeadRoleIds : [];
+  const secondaryRoles = allRoles.filter(r => r.id !== draft.leadRoleId);
+  const secondaryHTML = secondaryRoles.length === 0
+    ? `<div class="pool-member-empty">${escapeHTML(t('settings.pools.field_secondary_leads_empty'))}</div>`
+    : secondaryRoles.map(r => {
+        const checked = secondaryIds.indexOf(r.id) !== -1 ? ' checked' : '';
+        const label = r.levelName ? `${r.name} (${r.levelName})` : r.name;
+        return `
+          <label class="pool-secondary-lead-row">
+            <input type="checkbox" data-action="pool-secondary-toggle" data-role-id="${escapeHTML(r.id)}"${checked} />
+            <span>${escapeHTML(label)}</span>
+          </label>
+        `;
+      }).join('');
+
+  const advancedOpen = !!settingsState.poolFormAdvancedOpen;
+  // Wenn beim Edit bereits sekundäre Leads existieren, Sektion aufklappen.
+  const effectiveAdvancedOpen = advancedOpen || (isEdit && secondaryIds.length > 0);
+
+  return `
+    <div class="pool-edit-modal">
+      <div class="settings-about-row" style="margin-bottom: 4px;">
+        <strong style="font-size: 14px;">${escapeHTML(title)}</strong>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label" for="pool-edit-name">${escapeHTML(t('settings.pools.field_name'))}</label>
+        <input type="text" id="pool-edit-name" class="form-input"
+               maxlength="100"
+               value="${escapeHTML(draft.name || '')}"
+               placeholder="${escapeHTML(t('settings.pools.field_name_placeholder'))}"
+               autocomplete="off" />
+      </div>
+
+      <div class="form-field">
+        <label class="form-label" for="pool-edit-lead">${escapeHTML(t('settings.pools.field_lead'))}</label>
+        <select id="pool-edit-lead" class="form-select">
+          <option value=""${!draft.leadRoleId ? ' selected' : ''}>${escapeHTML(t('settings.pools.field_lead_unassigned'))}</option>
+          ${leadOptions}
+        </select>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label">${escapeHTML(t('settings.pools.field_members'))}</label>
+        ${renderPoolMemberPicker()}
+      </div>
+
+      <div class="form-field">
+        <label class="form-label" for="pool-edit-notes">${escapeHTML(t('settings.pools.field_notes'))}</label>
+        <textarea id="pool-edit-notes" class="form-textarea"
+                  maxlength="1000"
+                  placeholder="${escapeHTML(t('settings.pools.field_notes_placeholder'))}">${escapeHTML(draft.notes || '')}</textarea>
+      </div>
+
+      <button class="pool-edit-advanced-toggle" data-action="pool-advanced-toggle" type="button">
+        ${effectiveAdvancedOpen ? '▾' : '▸'} ${escapeHTML(t('settings.pools.advanced_toggle'))}
+      </button>
+
+      ${effectiveAdvancedOpen ? `
+        <div class="form-field">
+          <label class="form-label">${escapeHTML(t('settings.pools.field_secondary_leads'))}</label>
+          <div class="pool-edit-secondary-leads">
+            ${secondaryHTML}
+          </div>
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+
+function renderPoolMemberPicker() {
+  const draft = settingsState.poolFormDraft || {};
+  const memberIds = Array.isArray(draft.memberIds) ? draft.memberIds : [];
+  const allPersons = (State.config && Array.isArray(State.config.persons))
+    ? [...State.config.persons].sort((a, b) =>
+        (a.name || '').localeCompare(b.name || '', State.language || 'de'))
+    : [];
+
+  if (allPersons.length === 0) {
+    return `<div class="pool-member-picker"><div class="pool-member-empty">${escapeHTML(t('settings.pools.field_members_empty'))}</div></div>`;
+  }
+
+  // Search-Feld zeigen wenn > 30 Personen
+  const showSearch = allPersons.length > 30;
+  const filter = (settingsState.poolMemberFilter || '').trim().toLowerCase();
+  const filtered = filter
+    ? allPersons.filter(p => (p.name || '').toLowerCase().indexOf(filter) !== -1)
+    : allPersons;
+
+  const unavail = (State.runtime && State.runtime.unavailable) ? State.runtime.unavailable : {};
+  const rowsHTML = filtered.length === 0
+    ? `<div class="pool-member-empty">${escapeHTML(t('settings.pools.field_members_no_matches'))}</div>`
+    : filtered.map(p => {
+        const checked = memberIds.indexOf(p.id) !== -1 ? ' checked' : '';
+        const absent = !!unavail[p.id];
+        return `
+          <label class="pool-member-row${absent ? ' is-absent' : ''}">
+            <input type="checkbox" data-action="pool-member-toggle" data-person-id="${escapeHTML(p.id)}"${checked} />
+            <span>${escapeHTML(p.name || '')}</span>
+          </label>
+        `;
+      }).join('');
+
+  return `
+    <div class="pool-member-picker" id="pool-member-picker-container">
+      ${showSearch ? `
+        <div class="pool-member-search">
+          <input type="text" id="pool-member-search-input" class="form-input"
+                 placeholder="${escapeHTML(t('settings.pools.field_members_search'))}"
+                 value="${escapeHTML(settingsState.poolMemberFilter || '')}"
+                 autocomplete="off" />
+        </div>
+      ` : ''}
+      <div id="pool-member-picker-list">${rowsHTML}</div>
+    </div>
+  `;
+}
+
+// Re-rendert nur die Member-Liste, damit Search-Input-Fokus erhalten bleibt.
+function renderPoolMemberPickerInline() {
+  // Vor dem Re-Render aktuellen DOM-State (Notes-Textarea, Name, Lead, Checkbox-States)
+  // in den Draft schreiben, damit nichts verloren geht.
+  _syncPoolFormDraftFromDOM();
+  const container = document.getElementById('pool-member-picker-list');
+  if (!container) return;
+  const draft = settingsState.poolFormDraft || {};
+  const memberIds = Array.isArray(draft.memberIds) ? draft.memberIds : [];
+  const allPersons = (State.config && Array.isArray(State.config.persons))
+    ? [...State.config.persons].sort((a, b) =>
+        (a.name || '').localeCompare(b.name || '', State.language || 'de'))
+    : [];
+  const filter = (settingsState.poolMemberFilter || '').trim().toLowerCase();
+  const filtered = filter
+    ? allPersons.filter(p => (p.name || '').toLowerCase().indexOf(filter) !== -1)
+    : allPersons;
+  const unavail = (State.runtime && State.runtime.unavailable) ? State.runtime.unavailable : {};
+  const rowsHTML = filtered.length === 0
+    ? `<div class="pool-member-empty">${escapeHTML(t('settings.pools.field_members_no_matches'))}</div>`
+    : filtered.map(p => {
+        const checked = memberIds.indexOf(p.id) !== -1 ? ' checked' : '';
+        const absent = !!unavail[p.id];
+        return `
+          <label class="pool-member-row${absent ? ' is-absent' : ''}">
+            <input type="checkbox" data-action="pool-member-toggle" data-person-id="${escapeHTML(p.id)}"${checked} />
+            <span>${escapeHTML(p.name || '')}</span>
+          </label>
+        `;
+      }).join('');
+  container.innerHTML = rowsHTML;
+}
+
+// Liest aktuelle Form-Inputs in settingsState.poolFormDraft, ohne zu speichern.
+// Wird vor Tab-Wechsel / Re-Render aufgerufen.
+function _syncPoolFormDraftFromDOM() {
+  if (!settingsState.poolFormDraft) return;
+  const draft = settingsState.poolFormDraft;
+  const nameEl = document.getElementById('pool-edit-name');
+  const leadEl = document.getElementById('pool-edit-lead');
+  const notesEl = document.getElementById('pool-edit-notes');
+  if (nameEl) draft.name = nameEl.value;
+  if (leadEl) draft.leadRoleId = leadEl.value || null;
+  if (notesEl) draft.notes = notesEl.value;
+  // Member-Checkboxen einsammeln
+  const memberIds = [];
+  document.querySelectorAll('input[type="checkbox"][data-action="pool-member-toggle"]').forEach((el) => {
+    if (el.checked && el.dataset.personId) memberIds.push(el.dataset.personId);
+  });
+  // Wenn der Picker gefiltert ist, würden ungesehene Members verloren gehen.
+  // Strategie: bestehende memberIds, die NICHT im aktuell-sichtbaren Filter-Set sind,
+  // mit den neuen Checkbox-Ids vereinen.
+  const visibleIds = new Set();
+  document.querySelectorAll('input[type="checkbox"][data-action="pool-member-toggle"]').forEach((el) => {
+    if (el.dataset.personId) visibleIds.add(el.dataset.personId);
+  });
+  const existing = Array.isArray(draft.memberIds) ? draft.memberIds : [];
+  const merged = existing.filter(id => !visibleIds.has(id)).concat(memberIds);
+  draft.memberIds = merged;
+  // Sekundäre Leads
+  const secIds = [];
+  document.querySelectorAll('input[type="checkbox"][data-action="pool-secondary-toggle"]').forEach((el) => {
+    if (el.checked && el.dataset.roleId) secIds.push(el.dataset.roleId);
+  });
+  // Analog: nur sichtbar-toggelbare berücksichtigen, andere beibehalten.
+  // In der Praxis sind alle sekundären Leads sichtbar (kein Filter), daher
+  // einfacher Overwrite.
+  draft.secondaryLeadRoleIds = secIds;
+}
+
+/* ---- Pool-Action-Handler ---- */
+
+function poolNew() {
+  settingsState.poolFormMode = 'create';
+  settingsState.poolFormDraft = {
+    name: '',
+    leadRoleId: null,
+    memberIds: [],
+    notes: '',
+    secondaryLeadRoleIds: [],
+  };
+  settingsState.poolMemberFilter = '';
+  settingsState.poolFormAdvancedOpen = false;
+  renderSettingsModal();
+}
+
+function poolEdit(poolId) {
+  if (!poolId) return;
+  const pools = (State.config && Array.isArray(State.config.pools)) ? State.config.pools : [];
+  const pool = pools.find(p => p && p.id === poolId);
+  if (!pool) {
+    console.warn('[pools] edit: pool not found', poolId);
+    return;
+  }
+  settingsState.poolFormMode = 'edit';
+  settingsState.poolFormDraft = {
+    id: pool.id,
+    name: pool.name || '',
+    leadRoleId: pool.leadRoleId || null,
+    memberIds: Array.isArray(pool.memberIds) ? pool.memberIds.slice() : [],
+    notes: pool.notes || '',
+    secondaryLeadRoleIds: Array.isArray(pool.secondaryLeadRoleIds) ? pool.secondaryLeadRoleIds.slice() : [],
+  };
+  settingsState.poolMemberFilter = '';
+  settingsState.poolFormAdvancedOpen = false;
+  renderSettingsModal();
+}
+
+function poolDelete(poolId) {
+  if (!poolId) return;
+  const pools = (State.config && Array.isArray(State.config.pools)) ? State.config.pools : [];
+  const pool = pools.find(p => p && p.id === poolId);
+  if (!pool) return;
+  const confirmMsg = t('settings.pools.delete_confirm', { name: pool.name || '' });
+  if (!window.confirm(confirmMsg)) return;
+  try {
+    Storage.removePool(poolId);
+    logConfigEdit('Pool deleted', { name: pool.name || '' });
+    showToast(t('settings.pools.toast_deleted'), 'success');
+    // Render: Settings-Modal neu zeichnen + Chart unaffected (Schritt 5).
+    renderSettingsModal();
+  } catch (e) {
+    console.warn('[pools] delete failed', e);
+    showToast(String(e && e.message ? e.message : e), 'warning');
+  }
+}
+
+function poolCancel() {
+  settingsState.poolFormMode = null;
+  settingsState.poolFormDraft = null;
+  settingsState.poolMemberFilter = '';
+  settingsState.poolFormAdvancedOpen = false;
+  renderSettingsModal();
+}
+
+function poolSave() {
+  // Aktuelle DOM-Werte einsammeln.
+  _syncPoolFormDraftFromDOM();
+  const draft = settingsState.poolFormDraft || {};
+  const name = (draft.name || '').trim();
+  if (!name) {
+    showToast(t('settings.pools.validation_name_required'), 'warning');
+    const nameEl = document.getElementById('pool-edit-name');
+    if (nameEl) nameEl.focus();
+    return;
+  }
+  const payload = {
+    name,
+    leadRoleId: draft.leadRoleId || null,
+    memberIds: Array.isArray(draft.memberIds) ? draft.memberIds.slice() : [],
+    notes: draft.notes || '',
+    secondaryLeadRoleIds: Array.isArray(draft.secondaryLeadRoleIds) ? draft.secondaryLeadRoleIds.slice() : [],
+  };
+  try {
+    if (settingsState.poolFormMode === 'edit' && draft.id) {
+      Storage.updatePool(draft.id, payload);
+      logConfigEdit('Pool updated', { name });
+      showToast(t('settings.pools.toast_updated'), 'success');
+    } else {
+      Storage.addPool(payload);
+      logConfigEdit('Pool created', { name });
+      showToast(t('settings.pools.toast_created'), 'success');
+    }
+  } catch (e) {
+    console.warn('[pools] save failed', e);
+    showToast(String(e && e.message ? e.message : e), 'warning');
+    return;
+  }
+  settingsState.poolFormMode = null;
+  settingsState.poolFormDraft = null;
+  settingsState.poolMemberFilter = '';
+  settingsState.poolFormAdvancedOpen = false;
+  // Note: kein render() — Chart-Integration ist Schritt 5. Settings-Modal reicht.
+  renderSettingsModal();
+}
+
+function poolMemberToggle(personId, checked) {
+  if (!personId || !settingsState.poolFormDraft) return;
+  const draft = settingsState.poolFormDraft;
+  if (!Array.isArray(draft.memberIds)) draft.memberIds = [];
+  const idx = draft.memberIds.indexOf(personId);
+  if (checked && idx === -1) {
+    draft.memberIds.push(personId);
+  } else if (!checked && idx !== -1) {
+    draft.memberIds.splice(idx, 1);
+  }
+  // Kein Re-Render: Checkbox-State im DOM ist die Source of Truth bis poolSave.
+}
+
+function poolSecondaryToggle(roleId, checked) {
+  if (!roleId || !settingsState.poolFormDraft) return;
+  const draft = settingsState.poolFormDraft;
+  if (!Array.isArray(draft.secondaryLeadRoleIds)) draft.secondaryLeadRoleIds = [];
+  const idx = draft.secondaryLeadRoleIds.indexOf(roleId);
+  if (checked && idx === -1) {
+    draft.secondaryLeadRoleIds.push(roleId);
+  } else if (!checked && idx !== -1) {
+    draft.secondaryLeadRoleIds.splice(idx, 1);
+  }
+}
+
+function poolAdvancedToggle() {
+  _syncPoolFormDraftFromDOM();
+  settingsState.poolFormAdvancedOpen = !settingsState.poolFormAdvancedOpen;
+  renderSettingsModal();
+}
+
+function poolMigrationBannerDismiss() {
+  if (!State.prefs) State.prefs = {};
+  State.prefs.v21MigrationBannerPending = false;
+  Storage.savePrefs(State.prefs);
+  renderSettingsModal();
+}
+
+function poolMigrationBannerCta() {
+  // CTA dismisst implizit nicht — beim ersten Pool-Anlegen bleibt der Banner
+  // sichtbar, bis Save oder Cancel zurück zur Liste führt. Beim Save wird er
+  // weiter angezeigt, bis dismiss geklickt wird. Pragmatisch — Spec-Diskussion
+  // für Schritt 5 vermerkt.
+  poolNew();
 }
 
 function saveSettingsModal() {
