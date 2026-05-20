@@ -3371,6 +3371,154 @@ button:focus-visible,
   }
 }
 
+/* ---- Chart: Level-Pool-Sections (V2.1 Schritt 5) ----
+   Klammer-Hülle (linker + unterer Border) am Ende jedes Levels.
+   Pool-Member als Pills im 4/3/2-Spalten-Grid. Mobile-Default kollabiert. */
+.level-pool {
+  border-left: 2px solid var(--border-strong);
+  border-bottom: 2px solid var(--border-strong);
+  border-bottom-left-radius: var(--radius-sm);
+  margin: var(--space-3) 0 var(--space-3) var(--space-4);
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-base);
+}
+.level-pools-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+.level-pool-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: 4px;
+}
+.level-pool-bracket-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.level-pool-toggle {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.level-pool-toggle:hover { color: var(--text-primary); }
+.level-pool[aria-expanded="false"] .level-pool-toggle { transform: rotate(-90deg); }
+.level-pool-name {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+.level-pool-members {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+@media (max-width: 900px) {
+  .level-pool-members { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+  .level-pool-members { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.pool-member-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.pool-pill-icon { flex-shrink: 0; }
+.pool-pill-available .pool-pill-icon { color: var(--status-ok); }
+.pool-pill-absent .pool-pill-icon { color: var(--status-warn); }
+.pool-pill-absent { opacity: 0.65; }
+.pool-pill-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pool-pill-sub-badge {
+  font-size: 9px;
+  font-weight: bold;
+  padding: 1px 4px;
+  background: var(--accent-bg);
+  color: var(--accent);
+  border-radius: 2px;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+.level-pool-empty {
+  font-style: italic;
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding: 4px 0;
+}
+
+/* Orphaned-Pools-Sektion (Pools ohne Lead-Rolle) */
+.orphaned-pools-section {
+  margin-top: var(--space-5);
+  padding: var(--space-3);
+  border: 1px dashed var(--status-warn-border);
+  border-radius: var(--radius-sm);
+  background: var(--status-warn-bg);
+}
+.orphaned-pools-header {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--status-warn);
+  margin-bottom: var(--space-2);
+}
+.orphaned-pools-hint {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-3);
+  font-style: italic;
+}
+
+/* Mobile: Pools kollabiert per Default (data-mobile-collapsed="true").
+   Toggle entfernt das Attribut. Auf Desktop wird das Attribut ignoriert. */
+@media (max-width: 600px) {
+  .level-pool[data-mobile-collapsed="true"] .level-pool-members,
+  .level-pool[data-mobile-collapsed="true"] .level-pool-name {
+    display: none;
+  }
+  .level-pool[data-mobile-collapsed="true"] .level-pool-header { margin-bottom: 0; }
+  .level-pool-toggle {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  .pool-member-pill {
+    min-height: 32px;
+    font-size: 12px;
+  }
+}
+
 /* ---- Sync-Modal Online-Tab (V1.2 → V1.3 Karten-Layout) ---- */
 .sync-online-list {
   display: flex;
@@ -7671,6 +7819,13 @@ const TRANSLATIONS = {
     'level.prefix': 'EBENE',
     'level.roles_count_one': '{n} Rolle',
     'level.roles_count_other': '{n} Rollen',
+    'chart.pool_of': 'Pool von: {lead}',
+    'chart.pool_empty': 'Keine Mitglieder',
+    'chart.pool_sub_badge_title': 'Auch in der Vertretungskette dieser Rolle',
+    'chart.pool_toggle_expand': 'Pool ausklappen',
+    'chart.pool_toggle_collapse': 'Pool einklappen',
+    'chart.orphaned_pools_title': 'Pools ohne Lead-Rolle',
+    'chart.orphaned_pools_hint': 'Diese Pools haben keine zugewiesene Lead-Rolle. Bearbeite sie in Einstellungen → Pools oder lösche sie.',
     'role.unoccupied': '◯ UNBESETZT',
     'role.no_substitution': 'Keine Vertretung verfügbar',
     'role.replaces': 'Vertritt:',
@@ -8293,6 +8448,13 @@ const TRANSLATIONS = {
     'level.prefix': 'LEVEL',
     'level.roles_count_one': '{n} role',
     'level.roles_count_other': '{n} roles',
+    'chart.pool_of': 'Pool of: {lead}',
+    'chart.pool_empty': 'No members',
+    'chart.pool_sub_badge_title': 'Also in this role’s substitution chain',
+    'chart.pool_toggle_expand': 'Expand pool',
+    'chart.pool_toggle_collapse': 'Collapse pool',
+    'chart.orphaned_pools_title': 'Unassigned pools',
+    'chart.orphaned_pools_hint': 'These pools have no lead role. Edit them in Settings → Pools, or delete them.',
     'role.unoccupied': '◯ UNOCCUPIED',
     'role.no_substitution': 'No substitute available',
     'role.replaces': 'Replacing:',
@@ -8911,6 +9073,13 @@ const TRANSLATIONS = {
     'level.prefix': 'NIVEL',
     'level.roles_count_one': '{n} rol',
     'level.roles_count_other': '{n} roles',
+    'chart.pool_of': 'Grupo de: {lead}',
+    'chart.pool_empty': 'Sin miembros',
+    'chart.pool_sub_badge_title': 'También en la cadena de suplencia de este rol',
+    'chart.pool_toggle_expand': 'Desplegar grupo',
+    'chart.pool_toggle_collapse': 'Plegar grupo',
+    'chart.orphaned_pools_title': 'Grupos sin rol principal',
+    'chart.orphaned_pools_hint': 'Estos grupos no tienen un rol principal asignado. Edítalos en Ajustes → Grupos o elimínalos.',
     'role.unoccupied': '◯ SIN CUBRIR',
     'role.no_substitution': 'Sin suplente disponible',
     'role.replaces': 'Sustituye a:',
@@ -9530,6 +9699,13 @@ const TRANSLATIONS = {
     'level.prefix': 'NIVEAU',
     'level.roles_count_one': '{n} rôle',
     'level.roles_count_other': '{n} rôles',
+    'chart.pool_of': 'Pool de : {lead}',
+    'chart.pool_empty': 'Aucun membre',
+    'chart.pool_sub_badge_title': 'Également dans la chaîne de suppléance de ce rôle',
+    'chart.pool_toggle_expand': 'Déplier le pool',
+    'chart.pool_toggle_collapse': 'Replier le pool',
+    'chart.orphaned_pools_title': 'Pools sans rôle principal',
+    'chart.orphaned_pools_hint': 'Ces pools n’ont pas de rôle principal attribué. Modifie-les dans Paramètres → Pools, ou supprime-les.',
     'role.unoccupied': '◯ NON POURVU',
     'role.no_substitution': 'Aucun suppléant disponible',
     'role.replaces': 'Remplace :',
@@ -10149,6 +10325,13 @@ const TRANSLATIONS = {
     'level.prefix': '层级',
     'level.roles_count_one': '{n} 个角色',
     'level.roles_count_other': '{n} 个角色',
+    'chart.pool_of': '池：{lead}', // TODO native review
+    'chart.pool_empty': '无成员', // TODO native review
+    'chart.pool_sub_badge_title': '同时也在该角色的替补链中', // TODO native review
+    'chart.pool_toggle_expand': '展开池', // TODO native review
+    'chart.pool_toggle_collapse': '收起池', // TODO native review
+    'chart.orphaned_pools_title': '无主导角色的池', // TODO native review
+    'chart.orphaned_pools_hint': '这些池没有分配的主导角色。请在 设置 → 池 中编辑或删除它们。', // TODO native review
     'role.unoccupied': '◯ 空缺',
     'role.no_substitution': '无可用替补',
     'role.replaces': '代替：',
@@ -11477,7 +11660,12 @@ function renderOrgChart() {
     </div>
   ` : '';
 
-  container.innerHTML = bannerHTML + levelsHTML + addLevelHTML;
+  // V2.1 Schritt 5: verwaiste Pools (leadRoleId === null) am Chart-Ende.
+  const orphanedPools = (Array.isArray(State.config.pools) ? State.config.pools : [])
+    .filter(p => p && !p.leadRoleId);
+  const orphanedHTML = renderOrphanedPoolsSection(orphanedPools);
+
+  container.innerHTML = bannerHTML + levelsHTML + orphanedHTML + addLevelHTML;
 
   // Alle Click-Handler laufen jetzt über den globalen Dispatcher (data-action).
   // Keyboard-Navigation für Rollenkarten: Enter/Space öffnet Detail
@@ -11520,6 +11708,17 @@ function renderLevel(level, idx) {
     </div>
   ` : '';
 
+  // V2.1 Schritt 5: Pool-Sektionen am Level-Ende. Sammelt alle Pools deren
+  // leadRoleId auf eine Rolle in DIESEM Level zeigt. Pools ohne leadRoleId
+  // (orphaned) werden separat am Chart-Ende über renderOrphanedPoolsSection
+  // gerendert, nicht hier.
+  const levelRoleIds = new Set(level.roles.map(r => r.id));
+  const allPools = Array.isArray(State.config.pools) ? State.config.pools : [];
+  const levelPools = allPools.filter(p => p && p.leadRoleId && levelRoleIds.has(p.leadRoleId));
+  const poolsHTML = levelPools.length > 0
+    ? `<div class="level-pools-container">${levelPools.map(p => renderLevelPool(p, level)).join('')}</div>`
+    : '';
+
   return `
     <div class="level" data-level-idx="${idx}">
       <div class="level-header">
@@ -11529,6 +11728,112 @@ function renderLevel(level, idx) {
         ${editControls}
       </div>
       <div class="roles-grid">${rolesHTML}</div>
+      ${poolsHTML}
+    </div>
+  `;
+}
+
+/* =========================================================================
+   V2.1 Schritt 5: Chart-Pool-Rendering
+   Pro Level eine Klammer-Hülle pro Pool (linker + unterer Border).
+   Pool-Member als Pills mit Status-Icon-Form (verfügbar = filled circle,
+   abwesend = hollow ring → nicht nur Farb-Unterschied, sondern auch Form).
+   SUB-Text-Badge wenn Pool-Member auch in der Substitution-Chain der
+   Lead-Rolle steht (inkl. Primary).
+   Mobile: data-mobile-collapsed="true" per Default (siehe CSS-Block).
+   ========================================================================= */
+function renderLevelPool(pool, level) {
+  const leadRole = level.roles.find(r => r.id === pool.leadRoleId);
+  const leadName = leadRole ? leadRole.name : '?';
+  // Mobile-Default: collapsed. Erkennung via matchMedia, sonst false (kein
+  // matchMedia → Desktop-Fallback expanded).
+  const isMobile = (typeof window !== 'undefined' && typeof window.matchMedia === 'function')
+    ? window.matchMedia('(max-width: 600px)').matches
+    : false;
+  const collapsedAttr = isMobile ? ' data-mobile-collapsed="true"' : '';
+  const expandedAttr = isMobile ? 'false' : 'true';
+  const toggleLabelKey = isMobile ? 'chart.pool_toggle_expand' : 'chart.pool_toggle_collapse';
+
+  return `
+    <div class="level-pool" data-pool-id="${escapeHTML(pool.id)}" aria-expanded="${expandedAttr}"${collapsedAttr}>
+      <div class="level-pool-header">
+        <span class="level-pool-bracket-label">${escapeHTML(t('chart.pool_of', { lead: leadName }))}</span>
+        <button class="level-pool-toggle"
+                data-action="pool-toggle-collapse"
+                data-pool-id="${escapeHTML(pool.id)}"
+                aria-label="${escapeHTML(t(toggleLabelKey))}"
+                title="${escapeHTML(t(toggleLabelKey))}">▾</button>
+      </div>
+      <div class="level-pool-name">${escapeHTML(pool.name || '')}</div>
+      <div class="level-pool-members" data-pool-members>
+        ${renderPoolMemberPills(pool, level)}
+      </div>
+    </div>
+  `;
+}
+
+function renderPoolMemberPills(pool, level) {
+  // Storage.getSortedPoolMembers sortiert verfügbar→abwesend→alphabetisch
+  // und filtert stale memberIds (Person bereits gelöscht) defensiv heraus.
+  const members = Storage.getSortedPoolMembers(pool.id);
+  if (members.length === 0) {
+    return '<div class="level-pool-empty">' + escapeHTML(t('chart.pool_empty')) + '</div>';
+  }
+
+  // SUB-Badge-Logik: Person ist in der Substitution-Chain der Lead-Rolle
+  // (primary rank=0 zählt mit dazu, weil die Pool-Member-Auflistung sonst
+  // den eigentlichen Stelleninhaber visuell unsichtbar machen würde).
+  const leadRole = level.roles.find(r => r.id === pool.leadRoleId);
+  const subPersonIds = new Set();
+  if (leadRole && Array.isArray(leadRole.assignments)) {
+    leadRole.assignments.forEach(a => {
+      if (a && a.personId) subPersonIds.add(a.personId);
+    });
+  }
+
+  return members.map(person => renderPoolMemberPill(person, subPersonIds.has(person.id))).join('');
+}
+
+function renderPoolMemberPill(person, isSubForLead) {
+  const unavail = (State.runtime && State.runtime.unavailable) ? State.runtime.unavailable : {};
+  const isUnavailable = !!unavail[person.id];
+  // Form-Differenzierung (Q2): filled circle vs hollow ring — nicht nur Farbe.
+  const statusIcon = isUnavailable ? '◯' : '●';
+  const statusClass = isUnavailable ? 'pool-pill-absent' : 'pool-pill-available';
+  const subBadge = isSubForLead
+    ? '<span class="pool-pill-sub-badge" title="' + escapeHTML(t('chart.pool_sub_badge_title')) + '">SUB</span>'
+    : '';
+
+  return '<span class="pool-member-pill ' + statusClass + '" data-person-id="' + escapeHTML(person.id) + '" title="' + escapeHTML(person.name || '') + '">'
+    + '<span class="pool-pill-icon" aria-hidden="true">' + statusIcon + '</span>'
+    + '<span class="pool-pill-name">' + escapeHTML(person.name || '') + '</span>'
+    + subBadge
+    + '</span>';
+}
+
+/* Verwaiste Pools (leadRoleId === null): eigene Sektion nach allen Levels.
+   Ein User-Hinweis erklärt, wie der Pool wieder zugewiesen oder gelöscht
+   wird. */
+function renderOrphanedPoolsSection(pools) {
+  if (!pools || pools.length === 0) return '';
+  const items = pools.map(pool => {
+    return `
+      <div class="level-pool" data-pool-id="${escapeHTML(pool.id)}" aria-expanded="true">
+        <div class="level-pool-header">
+          <span class="level-pool-bracket-label">${escapeHTML(pool.name || '')}</span>
+        </div>
+        <div class="level-pool-members">
+          ${renderPoolMemberPills(pool, { roles: [] })}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <div class="orphaned-pools-section" data-orphaned-pools>
+      <div class="orphaned-pools-header">${escapeHTML(t('chart.orphaned_pools_title'))}</div>
+      <div class="orphaned-pools-hint">${escapeHTML(t('chart.orphaned_pools_hint'))}</div>
+      ${items}
     </div>
   `;
 }
@@ -12461,6 +12766,10 @@ const CLICK_HANDLERS = {
   'pool-advanced-toggle':           () => poolAdvancedToggle(),
   'pool-migration-banner-dismiss':  () => poolMigrationBannerDismiss(),
   'pool-migration-banner-cta':      () => poolMigrationBannerCta(),
+
+  // V2.1 step 5: Pool im Chart kollabieren/expandieren (Mobile-Default
+  // collapsed, Desktop ignoriert das mobile-collapsed-Attribut via CSS).
+  'pool-toggle-collapse':           (el) => poolToggleCollapse(el.dataset.poolId),
 };
 
 // V2.0 Schritt 6: Toast-Actions enthalten Source-IDs als Suffix
@@ -17858,6 +18167,33 @@ function poolMigrationBannerCta() {
   // weiter angezeigt, bis dismiss geklickt wird. Pragmatisch — Spec-Diskussion
   // für Schritt 5 vermerkt.
   poolNew();
+}
+
+/* V2.1 Schritt 5: Chart-Pool kollabieren/expandieren.
+   Toggle des `data-mobile-collapsed`-Attributs + `aria-expanded` für ARIA.
+   Auf Desktop ohne sichtbare Wirkung (CSS-Regel greift nur ≤600px), aber
+   wir aktualisieren aria-expanded trotzdem korrekt. Kein Re-Render — DOM-
+   Mutation reicht. Persistenz absichtlich nicht — User-Erwartung ist
+   ephemerer Zustand pro Session. */
+function poolToggleCollapse(poolId) {
+  if (!poolId) return;
+  const pool = document.querySelector('.level-pool[data-pool-id="' + CSS.escape(poolId) + '"]');
+  if (!pool) return;
+  const isCollapsed = pool.getAttribute('data-mobile-collapsed') === 'true';
+  if (isCollapsed) {
+    pool.removeAttribute('data-mobile-collapsed');
+    pool.setAttribute('aria-expanded', 'true');
+  } else {
+    pool.setAttribute('data-mobile-collapsed', 'true');
+    pool.setAttribute('aria-expanded', 'false');
+  }
+  // Aria-Label des Toggle-Buttons aktualisieren
+  const btn = pool.querySelector('.level-pool-toggle');
+  if (btn) {
+    const labelKey = isCollapsed ? 'chart.pool_toggle_collapse' : 'chart.pool_toggle_expand';
+    btn.setAttribute('aria-label', t(labelKey));
+    btn.setAttribute('title', t(labelKey));
+  }
 }
 
 function saveSettingsModal() {
