@@ -21,6 +21,8 @@ Runs entirely in the browser. No server, no database, no external dependencies a
   - QR codes for full configuration transfer between nearby devices
   - JSON export/import for archival or e-mail distribution
   - Online sync against a shared HTTP backend or a local sync folder — manual (V1.2) or automatic in the background (V2.0)
+- Define **team pools** under any lead role (V2.1) — a fourth tier for on-call rotations, specialist teams, or extended response groups, with per-member availability tracking
+- Tag people with **free-form keywords** (V2.1) — "SOC Tier 2", "macOS forensics", "cloud reverse engineering" — and search across the directory by name, keyword, phone, or e-mail
 - Keep a **30-day audit log** of every change that the committee can review after an incident
 
 ## Why it exists
@@ -146,6 +148,21 @@ Sometimes the automatic rule isn't what you want. A manual assignment pins a spe
 ![Manual assignment in effect — role card carries the lock badge and the pinned person's name](docs/screenshots/08-manual-assignment-active.png)
 
 Manual assignments are marked with a 🔒 badge on the role card and persist until cleared. They are included in sync transfers.
+
+### Team pools, keywords, and search (V2.1)
+
+Below the classic three-tier hierarchy (Krisenstab → Management → Topic-Lead) CRAM supports a fourth tier: **team pools**. A pool is a group of employees attached to a lead role — useful for on-call rotations, specialist teams, or extended response groups that report into a lead but are not formal substitutes themselves.
+
+- A pool member can simultaneously appear in the lead's substitution chain. A `[SUB]` badge in the chart surfaces that overlap.
+- Pools render directly under their lead role on desktop (≥ 1024 px, V2.1.1 layout) and as collapsible level-end blocks on tablet and mobile.
+- Pools are created and edited from the chart in edit mode (`+ Pool` button per column, `✎`/`×` on the pool header). A bulk-edit list also exists under Settings → Pools.
+- If the lead role is deleted, the pool is preserved as **orphaned** in a dedicated section at the end of the chart — no cascade delete.
+
+Each person carries a free-form list of **keywords** (max 32 per person, 64 characters each). Keywords are stored as chips with autocomplete and surface in the new **sidebar Search tab** (between People and Log; fifth nav button on mobile). Search matches name, keyword, phone, and e-mail; filters cover availability and keyword cloud (AND logic). Hit cards show roles (primary/sub), pool membership, and keyword chips, and click through to the person-edit modal.
+
+**Sync note:** pool and keyword changes belong to the **configuration**, not the status. The status-mode fingerprint deliberately ignores them — distribute pool/keyword updates via a data-mode sync (JSON, QR, or Online-Data).
+
+> Current screenshots show the V2.0 UI without pools. A screenshot refresh from a demo configuration is planned for a follow-up release; the text descriptions above reflect the V2.1.1 behaviour.
 
 ### Status vs configuration
 

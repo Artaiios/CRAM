@@ -141,6 +141,133 @@ Für diesen Fall gibt es die **manuelle Zuordnung**. Im Edit-Modus oder über de
 
 Manuelle Zuordnungen werden mit einem 🔒-Symbol auf der Rollenkarte markiert und im Roster-Tab entsprechend ausgewiesen. Sie werden bei Sync-Übertragungen (Code-Sync und QR-Transfer) mitgeschickt.
 
+## Team-Pools (ab V2.1)
+
+Unterhalb des klassischen Drei-Ebenen-Modells (Krisenstab → Management → Topic-Lead) gibt es eine vierte Ebene: **Team-Pools**. Ein Pool ist eine Gruppe von Mitarbeitern, die einer Lead-Rolle zugeordnet ist — typische Anwendungsfälle sind Bereitschaftsdienste, Spezialisten-Teams (Forensik, Threat Intel, Rechtsabteilung) oder erweiterte Response-Gruppen, die einer Lead-Rolle zuarbeiten, aber nicht formal in der Vertretungskette stehen.
+
+### Was ein Pool ist — und was er nicht ist
+
+Ein Pool besteht aus:
+
+- **Name** (Pflicht, max 200 Zeichen) — z.B. „SOC-Bereitschaft Schicht A"
+- **Lead-Rolle** (Pflicht) — die Rolle, der dieser Pool zugeordnet ist
+- **Mitgliedern** — Liste von Personen aus dem People-Verzeichnis
+- **Notes** (optional, max 2000 Zeichen) — Freitext für Übergabe-Hinweise, Kontaktwege außerhalb der App
+- **Optionale Secondary Leads** — Pools können bei einer zweiten Rolle als Cross-Reference auftauchen, ohne dort dupliziert zu werden
+
+Ein Pool **ersetzt keine Vertretungskette**. Wer als formaler Substitute geführt werden muss, gehört in die Assignment-Liste der Rolle. Pool-Mitgliedschaft kann parallel dazu existieren — ein `[SUB]`-Badge auf der Pool-Pille zeigt das im Chart sichtbar an.
+
+### Pool anlegen (V2.1.1+)
+
+Pools werden im **Edit-Mode des Charts** direkt unter der jeweiligen Spalte angelegt:
+
+1. ✎ im Header anklicken, um in den Edit-Mode zu wechseln
+2. In der Spalte mit der Lead-Rolle den Button **„+ Pool"** anklicken
+3. Im Modal: Name, Lead-Rolle (vorbelegt), Mitglieder per Pick-Liste, optional Notes und Secondary Leads
+4. Speichern — der Pool erscheint direkt unter der Lead-Card
+
+Editieren und Löschen erfolgt über die Inline-Buttons `✎` und `×` am Pool-Header — analog zum Rolle-Edit-Pattern.
+
+**Alternativer Pfad für Power-User:** Einstellungen → Tab „Pools" zeigt alle Pools als Liste mit Bulk-Aktionen. Dieser Weg ist sekundär gegenüber dem Chart-Inline-Workflow.
+
+### Pool-Darstellung im Chart
+
+- **Desktop (≥ 1024 px)**: Pool sitzt direkt unter der Lead-Card in derselben Spalte. Ein dezenter Top-Connector verbindet beide visuell, ein „POOL OF:"-Label entfällt — die räumliche Zuordnung übernimmt diese Aufgabe.
+- **Tablet (768–1023 px) und Mobile (< 768 px)**: Pool sitzt am Ende des Levels, horizontal angeordnet. Auf Mobile ist er per Default kollabiert und wird per Klick aufgeklappt.
+- **Pillen-Anordnung**: max vier Mitglieder pro Zeile, sortiert nach Verfügbarkeit (verfügbare zuerst), dann alphabetisch.
+- **Statussymbole** sind formgegeben, nicht nur farbig — damit auch ohne Farbwahrnehmung der Zustand erkennbar ist (Accessibility).
+
+### Verfügbarkeit auf Pool-Ebene
+
+Jedes Pool-Mitglied trägt seinen normalen Verfügbarkeitsstatus aus dem People-Bereich. Damit lässt sich auf einen Blick sehen, wie viele der Pool-Mitglieder gerade einsatzbereit sind. Es gibt keine separate Pool-Bereitschaftslogik — der Pool ist eine Sicht auf die People-Daten, kein Zweitsystem.
+
+### Pool-Mitglieder als Substitute
+
+Eine Person kann gleichzeitig:
+
+1. **Primär** oder **Substitute** in einer Rolle sein (über die Assignment-Liste)
+2. **Mitglied** in einem oder mehreren Pools sein
+
+Dieser Doppel-Status ist explizit erlaubt und im Krisenstab-Alltag der Normalfall (der Bereitschafts-Lead ist zugleich Sub2 der Topic-Lead-Rolle). Ein **`[SUB]`-Badge** an der Pool-Pille macht das sichtbar — wer im Pool steht und gleichzeitig irgendwo in einer Vertretungskette, wird gekennzeichnet.
+
+### Verwaiste Pools
+
+Wenn die Lead-Rolle eines Pools gelöscht wird, **wird der Pool nicht mitgelöscht**. Stattdessen wandert er in eine eigene Sektion am Ende des Charts („Unassigned" mit Warn-Border). Damit bleibt das fachliche Wissen (wer in welcher Truppe ist) erhalten, auch wenn die organisatorische Aufhängung wegfällt. Der Pool kann dort weiter editiert, einer neuen Lead-Rolle zugeordnet oder explizit gelöscht werden.
+
+### Sync-Hinweis für Pools
+
+Pool-Änderungen gehören zur **Konfiguration**, nicht zum Status. Der Status-Mode-Sync (kurzer Sync-Code, automatischer Status-Push) **erfasst Pool-Änderungen nicht** — der Konfigurations-Fingerprint ignoriert sie bewusst.
+
+Wer einen Pool angelegt, geändert oder gelöscht hat, muss diese Änderung über den **Datenmodus** verteilen: JSON-Export, QR-Transfer im Scope „Konfiguration + Status" oder Online-Sync mit Datenmodus. Siehe Abschnitt „Sync vs. Data — was wann nutzen (V1.3)".
+
+## Schwerpunktthemen (Keywords, ab V2.1)
+
+Personen tragen optional eine Liste **freier Tags** — sogenannte Keywords. Damit lässt sich abbilden, was sich nicht sauber als Rolle modellieren lässt: Spezialisierungen, Zertifizierungen, Sprachkenntnisse, Geräte-Affinitäten.
+
+**Beispiele:** „SOC-Analyst Tier 2", „Forensik macOS", „Cloud-Reverse-Engineering", „Sprecher Englisch verhandlungssicher", „TPM-/HSM-Erfahrung".
+
+### Keywords pflegen
+
+Im Edit-Mode oder direkt aus der People-Liste das **Person-Edit-Modal** öffnen. Im Feld „Schwerpunktthemen":
+
+1. Tag eintippen
+2. Enter oder Komma drückt das Keyword als Chip ab
+3. Alternativ aus der Autocomplete-Vorschlagsliste wählen (zeigt alle bereits in der Org verwendeten Keywords — fördert konsistente Terminologie)
+4. Über das `×` am Chip lässt sich ein Keyword wieder entfernen
+
+### Limitierungen
+
+- **Max 64 Zeichen pro Keyword** — Schlagworte, keine Sätze
+- **Max 32 Keywords pro Person** — wenn mehr nötig wird, ist die Organisation evtl. besser in Rollen statt Tags zu modellieren
+- **Keywords sind kein Skill-Level-System** — kein „Tier 1/2/3", keine Ablaufdaten von Zertifikaten. Beides ist post-V2.1 in der Roadmap
+
+### Sync-Verhalten Keywords
+
+Wie Pools sind Keywords Teil der **Konfiguration**. Status-Sync überträgt sie nicht — Datenmodus-Sync ist nötig.
+
+## Suche (ab V2.1)
+
+Mit Pools und Keywords kommt der nahezu unvermeidliche Use Case: „Wer kann jetzt sofort Cloud-Forensik machen?" Dafür gibt es den **Suche-Tab** in der Seitenleiste.
+
+### Wo der Tab liegt
+
+- **Desktop**: Sidebar-Tab zwischen „Personen" und „Log" (vierter Tab)
+- **Mobile**: Fünfter Button in der unteren Nav-Leiste (zwischen „Personen" und „Log")
+
+### Was die Suche kann
+
+Das Suchfeld matcht über vier Felder gleichzeitig:
+
+- **Name** (Vor- und Nachname)
+- **Keywords** (alle dem Person zugeordneten Tags)
+- **Telefonnummer**
+- **E-Mail**
+
+Filter darüber:
+
+- **Verfügbarkeit**: Alle / Nur verfügbar / Nur abwesend
+- **Keyword-Cloud**: zeigt alle in der Org verwendeten Keywords als anklickbare Chips. Mehrfachauswahl ist **UND-verknüpft** — wer „Forensik macOS" UND „Verfügbar" wählt, sieht nur, wer beides erfüllt.
+
+### Treffer-Darstellung
+
+Jeder Treffer ist eine **Person-Card** mit:
+
+- Status-Icon (verfügbar / abwesend, gleiche Form wie im Pool)
+- Name + Kontaktdaten (Telefon, E-Mail)
+- **Rollen-Zugehörigkeit**: alle Rollen, in denen die Person Primär oder Substitute ist, mit Rang-Badge
+- **Pool-Mitgliedschaft**: alle Pools, in denen die Person Mitglied ist
+- **Keyword-Chips**: alle Tags der Person
+
+Klick auf eine Card öffnet das Person-Edit-Modal — gleich von der Sucheinstellung aus lässt sich der Eintrag bearbeiten (z.B. Keyword korrigieren oder Telefonnummer aktualisieren).
+
+### Typische Frage-Patterns
+
+- „Wer kann in der nächsten Stunde Cloud-Forensik?" → Filter „Verfügbar" + Keyword-Chip „Cloud Forensik"
+- „Wer in der Org spricht verhandlungssicher Französisch?" → Suchfeld „Französisch" oder Keyword-Cloud-Chip
+- „Bin ich gerade die einzige verfügbare Macos-Forensikerin?" → Filter „Verfügbar" + Keyword „Forensik macOS"
+
+Die Suche ist eine Read-Only-Sicht — sie ändert keinen Zustand. Bearbeitung erfolgt im Person-Edit-Modal nach Klick auf eine Card.
+
 ## Daten auf ein anderes Gerät übertragen
 
 CRAM bietet drei Wege, um Daten zwischen Geräten zu übertragen. Welchen man nutzt, hängt von der Situation ab.
@@ -436,6 +563,7 @@ Im Edit-Modus wird der People-Tab zu einem Editor. Eine Person hat:
 - **Name** (Pflicht)
 - **Telefonnummer** (optional, aber dringend empfohlen — ist die zentrale Kontaktinformation im Krisenfall)
 - **E-Mail** (optional)
+- **Schwerpunktthemen / Keywords** (optional, ab V2.1) — freie Tags wie „SOC Tier 2", „Forensik macOS". Erlauben gezielte Suche im Suche-Tab. Details im Kapitel „Schwerpunktthemen (Keywords)".
 
 Empfehlungen:
 
