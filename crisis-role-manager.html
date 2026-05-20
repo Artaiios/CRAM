@@ -4974,6 +4974,41 @@ const Storage = (function() {
   // migration self-healing.
   const CONFIG_SCHEMA_VERSION = 3;
 
+  // V2.1 pre-GA polish — strict-type validator. Defensive layer that
+  // catches malformed JSON imports (e.g. an old config where `persons`
+  // was accidentally serialised as an object, or a foreign tool's
+  // export that has the top-level keys but wrong types). We can't
+  // recover the data, but we can prevent a hard crash in downstream
+  // code that does `.map()` / `.find()` on these arrays. The validator
+  // runs before _configNeedsV3Migration so the migration path sees
+  // sane shapes only.
+  function _validateConfigStructure(cfg) {
+    if (!cfg || typeof cfg !== 'object') return cfg;
+    if ('persons' in cfg && !Array.isArray(cfg.persons)) {
+      console.warn('[migrateConfigV3] persons is not an array, replacing with []');
+      cfg.persons = [];
+    }
+    if ('levels' in cfg && !Array.isArray(cfg.levels)) {
+      console.warn('[migrateConfigV3] levels is not an array, replacing with []');
+      cfg.levels = [];
+    }
+    if ('pools' in cfg && !Array.isArray(cfg.pools)) {
+      console.warn('[migrateConfigV3] pools is not an array, replacing with []');
+      cfg.pools = [];
+    }
+    return cfg;
+  }
+
+  // V2.1 pre-GA polish — length-cap helper. Module-private so the
+  // Storage public methods (which are arrow-functions) can reach it
+  // without `this`-gymnastics. Never throws; logs once per overflow.
+  function _capString(raw, max, label) {
+    const s = (raw != null ? String(raw) : '');
+    if (s.length <= max) return s;
+    console.warn('[Storage] ' + label + ' exceeded ' + max + ' chars (' + s.length + '), truncating');
+    return s.slice(0, max);
+  }
+
   function _configNeedsV3Migration(cfg) {
     if (!cfg || typeof cfg !== 'object') return false;
     if (typeof cfg.schemaVersion !== 'number' || cfg.schemaVersion < CONFIG_SCHEMA_VERSION) return true;
@@ -5029,7 +5064,7 @@ const Storage = (function() {
 
   return {
     loadConfig: () => {
-      const raw = get(KEY_CONFIG, null);
+      const raw = _validateConfigStructure(get(KEY_CONFIG, null));
       if (raw === null) return null;
       if (!_configNeedsV3Migration(raw)) return raw;
       // Migrate, persist, and mark the V2.1 banner pending. Persist is
@@ -5097,6 +5132,10 @@ const Storage = (function() {
     // the loadConfig() boot path, where it correctly fires once per
     // device when a real upgrade happens.
     migrateConfigV3: (cfg) => {
+      // V2.1 pre-GA polish: defensive type-validator first so malformed
+      // top-level arrays (persons/levels/pools as non-arrays) get
+      // replaced with [] before any downstream .map/.find/.some runs.
+      cfg = _validateConfigStructure(cfg);
       if (!_configNeedsV3Migration(cfg)) return cfg;
       return _migrateConfigToV3(cfg);
     },
@@ -5108,6 +5147,15 @@ const Storage = (function() {
        stay in the handle*() functions in the CRUD section near the bottom.
        Every mutating helper calls saveConfig(), which routes through set()
        and triggers Sync.markDirty() for auto-sync.
+
+       V2.1 pre-GA polish:
+       - Length-caps on user-supplied strings (defence-in-depth against
+         huge paste accidents and intentional bloat attacks). Overflow is
+         trimmed with a console.warn — never silently truncated without
+         a trace.
+       - Audit-trail for addPool / updatePool / setPersonKeywords. The
+         destructive removePool already wrote audit; the additive paths
+         now match for forensics parity.
        ===================================================================== */
 
     // Pool CRUD --------------------------------------------------------------
@@ -5116,17 +5164,41 @@ const Storage = (function() {
       if (!State || !State.config) throw new Error('Storage.addPool: State.config not initialised');
       if (!Array.isArray(State.config.pools)) State.config.pools = [];
       const data = poolData || {};
-      const name = (data.name != null ? String(data.name) : '').trim();
-      if (!name) throw new Error('Storage.addPool: name required');
+      // Trim BEFORE the empty-check so " " stays an error, then cap.
+      const nameRaw = (data.name != null ? String(data.name) : '').trim();
+      if (!nameRaw) throw new Error('Storage.addPool: name required');
+      const name = _capString(nameRaw, 200, 'pool.name');
+      const notes = _capString(data.notes != null ? String(data.notes) : '', 2000, 'pool.notes');
       const pool = {
         id: 'pool-' + uid('p').slice(2), // uid('p') = "p-<ts>-<rand>"; strip leading "p-" so the visible id is pool-<ts>-<rand>
         name,
         leadRoleId: (data.leadRoleId != null ? String(data.leadRoleId) : null),
         memberIds: Array.isArray(data.memberIds) ? data.memberIds.slice() : [],
-        notes: (data.notes != null ? String(data.notes) : ''),
+        notes,
         secondaryLeadRoleIds: Array.isArray(data.secondaryLeadRoleIds) ? data.secondaryLeadRoleIds.slice() : [],
       };
       State.config.pools.push(pool);
+      // V2.1 pre-GA polish — audit. Best-effort, never block on audit failure.
+      try {
+        const log = get(KEY_AUDIT, []);
+        // Look up the lead-role name for human-readable detail.
+        let leadName = '?';
+        if (pool.leadRoleId) {
+          for (const lvl of (State.config.levels || [])) {
+            if (!lvl || !Array.isArray(lvl.roles)) continue;
+            const r = lvl.roles.find(x => x && x.id === pool.leadRoleId);
+            if (r) { leadName = r.name || '?'; break; }
+          }
+        }
+        log.unshift({
+          id: uid('a'),
+          timestamp: new Date().toISOString(),
+          type: 'config_edit',
+          action: 'pool_added',
+          detail: 'Pool added (name=' + name + ', lead=' + leadName + ', members=' + pool.memberIds.length + ')',
+        });
+        set(KEY_AUDIT, log.slice(0, 10000));
+      } catch (e) { /* audit best-effort */ }
       set(KEY_CONFIG, State.config);
       return pool;
     },
@@ -5138,11 +5210,18 @@ const Storage = (function() {
       const pool = State.config.pools.find(p => p && p.id === poolId);
       if (!pool) throw new Error('Storage.updatePool: pool not found: ' + poolId);
       const patch = changes || {};
+      // V2.1 pre-GA polish: track which fields actually changed for the
+      // audit-detail string. Avoids logging "updated everything" when
+      // only one field was touched.
+      const changedFields = [];
+      const beforeMemberCount = Array.isArray(pool.memberIds) ? pool.memberIds.length : 0;
       // Patch-Style: only touch supplied keys.
       if (Object.prototype.hasOwnProperty.call(patch, 'name')) {
         const n = (patch.name != null ? String(patch.name) : '').trim();
         if (!n) throw new Error('Storage.updatePool: name cannot be empty');
-        pool.name = n;
+        const capped = _capString(n, 200, 'pool.name');
+        if (capped !== pool.name) changedFields.push('name');
+        pool.name = capped;
       }
       if (Object.prototype.hasOwnProperty.call(patch, 'leadRoleId')) {
         const lr = patch.leadRoleId;
@@ -5154,21 +5233,47 @@ const Storage = (function() {
               : false
           );
           if (!exists) throw new Error('Storage.updatePool: leadRoleId does not exist: ' + lr);
+          if (String(lr) !== pool.leadRoleId) changedFields.push('lead');
           pool.leadRoleId = String(lr);
         } else {
+          if (pool.leadRoleId !== null) changedFields.push('lead');
           pool.leadRoleId = null;
         }
       }
       if (Object.prototype.hasOwnProperty.call(patch, 'memberIds')) {
-        pool.memberIds = Array.isArray(patch.memberIds) ? patch.memberIds.slice() : [];
+        const next = Array.isArray(patch.memberIds) ? patch.memberIds.slice() : [];
+        if (next.length !== beforeMemberCount) changedFields.push('members');
+        pool.memberIds = next;
       }
       if (Object.prototype.hasOwnProperty.call(patch, 'notes')) {
-        pool.notes = (patch.notes != null ? String(patch.notes) : '');
+        const capped = _capString(patch.notes != null ? String(patch.notes) : '', 2000, 'pool.notes');
+        if (capped !== pool.notes) changedFields.push('notes');
+        pool.notes = capped;
       }
       if (Object.prototype.hasOwnProperty.call(patch, 'secondaryLeadRoleIds')) {
-        pool.secondaryLeadRoleIds = Array.isArray(patch.secondaryLeadRoleIds)
-          ? patch.secondaryLeadRoleIds.slice()
-          : [];
+        const next = Array.isArray(patch.secondaryLeadRoleIds) ? patch.secondaryLeadRoleIds.slice() : [];
+        // Field-change detection is array-shallow; "different membership
+        // OR different length" — good enough for forensic-grain audit.
+        const prev = Array.isArray(pool.secondaryLeadRoleIds) ? pool.secondaryLeadRoleIds : [];
+        if (next.length !== prev.length || next.some((id, i) => id !== prev[i])) {
+          changedFields.push('secondaryLeads');
+        }
+        pool.secondaryLeadRoleIds = next;
+      }
+      // V2.1 pre-GA polish — audit. Skip when nothing actually changed
+      // (patch with no fields, or patch that matched current state).
+      if (changedFields.length > 0) {
+        try {
+          const log = get(KEY_AUDIT, []);
+          log.unshift({
+            id: uid('a'),
+            timestamp: new Date().toISOString(),
+            type: 'config_edit',
+            action: 'pool_updated',
+            detail: 'Pool updated (name=' + (pool.name || '?') + ', fields=' + changedFields.join('/') + ')',
+          });
+          set(KEY_AUDIT, log.slice(0, 10000));
+        } catch (e) { /* audit best-effort */ }
       }
       set(KEY_CONFIG, State.config);
       return pool;
@@ -5238,6 +5343,9 @@ const Storage = (function() {
       const person = State.config.persons.find(p => p && p.id === personId);
       if (!person) throw new Error('Storage.setPersonKeywords: person not found: ' + personId);
       const list = Array.isArray(keywords) ? keywords : [];
+      // V2.1 pre-GA polish: per-keyword cap 64 chars, per-person cap 32 tags.
+      const MAX_KEYWORD_LEN = 64;
+      const MAX_KEYWORDS_PER_PERSON = 32;
       // Trim, drop empties, dedupe case-insensitively while preserving the
       // first-seen original case (so "ITSec" survives over "itsec").
       const seen = new Set();
@@ -5246,12 +5354,42 @@ const Storage = (function() {
         if (typeof raw !== 'string') continue;
         const trimmed = raw.trim();
         if (!trimmed) continue;
-        const lc = trimmed.toLowerCase();
+        const capped = _capString(trimmed, MAX_KEYWORD_LEN, 'keyword');
+        const lc = capped.toLowerCase();
         if (seen.has(lc)) continue;
         seen.add(lc);
-        out.push(trimmed);
+        out.push(capped);
+        if (out.length >= MAX_KEYWORDS_PER_PERSON) {
+          if (list.length > out.length) {
+            console.warn('[Storage] keywords-per-person exceeded ' + MAX_KEYWORDS_PER_PERSON
+              + ' (' + list.length + ' supplied), dropping the rest');
+          }
+          break;
+        }
       }
+      // V2.1 pre-GA polish — audit. Compute add/remove delta for human-
+      // readable detail. Skip when nothing actually changed (idempotent
+      // sets shouldn't pollute the forensic timeline).
+      const prevList = Array.isArray(person.keywords) ? person.keywords : [];
+      const prevSet = new Set(prevList.map(s => s.toLowerCase()));
+      const nextSet = new Set(out.map(s => s.toLowerCase()));
+      const added = out.filter(k => !prevSet.has(k.toLowerCase())).length;
+      const removed = prevList.filter(k => !nextSet.has(k.toLowerCase())).length;
       person.keywords = out;
+      if (added > 0 || removed > 0) {
+        try {
+          const log = get(KEY_AUDIT, []);
+          log.unshift({
+            id: uid('a'),
+            timestamp: new Date().toISOString(),
+            type: 'config_edit',
+            action: 'person_keywords_updated',
+            detail: 'Keywords updated (person=' + (person.name || '?')
+              + ', +' + added + ', -' + removed + ', total=' + out.length + ')',
+          });
+          set(KEY_AUDIT, log.slice(0, 10000));
+        } catch (e) { /* audit best-effort */ }
+      }
       set(KEY_CONFIG, State.config);
       return out.slice();
     },
