@@ -4170,9 +4170,12 @@ button:focus-visible,
   }
   .p-header-meta div { margin-bottom: 2pt; }
 
-  /* ---- Footer auf jeder Seite ---- */
+  /* ---- Footer auf jeder Seite ----
+     Hinweis: `position: running()` wurde entfernt — kein Element nutzte den
+     Slot, der Code war seit V1.x tot. Footer-Inhalte erscheinen heute über
+     @page-margin-boxes (in applyPrintPageStyle gesteuert), nicht über
+     running elements. */
   .p-footer {
-    position: running(pageFooter);
     font-size: calc(8pt * var(--print-scale, 1));
     color: #666;
     text-align: center;
@@ -4208,6 +4211,11 @@ button:focus-visible,
     padding-bottom: 2pt;
     margin-bottom: 2pt;
   }
+  /* Karten-Hierarchie umgedreht (Spec-Fix Overview-2):
+     ROLLE jetzt dominant (12pt fett), Person sekundär (10pt regular).
+     Single-Critical-Encoding (Spec-Fix Overview-5): nur der linke 3pt-Balken
+     markiert kritische Rollen — kein rötlicher Hintergrund und kein Badge
+     mehr. Das macht volle Vorstand-Level lesbar statt rot-ertränkt. */
   .p-overview .p-role-card {
     break-inside: avoid;
     background: #fff;
@@ -4220,18 +4228,18 @@ button:focus-visible,
     gap: 1pt;
   }
   .p-overview .p-role-card[data-critical="true"] {
-    border-left-color: #c00;
-    background: #fff5f5;
+    border-left: 3pt solid #c00;
   }
   .p-overview .p-role-name {
-    font-size: calc(9pt * var(--print-scale, 1));
-    font-weight: 600;
-    color: #333;
-  }
-  .p-overview .p-role-person {
     font-size: calc(12pt * var(--print-scale, 1));
     font-weight: 700;
     color: #000;
+    line-height: 1.2;
+  }
+  .p-overview .p-role-person {
+    font-size: calc(10pt * var(--print-scale, 1));
+    font-weight: 400;
+    color: #222;
   }
   .p-overview .p-role-person[data-unoccupied="true"] {
     color: #c00;
@@ -4239,31 +4247,32 @@ button:focus-visible,
   }
   .p-overview .p-role-phone {
     font-family: 'IBM Plex Mono', monospace;
-    font-size: calc(11pt * var(--print-scale, 1));
-    color: #000;
+    font-size: calc(9pt * var(--print-scale, 1));
+    color: #333;
   }
+  /* Spec-Fix Overview-4: Substitution-Hinweis von 7.5pt auf 9pt.
+     Wandchart-Distanz erfordert mind. 9pt Body-Lesbarkeit. */
   .p-overview .p-role-sub-hint {
-    font-size: calc(7.5pt * var(--print-scale, 1));
-    color: #666;
-    font-style: italic;
+    font-size: calc(9pt * var(--print-scale, 1));
+    color: #555;
+    font-weight: 600;
   }
-  .p-overview .p-critical-badge {
-    display: inline-block;
-    background: #c00;
-    color: #fff;
-    font-size: calc(6.5pt * var(--print-scale, 1));
-    font-weight: 700;
-    padding: 1pt 4pt;
-    border-radius: 2pt;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
+  /* Pool-Indikator (V2.1 step 7): dezent unter dem Lead.
+     Klein genug um nicht mit dem Rollennamen zu konkurrieren, aber lesbar. */
+  .p-overview .p-role-pool-indicator {
+    font-size: calc(8pt * var(--print-scale, 1));
+    color: #555;
+    letter-spacing: 0.03em;
+    margin-top: 1pt;
   }
 
   /* ============================================================
      VARIANTE 2 — ROLLEN-DETAIL (mehrseitig)
      ============================================================ */
+  /* Spec-Fix Detail-6: break-inside auf Level-Section entfernt — sonst
+     erzwingt ein großes Level halbleere Vorgängerseiten. Stattdessen
+     reicht break-inside auf Rolle-Ebene (siehe p-detail-role unten). */
   .p-detail .p-level-section {
-    break-inside: avoid-page;
     margin-bottom: 8pt;
   }
   .p-detail .p-level-section .p-h2 {
@@ -4276,9 +4285,9 @@ button:focus-visible,
     margin-bottom: 4pt;
     background: #fafafa;
   }
+  /* Spec-Fix Detail (single critical encoding): nur Balken, kein rosa BG. */
   .p-detail .p-detail-role[data-critical="true"] {
-    border-left: 2.5pt solid #c00;
-    background: #fff5f5;
+    border-left: 3pt solid #c00;
   }
   .p-detail .p-detail-role-head {
     display: flex;
@@ -4333,9 +4342,15 @@ button:focus-visible,
     text-decoration: line-through;
     color: #888;
   }
+  /* Spec-Fix Detail-3: S/W-Druck-taugliches Active-Highlight.
+     Dickes linkes Border (4pt) plus Bold-Schrift — erkennbar auch ohne
+     Farbe. Der zarte Hintergrund bleibt für Farbdrucke, ist aber nicht
+     mehr die primäre Codierung. */
   .p-detail .p-chain-item[data-active="true"] {
+    border-left: 4pt solid #000;
+    padding-left: 4pt;
     background: #fff3c0;
-    font-weight: 600;
+    font-weight: 700;
   }
   .p-detail .p-absent-tag {
     display: inline-block;
@@ -4345,6 +4360,45 @@ button:focus-visible,
     font-size: calc(7pt * var(--print-scale, 1));
     margin-left: 4pt;
     border-radius: 1pt;
+  }
+  /* Spec-Fix Detail-2: Manual-Note erklärt jetzt, welcher Eintrag der
+     Kette übergangen wurde („→ skipped: Person X"). */
+  .p-detail .p-detail-manual-skip {
+    font-size: calc(8pt * var(--print-scale, 1));
+    color: #555;
+    font-style: italic;
+    margin-top: 2pt;
+  }
+  /* V2.1 step 7: Pool-Member-Liste unter der Rolle. Eine kompakte Sub-
+     Sektion mit Member-Name + Keywords inline. */
+  .p-detail .p-detail-pool-section {
+    margin-top: 4pt;
+    padding-top: 3pt;
+    border-top: 0.25pt dashed #999;
+  }
+  .p-detail .p-detail-pool-head {
+    font-size: calc(8.5pt * var(--print-scale, 1));
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #444;
+    margin-bottom: 2pt;
+  }
+  .p-detail .p-detail-pool-member {
+    display: flex;
+    gap: 6pt;
+    font-size: calc(8.5pt * var(--print-scale, 1));
+    padding: 1pt 0;
+  }
+  .p-detail .p-detail-pool-member-name {
+    flex: 0 0 auto;
+    font-weight: 600;
+    min-width: 90pt;
+  }
+  .p-detail .p-detail-pool-member-kw {
+    flex: 1;
+    color: #555;
+    font-style: italic;
   }
 
   /* ============================================================
@@ -4375,16 +4429,28 @@ button:focus-visible,
     font-weight: 700;
     font-size: calc(10pt * var(--print-scale, 1));
   }
-  .p-persons .p-person-name[data-absent="true"]::after {
-    content: " — ABSENT";
+  /* Spec-Fix People-2: ABSENT-Marker raus aus CSS-::after — der String
+     ist jetzt aus i18n und wird in buildPrintPersons() ins HTML gerendert.
+     Hier nur noch die Styling-Klasse. */
+  .p-persons .p-person-absent-marker {
     font-weight: 400;
     font-size: calc(8pt * var(--print-scale, 1));
     color: #c00;
+    margin-left: 4pt;
   }
   .p-persons .p-person-contact {
     font-family: 'IBM Plex Mono', monospace;
     font-size: calc(8.5pt * var(--print-scale, 1));
     color: #333;
+  }
+  .p-persons .p-person-keywords {
+    font-size: calc(7.5pt * var(--print-scale, 1));
+    color: #666;
+    margin-top: 1pt;
+  }
+  .p-persons .p-person-keywords-label {
+    font-weight: 600;
+    color: #555;
   }
   .p-persons .p-person-roles {
     font-size: calc(8pt * var(--print-scale, 1));
@@ -4397,6 +4463,25 @@ button:focus-visible,
     margin: 1pt 2pt 1pt 0;
     border-radius: 1pt;
     font-size: calc(7.5pt * var(--print-scale, 1));
+  }
+  /* Spec-Fix People-3: Primary-Chips deutlich von Sub-Chips abgegrenzt —
+     dunkler Hintergrund + Stern-Marker. */
+  .p-persons .p-person-role-chip[data-rank="primary"] {
+    background: #333;
+    color: #fff;
+    font-weight: 700;
+  }
+  /* Spec-Fix People-5: Buchstaben-Anker. Mini-Header vor jeder neuen
+     Anfangsbuchstaben-Gruppe in der Liste. */
+  .p-persons .p-letter-anchor {
+    break-after: avoid;
+    margin: 6pt 0 2pt 0;
+    padding: 1pt 0 2pt 0;
+    font-size: calc(11pt * var(--print-scale, 1));
+    font-weight: 700;
+    color: #000;
+    border-bottom: 0.5pt solid #999;
+    letter-spacing: 0.05em;
   }
 }
 
@@ -8542,6 +8627,11 @@ const TRANSLATIONS = {
     'print.level_prefix': 'Ebene',
     'print.replaces': 'vertritt',
     'print.currently_absent_note': '{name} nicht verfügbar — Vertretung aktiv',
+    'print.people_absent_marker': 'ABWESEND',
+    'print.role_pool_label': 'Pool',
+    'print.role_pool_members_count': '{n} Mitglieder',
+    'print.person_keywords_label': 'Schwerpunkte',
+    'print.overview_pool_indicator': 'POOL: {name} ({n})',
     'header.panel': 'Panel',
     'header.panel_tooltip': 'Seitenpanel ein-/ausblenden',
     'toast.panel_shown': 'Seitenpanel eingeblendet',
@@ -9184,6 +9274,11 @@ const TRANSLATIONS = {
     'print.level_prefix': 'Level',
     'print.replaces': 'substituting for',
     'print.currently_absent_note': '{name} unavailable — substitute active',
+    'print.people_absent_marker': 'ABSENT',
+    'print.role_pool_label': 'Pool',
+    'print.role_pool_members_count': '{n} members',
+    'print.person_keywords_label': 'Focus areas',
+    'print.overview_pool_indicator': 'POOL: {name} ({n})',
     'header.panel': 'Panel',
     'header.panel_tooltip': 'Show/hide side panel',
     'toast.panel_shown': 'Side panel shown',
@@ -9825,6 +9920,11 @@ const TRANSLATIONS = {
     'print.level_prefix': 'Nivel',
     'print.replaces': 'sustituye a',
     'print.currently_absent_note': '{name} no disponible — suplente activo',
+    'print.people_absent_marker': 'AUSENTE',
+    'print.role_pool_label': 'Grupo',
+    'print.role_pool_members_count': '{n} miembros',
+    'print.person_keywords_label': 'Áreas de enfoque',
+    'print.overview_pool_indicator': 'GRUPO: {name} ({n})',
     'header.panel': 'Panel',
     'header.panel_tooltip': 'Mostrar/ocultar panel lateral',
     'toast.panel_shown': 'Panel lateral mostrado',
@@ -10467,6 +10567,11 @@ const TRANSLATIONS = {
     'print.level_prefix': 'Niveau',
     'print.replaces': 'remplace',
     'print.currently_absent_note': '{name} indisponible — suppléant actif',
+    'print.people_absent_marker': 'ABSENT',
+    'print.role_pool_label': 'Pool',
+    'print.role_pool_members_count': '{n} membres',
+    'print.person_keywords_label': 'Domaines clés',
+    'print.overview_pool_indicator': 'POOL : {name} ({n})',
     'header.panel': 'Panneau',
     'header.panel_tooltip': 'Afficher/masquer le panneau latéral',
     'toast.panel_shown': 'Panneau latéral affiché',
@@ -11114,6 +11219,11 @@ const TRANSLATIONS = {
     'print.level_prefix': '层级',
     'print.replaces': '替代',
     'print.currently_absent_note': '{name} 不可用 — 替补已激活',
+    'print.people_absent_marker': '缺席',
+    'print.role_pool_label': '人员池',
+    'print.role_pool_members_count': '{n} 名成员',
+    'print.person_keywords_label': '重点领域',
+    'print.overview_pool_indicator': '人员池：{name}（{n}）',
     'header.panel': '面板',
     'header.panel_tooltip': '显示/隐藏侧面板',
     'toast.panel_shown': '已显示侧面板',
@@ -17347,6 +17457,40 @@ function computeOverviewColumns(format, orientation, totalRoles) {
   return Math.min(cols, 6);
 }
 
+// V2.1 step 7: lookup helpers for print templates -----------------------
+// Findet den primären Pool, der eine Rolle als Lead hat. Sekundär-Leads
+// werden bewusst nicht berücksichtigt — die Print-Anzeige zeigt den Pool
+// dort, wo er „heimisch" ist, sonst entsteht Doppel-Listung.
+function _getPrimaryPoolForLeadRole(roleId) {
+  const pools = State.config && State.config.pools;
+  if (!Array.isArray(pools) || !roleId) return null;
+  return pools.find(p => p && p.leadRoleId === roleId) || null;
+}
+
+// Filtert die memberIds eines Pools auf existierende Personen und gibt
+// sortierte Person-Objekte zurück (alphabetisch nach Name, Sprach-Locale
+// folgt der aktuellen UI-Sprache).
+function _resolvePoolMembers(pool) {
+  if (!pool || !Array.isArray(pool.memberIds)) return [];
+  const persons = pool.memberIds
+    .map(id => findPerson(id))
+    .filter(p => !!p);
+  persons.sort((a, b) => a.name.localeCompare(b.name, State.language || 'de'));
+  return persons;
+}
+
+// Berechnet eine dynamische Spaltenzahl für die Overview-Variante
+// basierend auf der Länge des längsten Rollennamens. Spec-Fix Overview-3:
+// 6-Spalten-Cap brach lange Namen wie „Stellvertretender Vorsitz
+// Krisenstab" auf 3 Zeilen. Wenn Namen lang sind → weniger, aber breitere
+// Spalten.
+function _adaptiveColumnCount(baseCount, longestNameLen) {
+  if (!Number.isFinite(longestNameLen) || longestNameLen <= 0) return baseCount;
+  if (longestNameLen > 28) return Math.min(baseCount, 3);
+  if (longestNameLen > 20) return Math.min(baseCount, 4);
+  return baseCount;
+}
+
 function buildPrintHTML(variant, format, orientation) {
   // Defensiv: Occupancy frisch berechnen, falls render() noch nie lief
   // oder die Daten aus irgendeinem Grund stale sind
@@ -17393,8 +17537,21 @@ function buildPrintHTML(variant, format, orientation) {
 }
 
 function buildPrintOverview(format, orientation) {
-  const totalRoles = State.config.levels.reduce((a, l) => a + l.roles.length, 0);
-  const cols = computeOverviewColumns(format, orientation, State.config.levels.length);
+  // Spec-Fix Overview-3: Spaltenzahl ist jetzt zweistufig.
+  // 1) computeOverviewColumns liefert das Format-bedingte Maximum (Papier-
+  //    breite vs. 62mm Ziel-Spalten-Breite, gedeckelt auf 6).
+  // 2) _adaptiveColumnCount drückt das herunter, wenn der längste
+  //    Rollenname das Layout brechen würde. Lieber 3 breite Spalten als
+  //    6 enge mit 3-Zeilen-Rollennamen.
+  const baseCols = computeOverviewColumns(format, orientation, State.config.levels.length);
+  let longestNameLen = 0;
+  State.config.levels.forEach(level => {
+    (level.roles || []).forEach(role => {
+      const n = (role && role.name) ? role.name.length : 0;
+      if (n > longestNameLen) longestNameLen = n;
+    });
+  });
+  const cols = _adaptiveColumnCount(baseCols, longestNameLen);
 
   // Pro Level ein Block mit den Rollen drin. Wir packen die Level in
   // ein Grid mit auto-berechneter Spaltenzahl.
@@ -17425,16 +17582,30 @@ function buildPrintOverview(format, orientation) {
         unoccupied = true;
       }
 
-      const critBadge = role.critical
-        ? `<span class="p-critical-badge">${escapeHTML(t('print.critical_marker'))}</span>`
-        : '';
+      // V2.1 step 7: Pool-Indikator unter dem Lead, kompakt mit Count.
+      // Nur primary lead-Pools (siehe _getPrimaryPoolForLeadRole) — kein
+      // Doppel-Listing für Sekundär-Leads.
+      let poolIndicator = '';
+      const pool = _getPrimaryPoolForLeadRole(role.id);
+      if (pool) {
+        const memberCount = Array.isArray(pool.memberIds) ? pool.memberIds.length : 0;
+        const poolLabel = t('print.overview_pool_indicator', {
+          name: pool.name,
+          n: memberCount,
+        });
+        poolIndicator = `<div class="p-role-pool-indicator">${escapeHTML(poolLabel)}</div>`;
+      }
 
+      // Spec-Fix Overview-1+5: kein CRITICAL-Badge mehr — der linke
+      // 3pt-Balken ist die einzige Codierung (data-critical Attribut
+      // triggert das CSS).
       return `
         <div class="p-role-card" data-critical="${role.critical || false}">
-          <div class="p-role-name">${escapeHTML(role.name)}${critBadge ? ' ' + critBadge : ''}</div>
+          <div class="p-role-name">${escapeHTML(role.name)}</div>
           <div class="p-role-person"${unoccupied ? ' data-unoccupied="true"' : ''}>${escapeHTML(personName)}</div>
           ${phone ? `<div class="p-role-phone">${escapeHTML(phone)}</div>` : ''}
           ${subHint ? `<div class="p-role-sub-hint">${escapeHTML(subHint)}</div>` : ''}
+          ${poolIndicator}
         </div>
       `;
     }).join('');
@@ -17490,13 +17661,31 @@ function buildPrintDetail() {
 
       // Manuelle Zuordnung: separater Hinweis über der Kette, da sie
       // nicht Teil der assignments ist, aber der aktuell Besetzende.
+      // Spec-Fix Detail-2: zusätzlich Skip-Indikator unterhalb der Note,
+      // damit der Leser erkennt, welcher Ketten-Eintrag übergangen wurde.
       let manualNote = '';
       if (occ && occ.manual && occ.personId) {
         const mp = findPerson(occ.personId);
         const mphone = mp && mp.phone ? ' — ' + mp.phone : '';
+        // Was wäre OHNE manuelle Zuweisung aktiv gewesen? Erster nicht-
+        // abwesender Eintrag in der Kette.
+        let skipName = null;
+        const sortedForSkip = [...role.assignments].sort((a, b) => a.rank - b.rank);
+        for (const a of sortedForSkip) {
+          const isAbsent = !!(State.runtime.unavailable && State.runtime.unavailable[a.personId]);
+          if (!isAbsent) {
+            const sp = findPerson(a.personId);
+            if (sp) skipName = sp.name;
+            break;
+          }
+        }
+        const skipHTML = skipName
+          ? `<div class="p-detail-manual-skip">→ skipped: ${escapeHTML(skipName)}</div>`
+          : '';
         manualNote = `
           <div class="p-detail-manual-note">
             🔒 ${escapeHTML(t('manual.badge'))}: <strong>${escapeHTML(mp ? mp.name : '?')}</strong>${escapeHTML(mphone)}
+            ${skipHTML}
           </div>
         `;
       }
@@ -17507,19 +17696,47 @@ function buildPrintDetail() {
         emptyNote = `<div class="p-no-chain"><em>${escapeHTML(t('print.no_person'))}</em></div>`;
       }
 
-      const critBadge = role.critical
-        ? `<span class="p-critical-badge">${escapeHTML(t('print.critical_marker'))}</span>`
-        : '';
+      // V2.1 step 7: Pool-Member-Sektion am Ende der Rolle.
+      // Member-Liste sortiert (siehe _resolvePoolMembers), pro Eintrag
+      // Name + Keywords (inline, kursiv). Keine Telefonnummer hier —
+      // die Personen sind in der People-list mit Kontakt.
+      let poolSection = '';
+      const pool = _getPrimaryPoolForLeadRole(role.id);
+      if (pool) {
+        const members = _resolvePoolMembers(pool);
+        const count = members.length;
+        const countLabel = t('print.role_pool_members_count', { n: count });
+        const memberRows = members.map(m => {
+          const kws = Array.isArray(m.keywords) ? m.keywords.filter(Boolean) : [];
+          const kwHTML = kws.length
+            ? `<span class="p-detail-pool-member-kw">${escapeHTML(kws.join(', '))}</span>`
+            : '';
+          return `
+            <div class="p-detail-pool-member">
+              <span class="p-detail-pool-member-name">${escapeHTML(m.name)}</span>
+              ${kwHTML}
+            </div>
+          `;
+        }).join('');
+        poolSection = `
+          <div class="p-detail-pool-section">
+            <div class="p-detail-pool-head">${escapeHTML(t('print.role_pool_label'))}: ${escapeHTML(pool.name)} (${escapeHTML(countLabel)})</div>
+            ${memberRows}
+          </div>
+        `;
+      }
 
+      // Spec-Fix Detail (single critical encoding): kein Badge mehr,
+      // nur das data-critical-Attribut für den linken Balken.
       return `
         <div class="p-detail-role" data-critical="${role.critical || false}">
           <div class="p-detail-role-head">
             <div class="p-detail-role-name">${escapeHTML(role.name)}</div>
-            ${critBadge}
           </div>
           ${role.description ? `<div class="p-small" style="margin-bottom: 3pt;">${escapeHTML(role.description)}</div>` : ''}
           ${manualNote}
           ${chainHTML || emptyNote}
+          ${poolSection}
         </div>
       `;
     }).join('');
@@ -17549,24 +17766,41 @@ function buildPrintPersons() {
     const absent = !!(State.runtime.unavailable && State.runtime.unavailable[p.id]);
     const absence = absent ? State.runtime.unavailable[p.id] : null;
 
-    const rolesHTML = roles.length === 0
+    // Spec-Fix People-3: Rang-Priorität sichtbar. Roles nach rank
+    // sortieren, Primary mit Stern + data-rank-Attribut für CSS-Style.
+    const sortedRoles = roles.slice().sort((a, b) => a.rank - b.rank);
+    const rolesHTML = sortedRoles.length === 0
       ? `<span class="p-small"><em>${escapeHTML(t('print.persons_no_roles'))}</em></span>`
-      : roles.map(r => {
-          const rankLbl = r.rank === 0
+      : sortedRoles.map(r => {
+          const isPrimary = r.rank === 0;
+          const rankLbl = isPrimary
             ? t('print.rank_primary')
             : t('print.rank_substitute', { n: r.rank });
-          return `<span class="p-person-role-chip">${escapeHTML(r.role.name)} · ${escapeHTML(rankLbl)}</span>`;
+          const star = isPrimary ? '★ ' : '';
+          return `<span class="p-person-role-chip" data-rank="${isPrimary ? 'primary' : 'sub'}">${escapeHTML(star + r.role.name)} · ${escapeHTML(rankLbl)}</span>`;
         }).join('');
 
     const absenceInfo = absence
       ? ` <span class="p-small">(${escapeHTML(categoryLabel(absence.category))}${absence.note ? ' — ' + escapeHTML(absence.note) : ''})</span>`
       : '';
 
+    // Spec-Fix People-2: ABSENT-Marker aus i18n, im HTML statt CSS-::after.
+    const absentMarker = absent
+      ? ` <span class="p-person-absent-marker">— ${escapeHTML(t('print.people_absent_marker'))}</span>`
+      : '';
+
+    // V2.1 step 7: Keywords als eigene Sub-Zeile, kompakt unter Kontakt.
+    const kws = Array.isArray(p.keywords) ? p.keywords.filter(Boolean) : [];
+    const keywordsHTML = kws.length
+      ? `<div class="p-person-keywords"><span class="p-person-keywords-label">${escapeHTML(t('print.person_keywords_label'))}:</span> ${escapeHTML(kws.join(', '))}</div>`
+      : '';
+
     return `
       <div class="p-person-row" data-absent="${absent}">
         <div class="p-person-main">
-          <div class="p-person-name" data-absent="${absent}">${escapeHTML(p.name)}${absenceInfo}</div>
+          <div class="p-person-name" data-absent="${absent}">${escapeHTML(p.name)}${absentMarker}${absenceInfo}</div>
           <div class="p-person-contact">${p.phone ? escapeHTML(p.phone) : ''}${p.phone && p.email ? ' · ' : ''}${p.email ? escapeHTML(p.email) : ''}</div>
+          ${keywordsHTML}
         </div>
         <div class="p-person-roles">
           <span class="p-small">${escapeHTML(t('print.persons_roles_label'))}:</span> ${rolesHTML}
@@ -17575,19 +17809,45 @@ function buildPrintPersons() {
     `;
   };
 
+  // Spec-Fix People-5: Buchstaben-Anker. Hilfsfunktion liefert die
+  // erste Initiale einer Person; verlustfrei (Unicode-aware via
+  // String.prototype[Symbol.iterator]).
+  const initialOf = (name) => {
+    if (!name) return '#';
+    const it = name.trim()[Symbol.iterator]();
+    const first = it.next();
+    if (first.done || !first.value) return '#';
+    return first.value.toLocaleUpperCase(State.language || 'de');
+  };
+
+  // Rendert eine Sektion mit Letter-Anchors zwischen Personen-Zeilen.
+  // Erwartet eine bereits sortierte Liste.
+  const renderSectionWithAnchors = (persons) => {
+    let lastLetter = null;
+    return persons.map(p => {
+      const letter = initialOf(p.name);
+      let anchor = '';
+      if (letter !== lastLetter) {
+        anchor = `<div class="p-letter-anchor">${escapeHTML(letter)}</div>`;
+        lastLetter = letter;
+      }
+      return anchor + buildRow(p);
+    }).join('');
+  };
+
   let html = '';
   if (absentPersons.length > 0) {
     html += `
       <div class="p-person-section">
         <div class="p-h2">${escapeHTML(t('print.persons_absent_section'))} (${absentPersons.length})</div>
-        ${absentPersons.map(buildRow).join('')}
+        ${renderSectionWithAnchors(absentPersons)}
       </div>
     `;
   }
   html += `
     <div class="p-person-section">
       <div class="p-h2">${escapeHTML(t('print.persons_available_section'))} (${availablePersons.length})</div>
-      ${availablePersons.map(buildRow).join('')}
+      ${renderSectionWithAnchors(availablePersons)}
     </div>
   `;
   return html;
