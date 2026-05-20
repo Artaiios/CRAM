@@ -1,6 +1,6 @@
-# CRAM — Server-Setup für Online-Sync (V1.2)
+# CRAM — Server-Setup für Online-Sync
 
-CRAM nutzt für den Online-Sync (V1.2 manuell, V2.0 automatisch) ein **statisches HTTP-Backend**, das `GET`, `HEAD`, `PUT` und `OPTIONS` auf einem einzigen Endpunkt (`/cram/state.json` o.ä.) entgegennimmt und CORS-Anfragen vom Browser akzeptiert. Es gibt keine CRAM-spezifische Server-Software — jeder generische Webserver mit WebDAV-Methoden tut es.
+CRAM nutzt für den Online-Sync (V1.2/V1.3 manuell, ab V2.0 zusätzlich automatisch) ein **statisches HTTP-Backend**, das `GET`, `HEAD`, `PUT` und `OPTIONS` auf einem einzigen Endpunkt (`/cram/state.json` o.ä.) entgegennimmt und CORS-Anfragen vom Browser akzeptiert. Es gibt keine CRAM-spezifische Server-Software — jeder generische Webserver mit WebDAV-Methoden tut es.
 
 Dieses Dokument zeigt Referenz-Konfigurationen für die häufigsten Server-Optionen. Wähle eine aus, passe die Pfade an und folge der CORS-Sektion.
 
@@ -31,6 +31,21 @@ CRAM erwartet eine URL wie `https://crisis.example.com/cram/state.json`, auf der
 Der Body ist immer ein JSON-Objekt, dessen Struktur CRAM selbst kennt (`format: "cram-sync-v1"`). Der Server muss den Inhalt nicht inspizieren — er ist ein opaker Storage.
 
 **Wichtig:** keine Indizierung, kein Listing, kein automatisches Backup-Rotieren des Server-Verzeichnisses durch andere Prozesse. CRAM überschreibt die Datei bei jedem Push komplett.
+
+### Zusätzliche Anforderungen für V2.0-Auto-Sync
+
+Auto-Sync (V2.0) funktioniert ohne Konfliktbehandlung gegen jeden Server, der die Tabelle oben erfüllt. Für **Lost-Update-Schutz** bei parallelen Editoren braucht es zwei zusätzliche Eigenschaften:
+
+| Eigenschaft | Wozu | Wer liefert |
+|---|---|---|
+| `ETag`-Response-Header auf `GET`/`HEAD`/`PUT`-Responses | CRAM merkt sich den letzten ETag pro Source | Server muss ihn setzen |
+| `If-Match`-Validation auf `PUT` | Server lehnt mit **412 Precondition Failed** ab, wenn ein anderer Schreiber zwischenzeitlich den Inhalt geändert hat | Server validiert das vor dem Schreiben |
+
+**Verhalten ohne ETag-Support:** CRAM funktioniert weiter, aber bei zwei parallelen Schreibern kann der spätere Push den früheren stillschweigend überschreiben. Die Audit-Log-Einträge bleiben erhalten (siehe Auto-Sync-Doku im Handbuch), der Status-Wert geht aber verloren. Akzeptable Trade-off für Setups mit wenigen Editoren oder strenger organisatorischer Schreib-Disziplin.
+
+**nginx**, **Apache** und **Caddy mit `caddy-webdav`** setzen ETags automatisch und respektieren `If-Match` ohne weitere Konfiguration — die Beispiele unten sind aus diesem Grund bereits V2.0-tauglich. **MinIO** und **S3-kompatible Backends** setzen ebenfalls ETags (über den Object-MD5). Reine statische Hoster ohne Conditional-Request-Support (manche CDN-Edges, simple Python-`http.server`-Setups) funktionieren technisch, bieten aber keinen Lost-Update-Schutz.
+
+Die CORS-Allow-Headers in allen Beispielen unten enthalten bereits `If-Match` und `If-None-Match`; die Expose-Headers `ETag` und `Last-Modified`. Das ist V1.2-Boilerplate, das V2.0 jetzt aktiv benutzt.
 
 ## Variante A: nginx mit `dav_methods`
 
@@ -228,6 +243,8 @@ python3 scripts/dev-sync-backend.py
 Dieses Mini-Backend simuliert das Verhalten der echten Server (GET/HEAD/PUT/OPTIONS mit CORS), schreibt den State in `scripts/dev-sync-state.json` (gitignored) und ist absichtlich **nicht für Production**. Es hat keine Auth, kein TLS, kein Rate-Limiting.
 
 `python3 scripts/dev-sync-backend.py --reset` löscht den State und beendet sich. `--port <N>` setzt einen anderen Port.
+
+**Bekannte Einschränkung (V2.0-rc1):** Das Dev-Backend setzt ETags, validiert `If-Match` aber noch nicht aktiv — ein 412-Pfad lässt sich damit nicht testen. Wer den V2.0-Konfliktpfad gegen einen lokalen Server testen will, sollte stattdessen ein lokales nginx mit der Variante-A-Config aufsetzen. Die fehlende If-Match-Validation im Dev-Backend steht im CHANGELOG unter „Deferred — out of scope for RC1, in scope for RC2 / GA".
 
 ---
 

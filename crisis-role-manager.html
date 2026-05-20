@@ -275,6 +275,7 @@ button:focus-visible,
   align-items: center;
   gap: var(--space-5);
   padding: var(--space-2) var(--space-5);
+  padding-top: max(var(--space-2), env(safe-area-inset-top));
   min-height: 56px;
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border-subtle);
@@ -364,6 +365,15 @@ button:focus-visible,
   text-transform: uppercase;
   font-size: 10px;
   letter-spacing: 0.05em;
+  /* RC-Bug-Fix (2026-05-20): defense-in-depth gegen overlong-label →
+     Header-Grid-Overflow. Der Primärfix ist der Human-Readable Format-
+     Helper (_renderSyncedAgo); CSS hier fängt nur edge cases ab, in denen
+     ein unerwartet langer i18n-String (oder ein zukünftiger neuer Status)
+     durchrutscht. Ohne overflow:hidden würde max-width nicht clippen. */
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .sync-indicator[data-state="synced"]      { color: var(--status-ok); border-color: var(--status-ok-border); }
 .sync-indicator[data-state="syncing"]     { color: var(--status-warn); border-color: var(--status-warn-border); }
@@ -379,6 +389,16 @@ button:focus-visible,
 .sync-indicator + .status-metrics {
   border-left: 1px solid var(--border-subtle);
   padding-left: var(--space-5);
+}
+
+/* RC-feature: Mobile-Tap-Area ≥44pt wenn der Indikator klickbar ist
+   (config-drift-State). Live-Countdown ist nicht klickbar, deshalb nur
+   für den drift-Fall vergrößert. */
+@media (max-width: 600px) {
+  .sync-indicator[data-state="config-drift"] {
+    min-height: 44px;
+    padding: 8px 12px;
+  }
 }
 
 .status-metric {
@@ -1877,6 +1897,97 @@ button:focus-visible,
 }
 
 /* =========================================================================
+   V2.0 TOAST-STACK (Schritt 6)
+   ----------------------------------------------------------------
+   Stacking-Container für Toast.show/Toast.dismiss. Lebt parallel zum
+   einfachen .toast (das bleibt für showToast() / Erfolgsmeldungen).
+   Bottom-Right-Stack mit Dedup über Toast-ID. Safe-Area-Insets für
+   iOS-Notch / Android-Gestenleiste. Mobile: full-width unter 600px.
+   ========================================================================= */
+#cram-toast-stack {
+  position: fixed;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  right: max(16px, env(safe-area-inset-right));
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: min(400px, calc(100vw - 32px));
+  pointer-events: none;
+}
+.cram-toast {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  box-shadow: var(--shadow-panel);
+  font-size: 13px;
+  color: var(--text-primary);
+  pointer-events: auto;
+  animation: toast-in 0.2s ease;
+}
+.cram-toast[data-level="info"]  { border-left-color: var(--accent); }
+.cram-toast[data-level="warn"]  { border-left-color: var(--status-warn); }
+.cram-toast[data-level="error"] { border-left-color: var(--status-critical); }
+.cram-toast-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: var(--text-primary);
+}
+.cram-toast-message {
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+.cram-toast-actions {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.cram-toast-actions button {
+  min-height: 44px;
+  padding: 8px 14px;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  cursor: pointer;
+}
+.cram-toast-actions button:hover {
+  background: var(--bg-hover);
+}
+.cram-toast-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: transparent;
+  border: 0;
+  color: var(--text-secondary);
+  cursor: pointer;
+  min-width: 32px;
+  min-height: 32px;
+  font-size: 16px;
+  line-height: 1;
+  padding: 4px;
+}
+.cram-toast {
+  position: relative;
+  padding-right: 36px;
+}
+@media (max-width: 600px) {
+  #cram-toast-stack {
+    left: max(16px, env(safe-area-inset-left));
+    right: max(16px, env(safe-area-inset-right));
+    max-width: none;
+  }
+  .cram-toast-actions button {
+    flex: 1 1 auto;
+  }
+}
+
+/* =========================================================================
    SCROLLBARS
    ========================================================================= */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
@@ -2413,6 +2524,307 @@ button:focus-visible,
 .sync-source-actions button:hover { color: var(--text-primary); border-color: var(--text-secondary); }
 .sync-source-actions button.danger:hover { color: var(--status-err); border-color: var(--status-err); }
 
+/* Mobile: Source-Row vertikal stapeln, Actions dürfen wrappen.
+   Sonst ragen Badge+Info+drei Action-Buttons über den Viewport hinaus
+   (~470 px > iPhone-SE-Breite 375 px). */
+@media (max-width: 600px) {
+  .sync-source-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .sync-source-type-badge {
+    align-self: flex-start;
+  }
+  .sync-source-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  /* F4: Apple HIG verlangt >=44x44 pt Tap-Targets. Default-Buttons sind
+     auf Desktop nur ~25 px hoch (padding 4px 8px + 12px font-size) und
+     auf iPhone-Viewports nicht zuverlässig treffbar. */
+  .sync-source-actions button {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 10px 14px;
+  }
+}
+
+/* V2.0 Schritt 5: per-source Auto-Sync-Akkordeon im Settings-Sync-Tab.
+   Klappbarer Bereich unterhalb der Source-Row. State pro Source nur im RAM
+   (settingsState.expandedAccordions Set). */
+.sync-source-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.sync-auto-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-top: none;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  width: 100%;
+}
+.sync-auto-toggle:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+.sync-auto-toggle-caret {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  transition: transform 0.15s ease;
+}
+.sync-auto-toggle[data-expanded="true"] .sync-auto-toggle-caret {
+  transform: rotate(90deg);
+}
+.sync-auto-mode-summary {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+}
+.sync-auto-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--accent);
+  border-top: none;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+}
+.sync-auto-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sync-auto-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
+.sync-auto-mode-radios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.sync-auto-mode-radios label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.sync-auto-mode-radios label:hover {
+  border-color: var(--text-secondary);
+  color: var(--text-primary);
+}
+.sync-auto-mode-radios input[type="radio"] {
+  margin: 0;
+  cursor: pointer;
+}
+.sync-auto-mode-radios input[type="radio"]:checked + span {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.sync-auto-interval-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sync-auto-interval-row input[type="range"] {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.sync-auto-interval-value {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-primary);
+  min-width: 80px;
+  text-align: right;
+}
+.sync-auto-stats {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 12px;
+  font-size: 12px;
+}
+.sync-auto-stats-label {
+  color: var(--text-secondary);
+}
+.sync-auto-stats-value {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  word-break: break-word;
+}
+.sync-auto-stats-value.is-error {
+  color: var(--status-critical);
+}
+.sync-auto-badge {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  border: 1px solid;
+}
+.sync-auto-badge.is-auth {
+  background: var(--status-critical-bg);
+  border-color: var(--status-critical-border);
+  color: var(--status-critical);
+}
+.sync-auto-badge.is-permission {
+  background: var(--status-warn-bg);
+  border-color: var(--status-warn-border);
+  color: var(--status-warn);
+}
+.sync-auto-badge.is-passphrase {
+  background: var(--status-warn-bg);
+  border-color: var(--status-warn-border);
+  color: var(--status-warn);
+}
+.sync-auto-badge.is-recovery {
+  background: var(--status-warn-deep-bg);
+  border-color: var(--status-warn-deep-border);
+  color: var(--status-warn-deep);
+}
+.sync-auto-badge.is-drift {
+  background: var(--status-critical-bg);
+  border-color: var(--status-critical-border);
+  color: var(--status-critical);
+}
+.sync-auto-badge-text {
+  flex: 1;
+  min-width: 0;
+}
+.sync-auto-badge-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.sync-auto-badge button {
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-family: inherit;
+}
+.sync-auto-badge button:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* RC-feature: Drift-Modal. Großes mittiges Modal, eine Karte pro betroffene
+   Source mit zwei Aktionen. */
+.drift-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.drift-modal-intro {
+  margin: 0;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+.drift-source-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.drift-source-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--status-critical-bg);
+  border: 1px solid var(--status-critical-border);
+  border-radius: var(--radius-sm);
+  flex-wrap: wrap;
+}
+.drift-source-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  color: var(--status-critical);
+  word-break: break-word;
+}
+.drift-source-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.drift-empty {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+@media (max-width: 600px) {
+  .sync-auto-accordion {
+    padding: 12px;
+  }
+  .sync-auto-accordion button,
+  .sync-auto-accordion input[type="range"],
+  .sync-auto-accordion select {
+    min-height: 44px;
+  }
+  .sync-auto-mode-radios label {
+    min-height: 44px;
+    box-sizing: border-box;
+  }
+  .sync-auto-toggle {
+    min-height: 44px;
+  }
+  .sync-auto-stats {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+  .sync-auto-stats-label {
+    margin-top: 4px;
+  }
+  .sync-auto-interval-row {
+    flex-wrap: wrap;
+  }
+  .sync-auto-interval-value {
+    text-align: left;
+    width: 100%;
+  }
+  .drift-source-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .drift-source-actions {
+    flex-direction: column;
+  }
+  .drift-source-actions button {
+    min-height: 44px;
+    width: 100%;
+  }
+}
+
 /* Form für Add/Edit HTTP-Source */
 .sync-form {
   display: flex;
@@ -2578,6 +2990,62 @@ button:focus-visible,
   margin-top: 4px;
   color: var(--text-secondary);
   font-size: 11px;
+}
+
+/* ---- V2.0 step 1: Sync-Migration-Banner (V1.3 -> V2.0 informational) ----
+   Uses --accent (neutral info blue) instead of --status-warn so the banner
+   doesn't visually compete with the Firefox browser-support banner above it,
+   which keeps yellow for a real limitation. */
+.sync-migration-banner {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-bg);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--text-primary);
+}
+.sync-migration-banner strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+.sync-migration-banner-body {
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+.sync-migration-banner-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.sync-migration-banner-actions button {
+  font-size: 11px;
+  padding: 4px 10px;
+}
+/* Ghost variant for the dismiss action: visually weaker than btn-secondary
+   so the CTA reads as the primary action and "Got it" reads as "do nothing". */
+.sync-migration-banner-actions .btn-ghost {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-radius: var(--radius-sm);
+}
+.sync-migration-banner-actions .btn-ghost:hover {
+  color: var(--text-primary);
+}
+/* Migration-Banner-Buttons: 44pt-Mindesthöhe auf Mobile (Apple HIG) */
+@media (max-width: 600px) {
+  .sync-migration-banner-actions button,
+  .sync-migration-banner-actions .btn-ghost {
+    min-height: 44px;
+    padding: 10px 14px;
+    font-size: 12px;
+  }
 }
 
 /* ---- Sync-Modal Online-Tab (V1.2 → V1.3 Karten-Layout) ---- */
@@ -2913,6 +3381,7 @@ button:focus-visible,
     justify-content: space-between;
     flex: 0 0 auto;
     padding: var(--space-2) var(--space-3);
+    padding-top: max(var(--space-2), env(safe-area-inset-top));
     gap: var(--space-2);
     min-height: 0;
     height: auto;
@@ -2962,24 +3431,25 @@ button:focus-visible,
   }
   .status-metric { padding: 2px 6px; font-size: 10px; }
 
-  /* Header-Actions als Flex-Row, kein Wrap — sie dürfen schrumpfen,
-     aber bleiben in EINER Zeile. Buttons kompakt. */
+  /* Header-Actions als Flex-Row. Buttons halten Touch-Target 44x44 (HIG),
+     daher Wrap erlaubt — falls 44px-Buttons nicht in eine Zeile passen,
+     darf die Action-Reihe umbrechen statt geclippt zu werden. */
   .header-actions {
     flex: 1 1 auto;
     justify-content: flex-end;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     gap: 4px;
     min-width: 0;
-    overflow: hidden;
   }
 
   /* Panel-Toggle-Button auf Mobile verstecken (Bottom-Nav übernimmt Navigation) */
   #btn-panel { display: none; }
-  /* Auf Mobile: alle Labels weg, nur Icons */
+  /* Auf Mobile: alle Labels weg, nur Icons.
+     Touch-Target: 44x44 (Apple HIG / WCAG 2.5.5). */
   .btn {
     padding: 6px 8px;
-    min-width: 36px;
-    min-height: 36px;
+    min-width: 44px;
+    min-height: 44px;
     flex-shrink: 1;
   }
   .btn-label { display: none; }
@@ -3133,9 +3603,9 @@ button:focus-visible,
 
 /* ---- Sehr schmal (< 500px) — typische Phones ---- */
 @media (max-width: 499px) {
-  .app-header { padding: 6px var(--space-2); gap: 4px; }
+  .app-header { padding: 6px var(--space-2); padding-top: max(6px, env(safe-area-inset-top)); gap: 4px; }
   .brand { font-size: 12px; }
-  .btn { padding: 6px 6px; min-width: 34px; min-height: 34px; font-size: 11px; }
+  .btn { padding: 6px 6px; min-width: 44px; min-height: 44px; font-size: 11px; }
   .btn-lang { min-width: 42px; max-width: 50px; }
   /* Brand-Mark (grüner Punkt) kleiner */
   .brand-mark { width: 6px; height: 6px; }
@@ -3143,9 +3613,9 @@ button:focus-visible,
 
 /* ---- Sehr schmal (< 380px) — Galaxy-Fold etc. ---- */
 @media (max-width: 379px) {
-  .app-header { padding: 4px 6px; }
+  .app-header { padding: 4px 6px; padding-top: max(4px, env(safe-area-inset-top)); }
   .brand { font-size: 11px; }
-  .btn { padding: 5px 5px; min-width: 32px; min-height: 32px; font-size: 10px; }
+  .btn { padding: 5px 5px; min-width: 44px; min-height: 44px; font-size: 10px; }
   .btn-lang { min-width: 38px; max-width: 44px; font-size: 10px; }
   .modal-footer button { font-size: 13px; padding: var(--space-2); }
   .mobile-nav-label { font-size: 9px; }
@@ -3673,6 +4143,49 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
 
 /* =========================================================================
+   QUOTA-ERROR HANDLER (F-A + F-S1, gemeinsam für Storage & Sync)
+   ----------------------------------------------------------------
+   Beide Audits (Security: F-A, Stability: F-S1) flaggten, dass
+   QuotaExceededError silent durchrutscht — nur console.error,
+   keine User-Warnung. State-Mutationen gehen verloren bis Reload.
+   Counter-Logik: 1. Treffer kann transient sein (Race mit anderem Tab),
+   beim 2. Treffer einen persistenten, dedupierten Toast zeigen.
+   Toast wird erst gerendert wenn `Toast` global verfügbar ist (Sync.save
+   wird teilweise vor Toast-Init aufgerufen — daher typeof-Guard).
+   ========================================================================= */
+let _quotaErrorCount = 0;
+function _isQuotaError(e) {
+  if (!e) return false;
+  // Standard: DOMException name 'QuotaExceededError'. Legacy WebKit: code 22.
+  // Firefox legacy: code 1014 / name 'NS_ERROR_DOM_QUOTA_REACHED'.
+  return e.name === 'QuotaExceededError'
+      || e.code === 22
+      || e.code === 1014
+      || e.name === 'NS_ERROR_DOM_QUOTA_REACHED';
+}
+function _handleQuotaError(e, context) {
+  if (!_isQuotaError(e)) return false;
+  _quotaErrorCount++;
+  // Erst beim 2. Treffer im Tab-Lifecycle warnen. Einzeltreffer könnte
+  // ein vorübergehender Cross-Tab-Race sein.
+  if (_quotaErrorCount < 2) return true;
+  // Toast nur wenn API + i18n schon initialisiert sind.
+  if (typeof Toast === 'undefined' || typeof t !== 'function') return true;
+  try {
+    Toast.show({
+      id: 'quota-warning',
+      level: 'warn',
+      title: t('storage.quota_exceeded_title'),
+      message: t('storage.quota_exceeded_body'),
+      durationMs: null,
+    });
+  } catch (toastErr) {
+    console.warn('[Quota] toast render failed:', toastErr && toastErr.message);
+  }
+  return true;
+}
+
+/* =========================================================================
    STORAGE LAYER
    Abstrahiert für späteren Wechsel auf zentrale DB (REST-API).
    ========================================================================= */
@@ -3706,6 +4219,8 @@ const Storage = (function() {
       return true;
     } catch (e) {
       console.error('Storage write failed for', key, e);
+      // F-A + F-S1: QuotaExceededError → User-Toast (ab 2. Treffer).
+      _handleQuotaError(e, 'Storage.set:' + key);
       return false;
     }
   }
@@ -3852,7 +4367,11 @@ const SyncCrypto = (function() {
    ========================================================================= */
 const Sync = (function() {
   const KEY = 'cram.sync.v1';
-  const SCHEMA_VERSION = 1;
+  // V2.0 step 1: schema bumped from 1 -> 2 to introduce per-source AutoMode
+  // fields and a global 'auto' block (offline tracker + migration banner).
+  // _migrate() is idempotent and runs on load() when either schemaVersion < 2
+  // or the auto block is missing (guards against V2->V1.3->V2 cycles).
+  const SCHEMA_VERSION = 2;
 
   const DEFAULT_STATE = {
     schemaVersion: SCHEMA_VERSION,
@@ -3862,13 +4381,85 @@ const Sync = (function() {
     dirty: false,
     lastError: null,
     sources: [],
+    // V2.0 auto-sync globals. offlineSince tracks the start of an offline
+    // window (H1). migrationBannerDismissed persists the user's "Got it"
+    // click on the V1.3 -> V2.0 informational banner. migratedAt is set the
+    // first time _migrate() touches an existing source set; for fresh
+    // installs it stays null so no banner ever appears.
+    auto: {
+      offlineSince: null,
+      migrationBannerDismissed: false,
+      migratedAt: null,
+    },
   };
+
+  // Per-source defaults applied by _migrate(). Kept here so addSource()
+  // and _migrate() stay in sync; if you add a field, touch both call sites.
+  const SOURCE_AUTO_DEFAULTS = {
+    autoMode: 'off',          // D1: opt-in. Default 'off' for ALL sources,
+                              // including ones newly created in V2.0.
+    pollIntervalSec: 90,
+    lastAutoPollAt: null,
+    lastAutoPollError: null,
+    authError: null,          // H2: surfaced when a 401/403 happens.
+    pendingPush: null,        // H3: queued push waiting for online.
+    permissionRequired: false, // H5: FS handle lost user-activation gesture.
+  };
+
+  function _migrate(state) {
+    // Idempotent guard: a fully-migrated state passes through unchanged.
+    if (state && state.schemaVersion >= SCHEMA_VERSION && state.auto) {
+      return state;
+    }
+    // Defensive: never mutate the input. Build a shallow clone.
+    const next = Object.assign({}, state || {});
+    next.sources = Array.isArray(state && state.sources) ? state.sources.slice() : [];
+
+    // Apply per-source defaults without overwriting existing values.
+    next.sources = next.sources.map(src => {
+      const merged = Object.assign({}, src);
+      for (const k of Object.keys(SOURCE_AUTO_DEFAULTS)) {
+        if (merged[k] === undefined) merged[k] = SOURCE_AUTO_DEFAULTS[k];
+      }
+      return merged;
+    });
+
+    // Global auto block. Preserve any caller-supplied fields.
+    const hadAuto = !!(state && state.auto);
+    const prevAuto = hadAuto ? state.auto : {};
+    next.auto = {
+      offlineSince: prevAuto.offlineSince !== undefined ? prevAuto.offlineSince : null,
+      migrationBannerDismissed: prevAuto.migrationBannerDismissed === true,
+      // migratedAt only fires for upgrades from a state with existing sources.
+      // Fresh installs (sources.length === 0) keep migratedAt = null so the
+      // banner stays hidden. Once stamped, never overwritten.
+      migratedAt: (prevAuto.migratedAt !== undefined && prevAuto.migratedAt !== null)
+        ? prevAuto.migratedAt
+        : (next.sources.length > 0 ? new Date().toISOString() : null),
+    };
+
+    next.schemaVersion = SCHEMA_VERSION;
+    return next;
+  }
 
   function load() {
     try {
       const raw = localStorage.getItem(KEY);
       if (!raw) return Object.assign({}, DEFAULT_STATE);
-      return Object.assign({}, DEFAULT_STATE, JSON.parse(raw));
+      const parsed = JSON.parse(raw);
+      // Run migration first so downstream Object.assign sees v2 shape.
+      // If anything changed, persist immediately so the next load is a
+      // no-op pass through the idempotent guard.
+      const needsMigration = !parsed || parsed.schemaVersion !== SCHEMA_VERSION || !parsed.auto;
+      const migrated = needsMigration ? _migrate(parsed) : parsed;
+      if (needsMigration) {
+        try {
+          localStorage.setItem(KEY, JSON.stringify(migrated));
+        } catch (e) {
+          console.warn('Sync state migration write failed:', e);
+        }
+      }
+      return Object.assign({}, DEFAULT_STATE, migrated);
     } catch (e) {
       console.warn('Sync state read failed, using default:', e);
       return Object.assign({}, DEFAULT_STATE);
@@ -3881,6 +4472,8 @@ const Sync = (function() {
       return true;
     } catch (e) {
       console.error('Sync state write failed:', e);
+      // F-A + F-S1: QuotaExceededError → User-Toast (ab 2. Treffer).
+      _handleQuotaError(e, 'Sync.save');
       return false;
     }
   }
@@ -3950,6 +4543,18 @@ const Sync = (function() {
       save(state);
       _emitChange();
     }
+    // V2.0 Schritt 4: Auto-Push-Hook. Pro Source debouncen — der Poller
+    // entscheidet selbst (autoMode, online, paused, authError,
+    // permissionRequired, _needsRecovery), ob er den Timer überhaupt
+    // aufsetzt. No-op wenn keine Source autoMode!='off' hat.
+    // typeof-Guard: SyncPoller-IIFE wird textuell NACH Sync definiert.
+    if (typeof SyncPoller !== 'undefined' && SyncPoller.scheduleAutoPush) {
+      const sources = state.sources || [];
+      for (const s of sources) {
+        try { SyncPoller.scheduleAutoPush(s.id, 'markDirty'); }
+        catch (e) { console.warn('scheduleAutoPush failed:', e && e.message); }
+      }
+    }
   }
 
   function isDirty() {
@@ -3977,17 +4582,33 @@ const Sync = (function() {
   function addSource(input) {
     if (!input || !input.type) throw new Error('Source must have a type');
     const state = load();
-    const source = {
-      id: uid('src'),
-      type: input.type,
-      label: input.label || 'Unnamed source',
-      config: input.config || {},
-      encryption: Object.assign({ enabled: true }, input.encryption || {}),
-      createdAt: new Date().toISOString(),
-    };
+    // V2.0 D1: even brand-new sources start with autoMode='off'. The user
+    // turns auto-sync on explicitly per source after creation. SOURCE_AUTO_DEFAULTS
+    // is the single source of truth — Object.assign order ensures caller
+    // input (if ever provided) can override, but normal callers pass none.
+    const source = Object.assign(
+      {
+        id: uid('src'),
+        type: input.type,
+        label: input.label || 'Unnamed source',
+        config: input.config || {},
+        encryption: Object.assign({ enabled: true }, input.encryption || {}),
+        createdAt: new Date().toISOString(),
+      },
+      SOURCE_AUTO_DEFAULTS
+    );
     state.sources.push(source);
     save(state);
     _emitChange();
+    // V2.0: Poller-Wiring zentral hier — alle Aufrufer (UI, Bundle-Restore,
+    // Tests, künftige API-Calls) registrieren automatisch beim Poller.
+    // typeof-Guard: SyncPoller-IIFE wird textuell NACH Sync definiert, also
+    // ist SyncPoller zur Sync-Definitionszeit undefined; zur Aufrufzeit von
+    // addSource() existiert er aber.
+    if (typeof SyncPoller !== 'undefined' && SyncPoller.registerSource) {
+      try { SyncPoller.registerSource(source.id); }
+      catch (e) { console.warn('SyncPoller.registerSource failed:', e && e.message); }
+    }
     return source;
   }
 
@@ -4002,6 +4623,12 @@ const Sync = (function() {
   }
 
   function removeSource(id) {
+    // V2.0: Poller VOR Sources-Array-Mutation abräumen, damit kein Timer auf
+    // einer gerade gelöschten Source weiterläuft. typeof-Guard wie addSource().
+    if (typeof SyncPoller !== 'undefined' && SyncPoller.unregisterSource) {
+      try { SyncPoller.unregisterSource(id); }
+      catch (e) { console.warn('SyncPoller.unregisterSource failed:', e && e.message); }
+    }
     const state = load();
     state.sources = state.sources.filter(s => s.id !== id);
     save(state);
@@ -4221,9 +4848,28 @@ const Sync = (function() {
       const client = createSourceClient(source);
       const envelope = await client.read();
       if (envelope === null) return null;
+      // V2.0 step 7 (QA-F2): read the server ETag into a local var first.
+      // Persist it only AFTER applyEnvelopeForSource succeeds, otherwise we
+      // would freeze lastEtag on a payload we never accepted (invalid envelope,
+      // ConfigDriftError in status mode, decrypt failure). That created a
+      // cache-poisoning vector: a malicious server / foreign writer could
+      // pin our lastEtag to garbage, and the next push would carry that
+      // If-Match and overwrite the bogus payload — a self-healing race we
+      // would rather not depend on.
+      // S5/file-backend has no ETag → serverEtag stays null → no-op.
+      let serverEtag = null;
+      try {
+        const etag = envelope && envelope.__meta && envelope.__meta.etag;
+        if (etag && typeof etag === 'string') serverEtag = etag;
+      } catch (e) { /* read-only access, never throws — defensive */ }
       _suppressDirty = true;
       try { await applyEnvelopeForSource(envelope, source, { mode }); }
       finally { _suppressDirty = false; }
+      // Apply succeeded: NOW persist the ETag so the next push can If-Match.
+      if (serverEtag) {
+        try { updateSource(sourceId, { lastEtag: serverEtag }); }
+        catch (e) { /* ETag persistence is best-effort */ }
+      }
       const state = load();
       state.lastSyncedVersion = envelope.version;
       state.lastSyncedAt = Date.now();
@@ -4231,6 +4877,15 @@ const Sync = (function() {
       state.dirty = false;
       state.lastError = null;
       save(state);
+      // RC-Bug-Fix (2026-05-20): live-countdown im Header las
+      // source.lastAutoPollAt — der wurde aber nur im AutoPoller-Pfad
+      // geschrieben. Manuelle Pulls (syncOnlinePullStatus / Drift-Resolve /
+      // dataOnlinePullFull) hinterliessen den Counter auf dem letzten
+      // Auto-Tick → Header zeigte z.B. "vor 76150 S" während Settings
+      // korrekt "vor 1 Minute" anzeigte. Zentral hier: jeder erfolgreiche
+      // Pull aktualisiert das Feld, egal von welchem Aufrufer.
+      try { updateSource(sourceId, { lastAutoPollAt: new Date().toISOString() }); }
+      catch (e) { /* best-effort — countdown-only, not safety-critical */ }
       return envelope;
     } catch (e) {
       if (e && (e.name === 'PassphraseRequiredError' || e.name === 'ConfigDriftError')) {
@@ -4261,7 +4916,16 @@ const Sync = (function() {
     try {
       const client = createSourceClient(source);
 
-      // Status-mode pre-check: server muss gleiche Config haben
+      // Status-mode pre-check: server muss gleiche Config haben.
+      // Side effect (V2.0 step 7): a successful pre-read also refreshes
+      // source.lastEtag so the immediately-following write() can send
+      // a current If-Match — closing the obvious race for status pushes.
+      //
+      // QA-F2b (companion fix to F2 in pull): the ETag must be persisted
+      // only AFTER the fingerprint check passes, not before. Otherwise a
+      // ConfigDriftError throw freezes lastEtag on a payload we deliberately
+      // rejected — same cache-poisoning shape as F2. Buffer the ETag in a
+      // local var; commit it once validation succeeds.
       if (mode === 'status') {
         let serverEnvelope = null;
         try { serverEnvelope = await client.read(); } catch (e) {
@@ -4269,16 +4933,55 @@ const Sync = (function() {
           // write() bringt dann den richtigen Fehler.
         }
         if (serverEnvelope) {
+          let serverEtag = null;
+          try {
+            const etag = serverEnvelope.__meta && serverEnvelope.__meta.etag;
+            if (etag && typeof etag === 'string') serverEtag = etag;
+          } catch (e) { /* read-only access, never throws — defensive */ }
           const localFp = computeConfigHash(State.config);
           const remoteFp = serverEnvelope.fingerprint || '';
           if (remoteFp && remoteFp !== localFp) {
+            // Drift: keep previous lastEtag. Next pull will refresh it from
+            // the then-current server state, then push can re-evaluate.
             throw new ConfigDriftError(remoteFp, localFp);
+          }
+          // Fingerprint matches (or server has none): NOW persist the ETag
+          // so the upcoming write() carries a valid If-Match.
+          if (serverEtag) {
+            try { updateSource(sourceId, { lastEtag: serverEtag }); }
+            catch (e) { /* best-effort */ }
           }
         }
       }
 
-      const envelope = await buildEnvelopeForSource(source);
-      await client.write(envelope);
+      // Re-fetch source to pick up lastEtag that may have been written by the
+      // pre-read above. (getSource returns the persisted snapshot.)
+      const sourceForPush = getSource(sourceId) || source;
+      const envelope = await buildEnvelopeForSource(sourceForPush);
+      // V2.0 step 7: send If-Match if we have an ETag from a prior read.
+      // First push (lastEtag === null) goes without If-Match → server treats
+      // as Create. S5 backend ignores opts.ifMatch (no ETag concept).
+      const writeOpts = sourceForPush.lastEtag
+        ? { ifMatch: sourceForPush.lastEtag }
+        : {};
+      let writeResult;
+      try {
+        writeResult = await client.write(envelope, writeOpts);
+      } catch (e) {
+        // 412: server's state moved since our last read. Annotate the error so
+        // the auto-push tick can pick a no-backoff "re-pull then retry" path.
+        if (e && (e.name === 'ConcurrentUpdateError' || e.code === 412 || e.status === 412)) {
+          if (!e.name) e.name = 'ConcurrentUpdateError';
+          if (!e.code) e.code = 412;
+        }
+        throw e;
+      }
+      // Persist the new ETag the server returned for the PUT (RFC 9110
+      // recommends servers return ETag of the new resource state).
+      if (writeResult && writeResult.etag && typeof writeResult.etag === 'string') {
+        try { updateSource(sourceId, { lastEtag: writeResult.etag }); }
+        catch (e) { /* best-effort */ }
+      }
       const state = load();
       state.lastSyncedVersion = envelope.version;
       state.lastSyncedAt = Date.now();
@@ -4286,9 +4989,15 @@ const Sync = (function() {
       state.dirty = false;
       state.lastError = null;
       save(state);
+      // RC-Bug-Fix (2026-05-20): identisch zu pull() — manuelle Pushes
+      // (syncOnlinePushStatus / dataOnlinePush) sollen den Live-Countdown
+      // ebenfalls zurücksetzen. Aus User-Sicht ist ein erfolgreicher Push
+      // genauso "synced" wie ein Pull.
+      try { updateSource(sourceId, { lastAutoPollAt: new Date().toISOString() }); }
+      catch (e) { /* best-effort — countdown-only, not safety-critical */ }
       return envelope;
     } catch (e) {
-      if (e && (e.name === 'PassphraseRequiredError' || e.name === 'ConfigDriftError')) {
+      if (e && (e.name === 'PassphraseRequiredError' || e.name === 'ConfigDriftError' || e.name === 'ConcurrentUpdateError')) {
         throw e;
       }
       const state = load();
@@ -4461,6 +5170,10 @@ const Sync = (function() {
     if (!cfg.url) throw new Error('HTTP source requires config.url');
 
     return {
+      // read() — returns either null (404 / empty body) or the parsed envelope.
+      // Additionally attaches a non-enumerable __meta.etag if the server sent one,
+      // so the Sync layer can persist it for optimistic-concurrency control on push.
+      // (S5 backend has no equivalent; the Sync layer treats missing meta as "no etag".)
       async read() {
         const res = await fetch(cfg.url, {
           method: 'GET',
@@ -4473,22 +5186,59 @@ const Sync = (function() {
         }
         const text = await res.text();
         if (!text) return null;
-        return JSON.parse(text);
+        const envelope = JSON.parse(text);
+        const etag = res.headers.get('ETag');
+        if (etag && envelope && typeof envelope === 'object') {
+          try {
+            Object.defineProperty(envelope, '__meta', {
+              value: { etag: etag },
+              enumerable: false,
+              configurable: true,
+              writable: true,
+            });
+          } catch (e) { /* envelope frozen/sealed: meta is best-effort only */ }
+        }
+        return envelope;
       },
 
-      async write(envelope) {
+      // write(envelope, opts) — sends PUT with optional If-Match header.
+      // opts.ifMatch: ETag string from a prior read; enables lost-update protection.
+      // First push (no prior read => no ifMatch) goes without If-Match: server
+      // treats this as a Create. Subsequent pushes carry the last-seen ETag.
+      // On HTTP 412 (Precondition Failed) we throw a ConcurrentUpdateError; the
+      // caller (Sync.push / _pushTick) re-pulls and retries.
+      // Returns { etag } so the Sync layer can persist the new ETag from the
+      // 2xx response (RFC 9110: PUT response SHOULD include ETag of the new state).
+      async write(envelope, opts) {
+        opts = opts || {};
         const headers = Object.assign(
           { 'Content-Type': 'application/json' },
           buildAuthHeader(cfg)
         );
+        if (opts.ifMatch) {
+          // Defensive: only string ETags, ignore '*' (we want strict create-vs-update
+          // semantics, not "exists or not"). Strip control chars to keep header valid.
+          const ifMatch = String(opts.ifMatch).replace(/[\r\n]/g, '').trim();
+          if (ifMatch && ifMatch !== '*') {
+            headers['If-Match'] = ifMatch;
+          }
+        }
         const res = await fetch(cfg.url, {
           method: 'PUT',
           headers,
           body: JSON.stringify(envelope),
         });
+        if (res.status === 412) {
+          const err = new Error('PUT ' + cfg.url + ' failed: 412 Precondition Failed (concurrent update)');
+          err.name = 'ConcurrentUpdateError';
+          err.code = 412;
+          err.status = 412;
+          throw err;
+        }
         if (!res.ok) {
           throw new Error('PUT ' + cfg.url + ' failed: ' + res.status + ' ' + res.statusText);
         }
+        return { etag: res.headers.get('ETag') || null };
       },
 
       async probe() {
@@ -4630,7 +5380,14 @@ const SyncFileStore = (function() {
         return JSON.parse(text);
       },
 
-      async write(envelope) {
+      // write(envelope, opts) — opts.ifMatch is accepted for API symmetry with
+      // the S1 (HTTP) backend but ignored: the File System Access API offers
+      // no per-write precondition. Lost-update protection for S5 would require
+      // a Last-Modified compare-and-swap, which is unreliable across OS sync
+      // clients (timestamps round to seconds; cloud agents rewrite freely).
+      // For S5, the user-visible mitigation is the recovery-toast (pendingPush
+      // sentinel) plus the typical "single editor" usage pattern.
+      async write(envelope, _opts) {
         const dirHandle = await getDirHandle();
         const fileHandle = await dirHandle.getFileHandle(fileName, { create: true });
         const writable = await fileHandle.createWritable();
@@ -4791,6 +5548,7 @@ const SyncBundle = (function() {
       config: cfgClone,
       encryption: encryptionForSrc,
     });
+    // Poller-Wiring nun zentral in Sync.addSource()
 
     if (bundle.type === 'fileSystem' && dirHandle) {
       await SyncFileStore.setHandle(savedSource.id, dirHandle);
@@ -4801,6 +5559,11 @@ const SyncBundle = (function() {
         const key = await SyncCrypto.deriveKey(enc.passphrase, enc.salt);
         Sync.setKeyForSource(savedSource.id, key);
         Sync.setPassphraseForSource(savedSource.id, enc.passphrase);
+        // WP-16: falls Poller wegen leerem Cache hard-pausiert war.
+        if (typeof SyncPoller !== 'undefined' &&
+            typeof SyncPoller.passphraseProvided === 'function') {
+          SyncPoller.passphraseProvided(savedSource.id);
+        }
       } catch (e) {
         // Source bleibt drin, aber ohne Key — User kann beim nächsten Sync
         // erneut die Passphrase eingeben.
@@ -4816,6 +5579,1315 @@ const SyncBundle = (function() {
   }
 
   return { FORMAT, build, serialize, parse, apply, getFingerprintLocal };
+})();
+
+/* =========================================================================
+   SYNC POLLER — V2.0 AUTO-SYNC (Schritt 3: Backoff + 3-Class Errors + Tick)
+   --------------------------------------------------------------------------
+   Verantwortet das aktive Polling von Sync-Quellen im 'status'-Modus. Auf
+   dem Skeleton aus Schritt 2 (API-Surface, RAM-Runtime, Visibility/Online-
+   Listener) sitzt jetzt der Tick-Loop:
+
+     - Pro Source rekursiver setTimeout mit effektivem Intervall
+         max(base * visibilityMultiplier, errorDelayMs)
+     - Drei-Klassen-Fehler-Modell (transient | auth | permission)
+         transient   -> exponential backoff (Cap 16× baseInterval)
+         auth        -> autoMode='off' für diese Source + authError-Flag
+         permission  -> permissionRequired=true, hard-pause der Source
+     - visibilitychange -> visible: nur visibilityMultiplier reset, kein
+       errorDelayMs-Reset (H4-Akzeptanzkriterium)
+     - online-event: direkter Tick aller aktiven Sources (H1)
+     - lastAutoPollError ist sanitized (status + stripped message + iso +
+       class); KEIN Response-Body, KEIN WWW-Authenticate, KEIN Token-Bleed
+
+   Mode-Constraint (Security Watch 7): Auto-Polling ruft ausschließlich
+   Sync.pull(id, { mode: POLL_MODE='status' }). 'full' bleibt der Data-UI
+   vorbehalten.
+
+   Toast-System für authError/permissionRequired kommt in Schritt 6;
+   hier nur console.warn als Platzhalter.
+
+   Konstanten sind als SyncPoller.CONSTANTS exportiert — Settings-UI in
+   Schritt 5 konsumiert daraus die Min/Max/Default-Werte.
+   ========================================================================= */
+const SyncPoller = (function() {
+  'use strict';
+
+  // ---- Constants (Single-Source-of-Truth, von Settings-UI konsumiert) ----
+  const POLL_MODE = 'status';              // immer status, nie data (Mode-Constraint)
+  const VISIBILITY_HIDDEN_MULTIPLIER = 4;  // D3: Tab hidden -> Intervall × 4
+  // Security-Reviewer Watch-Point 3: konservativer Floor 30s statt 15s.
+  // V2.0 führt zum ersten Mal automatisches Polling ein — defensiver Floor
+  // schützt gegen versehentliche Last (Spec-Bug, korrupte Persistenz,
+  // Settings-UI-Bug). Power-User-Override wäre ein separates Future-Feature
+  // mit explizitem Opt-In.
+  const POLL_INTERVAL_MIN_SEC = 30;
+  const POLL_INTERVAL_MAX_SEC = 300;       // Spec-Cap
+  const POLL_INTERVAL_DEFAULT_SEC = 90;    // Spec-Default
+  const BACKOFF_MAX_MULTIPLIER = 16;       // Spec: errorDelay <= 16× baseInterval
+
+  // ---- RAM-only Runtime-State (NIE persistiert) ----
+  // Map<sourceId, RuntimeState>. Verschwindet beim Tab-Reload — das ist
+  // beabsichtigt. Persistente Felder leben in Sync.load().sources[i]
+  // (lastAutoPollAt, lastAutoPollError, authError, pendingPush).
+  const _runtime = new Map();
+
+  // RC-Blocker (2026-05): Edit-Modale (Rolle/Person/Level/Manual-Assign/
+  // Verfügbarkeit) leben im globalen #modal-backdrop. Wenn render() während
+  // einer Edit-Session läuft (Auto-Pull-Tick alle 30-90s, Auto-Push-Retry
+  // nach 412), wird zwar das Modal-DOM nicht direkt zerstört (Modal liegt
+  // außerhalb von #org-chart/#side-panel), aber re-render plus State-
+  // Mutation durch applyEnvelopeForSource() führt zu Datenverlust:
+  // editRoleState.role zeigt auf das alte State.config-Objekt, Save
+  // schreibt ins Leere. Auto-Push während offenem Modal ist ebenfalls
+  // sinnlos — der User editiert noch, dirty wird gleich wieder gesetzt.
+  // Fix: während ein Modal offen ist, weder render() noch scheduleAutoPush
+  // ausführen. Stattdessen Pending-Flag setzen; modalClosed() drained.
+  function _hasOpenEditModal() {
+    if (typeof document === 'undefined') return false;
+    const bd = document.getElementById('modal-backdrop');
+    if (!bd) return false;
+    // display:'none' (Style-Attribut oder CSS-Default) → kein Modal aktiv.
+    // Modal-Open setzt explizit display='flex' (siehe openEditRoleModal etc.).
+    const inline = bd.style && bd.style.display;
+    if (inline && inline !== 'none') return true;
+    return false;
+  }
+  let _pendingRenderAfterModal = false;
+  // Set<sourceId> — Sources, die während Modal-Edit einen Auto-Push
+  // brauchten. Wird in modalClosed() drained (re-scheduled mit 0ms).
+  const _pendingPushAfterModal = new Set();
+
+  function _defaultRuntime(sourceId) {
+    return {
+      sourceId: sourceId,
+      timerId: null,             // setTimeout-Handle (Pull-Tick)
+      consecutiveFailures: 0,    // Backoff-Counter
+      errorDelayMs: 0,           // aktueller Backoff-Delay (RAM, nicht persistiert)
+      lastTickAt: null,          // performance.now() Timestamp, Diagnose
+      nextTickAt: null,          // Wand-Zeit-Timestamp (ms epoch) für getStats()
+      inFlight: false,           // Re-Entrancy-Guard: kein Overlap pro Source
+      // V2.0 Schritt 4: Auto-Push-Debounce
+      _pushDebounceTimer: null,  // setTimeout-Handle für scheduleAutoPush
+      _pushInFlight: false,      // Re-Entrancy für Auto-Push
+      _needsRecovery: false,     // H3: gesetzt wenn pendingPush beim Boot vorlag
+      // V2.0 Schritt 7: zählt 412-Retries pro Source-Push-Sequenz; Reset bei
+      // erfolgreichem Push oder Cap-Hit (→ degrade auf transient backoff).
+      _concurrentRetries: 0,
+      // WP-16: Hard-Pause-Flag bei PassphraseRequiredError. Wird via
+      // SyncPoller.passphraseProvided(sourceId) gelöscht.
+      _waitingForPassphrase: false,
+    };
+  }
+
+  // V2.0 Schritt 4: Auto-Push-Debounce-Konstante. 2 Sekunden coalesce
+  // rapide Edits (mehrere Klicks/Tipps am Stück) zu einem einzigen Push.
+  const PUSH_DEBOUNCE_MS = 2000;
+
+  // V2.0 Schritt 7: max number of immediate re-pull + retry-push cycles when
+  // the S1 backend returns 412 (concurrent update). After this many, degrade
+  // to normal transient backoff so the pull-tick loop handles resolution.
+  // 2 covers the common case (two clients racing once) without becoming
+  // a spin loop if a buggy server keeps changing ETag on every GET.
+  const CONCURRENT_RETRY_MAX = 2;
+
+  // Globaler RAM-State: Lifecycle, Listener-Refs, Visibility, Online.
+  const _global = {
+    started: false,
+    paused: false,
+    visibilityMultiplier: 1,     // 1 oder VISIBILITY_HIDDEN_MULTIPLIER (D3)
+    isOnline: (typeof navigator !== 'undefined' && typeof navigator.onLine === 'boolean')
+      ? navigator.onLine
+      : true,
+    visibilityListener: null,    // gespeichert für stop()-cleanup
+    onlineListener: null,
+    offlineListener: null,
+  };
+
+  // ---- Helpers: Sync-State lookup ----
+
+  function _loadState() {
+    try { return Sync.load(); }
+    catch (e) { return null; }
+  }
+
+  function _getSource(state, sourceId) {
+    if (!state || !Array.isArray(state.sources)) return null;
+    for (const s of state.sources) if (s.id === sourceId) return s;
+    return null;
+  }
+
+  // ---- Helpers: Error sanitization (Security Watch 2) ----
+  //
+  // lastAutoPollError landet in localStorage. Wir geben NUR weiter:
+  //   - status/code (numerisch)
+  //   - sanitized message (max 200 chars, URLs/Tokens entfernt)
+  //   - ISO timestamp
+  //   - Klassifikation
+  // KEIN Response-Body, KEIN WWW-Authenticate-Header, KEINE Query-Strings,
+  // keine Passphrase-Bestandteile.
+
+  function _stripUrlsAndTokens(s) {
+    if (typeof s !== 'string') return '';
+    return s
+      .replace(/https?:\/\/\S+/gi, '[url]')
+      .replace(/Bearer\s+\S+/gi, 'Bearer [token]')
+      .replace(/[?&](token|password|passphrase|secret|key|auth)=\S+/gi, '?[redacted]');
+  }
+
+  function _sanitizeErrorForStorage(error, errorClass) {
+    const code = (error && (error.code != null ? error.code : error.status));
+    const rawMessage = error && error.message ? String(error.message) : '';
+    return {
+      code: typeof code === 'number' ? code : null,
+      message: _stripUrlsAndTokens(rawMessage).slice(0, 200),
+      at: new Date().toISOString(),
+      class: errorClass,
+    };
+  }
+
+  // ---- Helpers: Error classification (3-Klassen-Modell) ----
+
+  function _classifyError(error) {
+    if (!error) return 'transient';
+    const code = (error.code != null ? error.code : error.status);
+    if (code === 401 || code === 403) return 'auth';
+    // V2.0 step 7: 412 Precondition Failed → optimistic-concurrency conflict.
+    // Distinct from 'transient' because the response is: no exponential
+    // backoff, instead an immediate re-pull + retry-push. The S1 push path
+    // tags the error with name=ConcurrentUpdateError; either signal counts.
+    if (code === 412 || error.name === 'ConcurrentUpdateError') return 'concurrent';
+    if (error.name === 'NotAllowedError' || error.name === 'NotFoundError') return 'permission';
+    // WP-16: PassphraseRequiredError ist eine eigene Fehlerklasse, KEIN
+    // transient. Vorher: endlos retry alle 2 s bei leerem Passphrase-Cache
+    // (Browser-Restart bei verschlüsselter Source) → Console-Spam, CPU-Last,
+    // User merkt nicht dass Passphrase fehlt. Jetzt: Hard-Pause analog
+    // permission. autoMode bleibt unverändert (anders als auth), damit nach
+    // Passphrase-Eingabe der Direct-Tick die Source automatisch reaktiviert.
+    if (error.name === 'PassphraseRequiredError' ||
+        error.code === 'PASSPHRASE_REQUIRED') {
+      return 'passphrase-required';
+    }
+    // RC-feature: ConfigDriftError ist KEINE transient mehr. Vorher: silent
+    // retry mit exponentiellem Backoff → User sah nicht, dass die Server-
+    // Config sich (Personen/Rollen/Struktur) geändert hatte. Jetzt: eigene
+    // Klasse 'config-drift' → Hard-Pause der Source, Header-Indikator wird
+    // rot, Modal bietet "Konfiguration übernehmen" (full-Pull) oder
+    // "Später" (Quelle bleibt pausiert).
+    if (error.name === 'ConfigDriftError' ||
+        error.code === 'CONFIG_DRIFT') {
+      return 'config-drift';
+    }
+    return 'transient';
+  }
+
+  // ---- Tick loop ----
+
+  function _baseMs(source) {
+    const sec = (source && typeof source.pollIntervalSec === 'number')
+      ? source.pollIntervalSec
+      : POLL_INTERVAL_DEFAULT_SEC;
+    // Clamp gegen Floor und Cap, damit eine korrupte/alte Persistenz uns
+    // nicht unter 30s drückt (Security Watch 3 defensiv).
+    const clamped = Math.min(Math.max(sec, POLL_INTERVAL_MIN_SEC), POLL_INTERVAL_MAX_SEC);
+    return clamped * 1000;
+  }
+
+  function _effectiveDelayMs(source, runtime) {
+    const baseMs = _baseMs(source);
+    const visibilityAdjusted = baseMs * _global.visibilityMultiplier;
+    return Math.max(visibilityAdjusted, runtime.errorDelayMs || 0);
+  }
+
+  function _scheduleNext(sourceId, source, runtime, overrideDelayMs) {
+    if (runtime.timerId !== null) {
+      clearTimeout(runtime.timerId);
+      runtime.timerId = null;
+    }
+    const delay = (typeof overrideDelayMs === 'number')
+      ? overrideDelayMs
+      : _effectiveDelayMs(source, runtime);
+    runtime.nextTickAt = Date.now() + delay;
+    runtime.timerId = setTimeout(() => _tick(sourceId), delay);
+  }
+
+  function _shouldSkipTick(source) {
+    // Reihenfolge: harte Blocker zuerst (paused/online),
+    // dann Source-spezifische (autoMode/permission/auth/recovery).
+    if (_global.paused) return 'paused';
+    if (!_global.isOnline) return 'offline';
+    if (!source) return 'no-source';
+    if (source.autoMode === 'off') return 'auto-off';
+    if (source.permissionRequired === true) return 'permission';
+    if (source.authError && source.authError.acknowledged === false) return 'auth';
+    // V2.0 Schritt 4 (H3): solange pendingPush im Storage steht oder
+    // _needsRecovery im RAM gesetzt ist, weder push noch pull. Schritt 6
+    // bietet das Recovery-Modal.
+    if (source.pendingPush) return 'recovery';
+    const rt = _runtime.get(source.id);
+    if (rt && rt._needsRecovery === true) return 'recovery';
+    // WP-16: Hard-Pause solange Passphrase fehlt. Cache liegt nur im RAM,
+    // also Flag im runtime — Recovery via SyncPoller.passphraseProvided().
+    if (rt && rt._waitingForPassphrase === true) return 'passphrase-required';
+    // RC-feature: Hard-Pause bei Config-Drift. Recovery via
+    // SyncPoller.configDriftResolved() nach erfolgreichem Full-Pull.
+    if (rt && rt._configDrift === true) return 'config-drift';
+    // RC-Blocker (2026-05): während User aktiv in Edit-Modal arbeitet,
+    // keine Auto-Pulls. Sonst kann der Tick eine Config-Mutation triggern
+    // (Status-Mode rewrites runtime, Full-Mode rewrites config+runtime),
+    // die den im RAM gehaltenen editRoleState.role-Pointer entwertet.
+    // Soft-Pause (paused/offline analog): Timer läuft weiter, der nächste
+    // Tick nach Modal-Close findet wieder zur normalen Kadenz zurück.
+    if (_hasOpenEditModal()) return 'modal-editing';
+    return null;
+  }
+
+  async function _tick(sourceId) {
+    const runtime = _runtime.get(sourceId);
+    if (!runtime) return;
+    runtime.timerId = null;
+
+    // Re-Entrancy: ein laufender Tick darf nicht überlappt werden.
+    // Sollte durch sauberes Scheduling nie passieren, aber Defense-in-Depth.
+    if (runtime.inFlight) {
+      const state = _loadState();
+      const source = _getSource(state, sourceId);
+      if (source) _scheduleNext(sourceId, source, runtime);
+      return;
+    }
+
+    const state = _loadState();
+    const source = _getSource(state, sourceId);
+    if (!source) {
+      // Source verschwand — kein neuer Timer. unregisterSource() entfernt
+      // den runtime-Eintrag separat.
+      return;
+    }
+
+    const skipReason = _shouldSkipTick(source);
+    if (skipReason) {
+      // Backoff-Variablen NICHT anfassen — H4: errorDelayMs überlebt
+      // visibility/offline-Phasen. Wenn autoMode='off' oder permission/auth
+      // blockieren: keinen neuen Timer planen (Hard-Pause der Source).
+      if (skipReason === 'auto-off' || skipReason === 'permission' ||
+          skipReason === 'auth' || skipReason === 'recovery' ||
+          skipReason === 'passphrase-required' ||
+          skipReason === 'config-drift') {
+        return;
+      }
+      // Sonst (paused/offline): nächsten Timer einplanen, Backoff
+      // läuft weiter.
+      _scheduleNext(sourceId, source, runtime);
+      return;
+    }
+
+    runtime.inFlight = true;
+    runtime.lastTickAt = (typeof performance !== 'undefined' && performance.now)
+      ? performance.now()
+      : Date.now();
+
+    let resultClass = 'success';
+    let sanitizedError = null;
+
+    try {
+      // POLL_MODE-Constraint (Security Watch 7): hartcodiert 'status'.
+      // Sync.pull respektiert opts.mode (V1.3-API). Auto-Polling darf
+      // NIE 'full' triggern — das ist der Data-UI vorbehalten.
+      await Sync.pull(sourceId, { mode: POLL_MODE });
+    } catch (e) {
+      resultClass = _classifyError(e);
+      sanitizedError = _sanitizeErrorForStorage(e, resultClass);
+    } finally {
+      runtime.inFlight = false;
+    }
+
+    // State neu laden — pull() könnte selbst geschrieben haben.
+    const post = _loadState();
+    const persistedSource = _getSource(post, sourceId);
+    if (!persistedSource) {
+      // Source wurde währenddessen entfernt.
+      return;
+    }
+
+    if (resultClass === 'success') {
+      runtime.consecutiveFailures = 0;
+      runtime.errorDelayMs = 0;
+      persistedSource.lastAutoPollAt = new Date().toISOString();
+      persistedSource.lastAutoPollError = null;
+      // H2: bei erfolgreicher Antwort einen ggf. ausstehenden authError
+      // automatisch löschen (Recovery-Pfad). permissionRequired bleibt,
+      // weil ein erfolgreicher pull nach FS-Re-Grant separat in der UI
+      // bestätigt werden muss.
+      if (persistedSource.authError) persistedSource.authError = null;
+      try { Sync.save(post); } catch (e) { /* swallow */ }
+      // RC-Blocker (2026-05): Sync.pull() schreibt State.runtime (Status-Mode)
+      // bzw. State.config+runtime (Full-Mode), aber das Sync-IIFE ruft KEIN
+      // render(). Manual-Pull-Wrapper rufen render() selbst (siehe
+      // syncOnlinePullStatus/syncOnlinePull/dataOnlinePullFull) — der
+      // Auto-Tick hier nicht. Folge: gelb→grün-Flackern im Indikator (kommt
+      // aus Sync.onChange()-Hook für renderSyncIndicator()), aber Chart und
+      // Sidebar bleiben auf altem Stand bis User F5/Manual-Pull triggert.
+      // Fix: nach success-Pull explizit render() aufrufen. typeof-Guard für
+      // Test-Loader, die das Sync-IIFE ohne DOM ausführen.
+      // RC-Blocker (2026-05, follow-up): Edit-Modale (Rolle/Person/...)
+      // dürfen NICHT durch einen Auto-Render aus dem Weg geräumt werden,
+      // sonst verliert der User die Eingaben. Pending-Flag setzen, drainen
+      // in modalClosed().
+      if (typeof render === 'function') {
+        if (_hasOpenEditModal()) {
+          _pendingRenderAfterModal = true;
+        } else {
+          try { render(); }
+          catch (e) { console.warn('[SyncPoller] render() after pull threw:', e && e.message); }
+        }
+      }
+      _scheduleNext(sourceId, persistedSource, runtime);
+      return;
+    }
+
+    if (resultClass === 'transient') {
+      runtime.consecutiveFailures += 1;
+      // Exponential: 2^n bis Cap 16×.
+      const baseMs = _baseMs(persistedSource);
+      const factor = Math.min(Math.pow(2, runtime.consecutiveFailures), BACKOFF_MAX_MULTIPLIER);
+      runtime.errorDelayMs = baseMs * factor;
+      persistedSource.lastAutoPollError = sanitizedError;
+      try { Sync.save(post); } catch (e) { /* swallow */ }
+      // Watch-Point 6: console.debug ohne URLs/Tokens. sourceId.slice(0,8)
+      // ist eine random ID — kein PII.
+      console.debug('[SyncPoller] transient failure', sourceId.slice(0, 8),
+        'fails=' + runtime.consecutiveFailures, 'delayMs=' + runtime.errorDelayMs);
+      _scheduleNext(sourceId, persistedSource, runtime);
+      return;
+    }
+
+    if (resultClass === 'auth') {
+      // H2: autoMode='off' für DIESE Source. Toast kommt in Schritt 6.
+      persistedSource.autoMode = 'off';
+      persistedSource.authError = {
+        timestamp: new Date().toISOString(),
+        code: sanitizedError ? sanitizedError.code : null,
+        acknowledged: false,
+      };
+      persistedSource.lastAutoPollError = sanitizedError;
+      try { Sync.save(post); } catch (e) { /* swallow */ }
+      console.warn('[SyncPoller] auth error -> autoMode=off for source', sourceId.slice(0, 8));
+      // Kein Reschedule: Hard-Pause bis User-Aktion.
+      return;
+    }
+
+    if (resultClass === 'permission') {
+      // H5: FS-Handle verlor User-Activation. Settings-UI bietet
+      // "Re-grant" Button (Schritt 5/6). Hier nur Flag setzen.
+      persistedSource.permissionRequired = true;
+      persistedSource.lastAutoPollError = sanitizedError;
+      try { Sync.save(post); } catch (e) { /* swallow */ }
+      console.warn('[SyncPoller] permission required for source', sourceId.slice(0, 8));
+      // Kein Reschedule: Hard-Pause bis User-Aktion.
+      return;
+    }
+
+    if (resultClass === 'passphrase-required') {
+      // WP-16: Passphrase-Cache leer (Browser-Restart bei verschlüsselter
+      // Source). Hard-Pause analog permission — autoMode bleibt unverändert
+      // (anders als auth), damit nach Passphrase-Eingabe der Direct-Tick
+      // via SyncPoller.passphraseProvided() die Source sofort reaktiviert.
+      runtime._waitingForPassphrase = true;
+      persistedSource.lastAutoPollError = sanitizedError;
+      try { Sync.save(post); } catch (e) { /* swallow */ }
+      console.warn('[SyncPoller] passphrase required for source', sourceId.slice(0, 8));
+      // Kein Reschedule: Hard-Pause bis SyncPoller.passphraseProvided().
+      return;
+    }
+
+    if (resultClass === 'config-drift') {
+      // RC-feature: Server-Config (Personen/Rollen/Struktur) hat sich
+      // geändert. Status-Pull allein kann nicht angewandt werden — User
+      // muss bewusst entscheiden, ob die fremde Config übernommen wird
+      // (Full-Pull, würde lokale Config überschreiben) oder die Quelle
+      // bis auf Weiteres ignoriert wird. Hard-Pause: kein autoMode-Wechsel
+      // (anders als auth), damit nach SyncPoller.configDriftResolved() der
+      // Direct-Tick die Source automatisch reaktiviert.
+      runtime._configDrift = true;
+      persistedSource.lastAutoPollError = sanitizedError;
+      try { Sync.save(post); } catch (e) { /* swallow */ }
+      console.warn('[SyncPoller] config drift for source', sourceId.slice(0, 8));
+      // Kein Reschedule: Hard-Pause bis SyncPoller.configDriftResolved().
+      return;
+    }
+  }
+
+  // ---- Auto-Push (Schritt 4) ----
+  //
+  // scheduleAutoPush(sourceId) wird von Sync.markDirty() aufgerufen, sobald
+  // der User lokal etwas ändert. Pro Source ein eigener Debounce-Timer
+  // (2 s). Bei Trigger: prüfen ob Push erlaubt ist, dann Sync.push(id,
+  // { mode: POLL_MODE }) — POLL_MODE ist hartcodiert 'status' (Watch-Point 7,
+  // gleiche Constraint wie Pull-Tick).
+  //
+  // pendingPush-Sentinel (H3): bevor wir den Push starten, schreiben wir
+  // pendingPush={startedAt, payloadHash, etag} nach localStorage. Bei
+  // erfolgreichem Push: clearen. Wenn der Tab mid-push crasht, bleibt
+  // pendingPush stehen — der nächste Boot detektiert das und hard-paust
+  // die Source bis User-Aktion (Recovery-Modal kommt Schritt 6).
+  //
+  // payloadHash ist ein 64-bit SHA-256-Präfix (16 hex chars). Reicht für
+  // Diagnose-Korrelation, kein Klartext im Storage (Security Watch 4).
+  // Hinweis: wir hashen den ENVELOPE-Stringify (= verschlüsselten Blob
+  // wenn Encryption an), nicht den Klartext-Payload. So sieht der Hash
+  // den Klartext nie — selbst wenn das nur kosmetisch ist, hält es die
+  // Architektur-Disziplin sauber.
+
+  async function _hashPayload(input) {
+    try {
+      const text = typeof input === 'string' ? input : JSON.stringify(input);
+      const buf = new TextEncoder().encode(text);
+      const digest = await crypto.subtle.digest('SHA-256', buf);
+      const hex = Array.from(new Uint8Array(digest))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+      return hex.slice(0, 16);  // 64 bit, reicht für Korrelation
+    } catch (e) {
+      // Hash darf den Push nicht blocken — fallback ist 'unhashed',
+      // Recovery-Logik prüft nur "pendingPush !== null", nicht den Wert.
+      return 'unhashed';
+    }
+  }
+
+  async function _writePendingPushSentinel(sourceId, envelope) {
+    let payloadHash = 'unhashed';
+    try {
+      payloadHash = await _hashPayload(envelope);
+    } catch (e) { /* swallow, payloadHash stays 'unhashed' */ }
+
+    const state = _loadState();
+    if (!state) return;
+    const source = _getSource(state, sourceId);
+    if (!source) return;
+    source.pendingPush = {
+      startedAt: new Date().toISOString(),
+      payloadHash: payloadHash,
+      etag: source.lastEtag || null,
+    };
+    try { Sync.save(state); } catch (e) { /* swallow */ }
+  }
+
+  function _clearPendingPushSentinel(sourceId) {
+    const state = _loadState();
+    if (!state) return;
+    const source = _getSource(state, sourceId);
+    if (!source) return;
+    if (source.pendingPush === null || source.pendingPush === undefined) return;
+    source.pendingPush = null;
+    try { Sync.save(state); } catch (e) { /* swallow */ }
+  }
+
+  function _shouldSkipPush(source) {
+    // Push-spezifische Skip-Kriterien. autoMode='pull' heißt: User will
+    // nur Server-Updates konsumieren, keine eigenen Edits hochschieben.
+    if (_global.paused) return 'paused';
+    if (!_global.isOnline) return 'offline';
+    if (!source) return 'no-source';
+    if (source.autoMode === 'off' || source.autoMode === 'pull') return 'push-disabled';
+    if (source.permissionRequired === true) return 'permission';
+    if (source.authError && source.authError.acknowledged === false) return 'auth';
+    if (source._needsRecovery === true) return 'recovery';  // H3 hard-pause
+    // WP-16: Passphrase-Wartezustand → Hard-Pause für Push (kein Sentinel,
+    // kein Network-Call). Flag liegt im runtime, nicht in der Source.
+    const rt = _runtime.get(source.id);
+    if (rt && rt._waitingForPassphrase === true) return 'passphrase-required';
+    // RC-feature: Config-Drift → Push würde mit dem gleichen Fingerprint-
+    // Mismatch in Sync.push abgewiesen. Skip früh, kein Sentinel.
+    if (rt && rt._configDrift === true) return 'config-drift';
+    // RC-Blocker (2026-05): Push-Tick darf nicht losfeuern, während User
+    // im Edit-Modal sitzt. Der Concurrent-Retry-Pfad ruft Sync.pull() +
+    // render(), und genau dieser render() würde die Edit-Session zerstören
+    // bzw. die State.config-Pointer von editRoleState invalidieren. Edge-
+    // case: 2s-Debounce-Timer wurde schon VOR Modal-Öffnung gesetzt (User
+    // klickt schnell durch). scheduleAutoPush hat den Set-Eintrag bei
+    // modalClosed() bereits gemerkt, aber der schon laufende Debounce-
+    // Timer würde sonst durchschlüpfen. Skip + erneut in den Set legen.
+    if (_hasOpenEditModal()) {
+      _pendingPushAfterModal.add(source.id);
+      return 'modal-editing';
+    }
+    return null;
+  }
+
+  async function _pushTick(sourceId) {
+    const runtime = _runtime.get(sourceId);
+    if (!runtime) return;
+    runtime._pushDebounceTimer = null;
+
+    if (runtime._pushInFlight) {
+      // Re-Entrancy: anderer Push läuft schon. scheduleAutoPush() wird
+      // nach Abschluss durch den nächsten markDirty erneut greifen.
+      return;
+    }
+
+    const state = _loadState();
+    const source = _getSource(state, sourceId);
+    if (!source) return;
+
+    const skipReason = _shouldSkipPush(source);
+    if (skipReason) {
+      console.debug('[SyncPoller] auto-push skipped', sourceId.slice(0, 8),
+        'reason=' + skipReason);
+      return;
+    }
+
+    // Recovery-Check direkt aus der Persistenz: könnte sich zwischen
+    // _runtime-Flag und Storage unterscheiden, wenn die Source via
+    // pendingPush wiederhergestellt wurde.
+    if (source.pendingPush) {
+      runtime._needsRecovery = true;
+      console.warn('[SyncPoller] auto-push aborted, pendingPush already set',
+        sourceId.slice(0, 8));
+      return;
+    }
+
+    runtime._pushInFlight = true;
+    let envelope = null;
+    let resultClass = 'success';
+    let sanitizedError = null;
+
+    try {
+      // Envelope bauen (verschlüsselt wenn Encryption an). Wir bauen ihn
+      // *vor* dem Sentinel-Write, damit _hashPayload den verschlüsselten
+      // Blob sieht (Watch-Point 4: kein Klartext-Hash im Storage).
+      envelope = await Sync.buildEnvelopeForSource(source);
+      await _writePendingPushSentinel(sourceId, envelope);
+
+      // POLL_MODE-Constraint (Watch-Point 7): immer 'status', nie 'full'.
+      // Push mit mode='full' (Daten-Push) ist der Data-UI vorbehalten.
+      await Sync.push(sourceId, { mode: POLL_MODE });
+
+      // 2xx ok: Sentinel löschen.
+      _clearPendingPushSentinel(sourceId);
+    } catch (e) {
+      // WP-16: PassphraseRequiredError ist jetzt eine eigene Fehlerklasse.
+      // _classifyError mappt sie auf 'passphrase-required' → Hard-Pause
+      // unten (analog permission). Vorher: silent transient → endlose
+      // Push-Retries bei leerem Cache.
+      resultClass = _classifyError(e);
+      sanitizedError = _sanitizeErrorForStorage(e, resultClass);
+
+      // Bei Fehler: pendingPush bleibt stehen — Boot-Recovery oder nächste
+      // erfolgreiche Push-Iteration räumt auf. Bei auth/permission ist das
+      // korrekt (User-Aktion nötig); bei transient räumt der nächste
+      // erfolgreiche Push auf.
+      //
+      // V2.0 step 7 (concurrent): 412 bedeutet der Server hat unseren PUT
+      // sauber abgelehnt (Precondition Failed). Es gab keinen Half-Write —
+      // wir können pendingPush gefahrlos löschen. Der nachfolgende Re-Pull-
+      // Pfad behandelt die Konflikt-Auflösung.
+      if (resultClass === 'concurrent') {
+        _clearPendingPushSentinel(sourceId);
+      }
+    } finally {
+      runtime._pushInFlight = false;
+    }
+
+    // State neu laden — push() schreibt selbst.
+    const post = _loadState();
+    const persistedSource = _getSource(post, sourceId);
+    if (!persistedSource) return;
+
+    if (resultClass === 'success') {
+      persistedSource.lastAutoPollAt = new Date().toISOString();
+      persistedSource.lastAutoPollError = null;
+      // Erfolgreicher Push deutet auf Server-Erreichbarkeit hin — Pull-
+      // Backoff-Counter resetten, damit der nächste Pull-Tick nicht
+      // unnötig auf den Strafdelay wartet.
+      runtime.consecutiveFailures = 0;
+      runtime.errorDelayMs = 0;
+      // V2.0 step 7: reset 412-retry counter on success — fresh slate for
+      // the next concurrent-update race.
+      runtime._concurrentRetries = 0;
+      try { Sync.save(post); } catch (e) { /* swallow */ }
+      return;
+    }
+
+    if (resultClass === 'transient') {
+      persistedSource.lastAutoPollError = sanitizedError;
+      try { Sync.save(post); } catch (e) { /* swallow */ }
+      console.debug('[SyncPoller] auto-push transient failure', sourceId.slice(0, 8));
+      return;
+    }
+
+    if (resultClass === 'auth') {
+      // Gleiche Logik wie Pull-Tick: autoMode=off, authError setzen.
+      persistedSource.autoMode = 'off';
+      persistedSource.authError = {
+        timestamp: new Date().toISOString(),
+        code: sanitizedError ? sanitizedError.code : null,
+        acknowledged: false,
+      };
+      persistedSource.lastAutoPollError = sanitizedError;
+      try { Sync.save(post); } catch (e) { /* swallow */ }
+      console.warn('[SyncPoller] auto-push auth error -> autoMode=off for source',
+        sourceId.slice(0, 8));
+      return;
+    }
+
+    if (resultClass === 'permission') {
+      persistedSource.permissionRequired = true;
+      persistedSource.lastAutoPollError = sanitizedError;
+      try { Sync.save(post); } catch (e) { /* swallow */ }
+      console.warn('[SyncPoller] auto-push permission required for source',
+        sourceId.slice(0, 8));
+      return;
+    }
+
+    if (resultClass === 'passphrase-required') {
+      // WP-16: Sync.push warf bevor er an die Wire ging (Envelope-Build
+      // braucht den Key). Sentinel wurde gerade geschrieben — analog zum
+      // 'concurrent'-Pfad cleanen wir ihn, weil definitiv kein Half-Write
+      // am Server angekommen ist. Sonst löst Boot-Recovery beim nächsten
+      // Start fälschlich eine Retry/Discard-Frage aus.
+      _clearPendingPushSentinel(sourceId);
+      runtime._waitingForPassphrase = true;
+      // Source neu lesen, weil _clearPendingPushSentinel geschrieben hat.
+      const post2 = _loadState();
+      const persisted2 = _getSource(post2, sourceId) || persistedSource;
+      persisted2.lastAutoPollError = sanitizedError;
+      try { Sync.save(post2); } catch (e) { /* swallow */ }
+      console.warn('[SyncPoller] auto-push passphrase required for source',
+        sourceId.slice(0, 8));
+      // Kein Reschedule: Hard-Pause bis SyncPoller.passphraseProvided().
+      return;
+    }
+
+    if (resultClass === 'config-drift') {
+      // RC-feature: Push wurde abgewiesen, weil Remote-Fingerprint ≠ local.
+      // Sentinel cleanen (analog passphrase-required/concurrent — Sync.push
+      // hat vor dem Wire-Write geworfen, kein Half-Write am Server).
+      _clearPendingPushSentinel(sourceId);
+      runtime._configDrift = true;
+      const post2 = _loadState();
+      const persisted2 = _getSource(post2, sourceId) || persistedSource;
+      persisted2.lastAutoPollError = sanitizedError;
+      try { Sync.save(post2); } catch (e) { /* swallow */ }
+      console.warn('[SyncPoller] auto-push config drift for source',
+        sourceId.slice(0, 8));
+      // Kein Reschedule: Hard-Pause bis SyncPoller.configDriftResolved().
+      return;
+    }
+
+    if (resultClass === 'concurrent') {
+      // V2.0 step 7: 412 Precondition Failed → someone else wrote between
+      // our last read and our push. Resolution: immediate re-pull (refreshes
+      // lastEtag + applies the foreign delta), then a single re-push attempt.
+      // Capped at CONCURRENT_RETRY_MAX retries per source-tick to avoid
+      // pathological loops with a misbehaving server.
+      persistedSource.lastAutoPollError = sanitizedError;
+      try { Sync.save(post); } catch (e) { /* swallow */ }
+      runtime._concurrentRetries = (runtime._concurrentRetries || 0) + 1;
+      if (runtime._concurrentRetries > CONCURRENT_RETRY_MAX) {
+        // Too many round-trips: degrade to transient backoff so the regular
+        // pull-tick can resolve eventually. Counter resets on next markDirty.
+        console.warn('[SyncPoller] auto-push concurrent retries exhausted',
+          sourceId.slice(0, 8));
+        runtime._concurrentRetries = 0;
+        return;
+      }
+      console.debug('[SyncPoller] auto-push 412, triggering re-pull + retry',
+        sourceId.slice(0, 8), 'retry=' + runtime._concurrentRetries);
+      // Re-pull immediately. If that succeeds, lastEtag is fresh and we
+      // re-schedule a push (the local dirty state is still there because
+      // pull() does not clear it on apply when we suppress dirty).
+      (async () => {
+        try {
+          await Sync.pull(sourceId, { mode: POLL_MODE });
+          // RC-Blocker (2026-05): gleiche Re-Render-Lücke wie im _tick.
+          // Wenn der Concurrent-Pull tatsächlich neuen Remote-State holt,
+          // soll die UI das auch zeigen. Modal-aware (siehe _tick).
+          if (typeof render === 'function') {
+            if (_hasOpenEditModal()) {
+              _pendingRenderAfterModal = true;
+            } else {
+              try { render(); }
+              catch (e) { console.warn('[SyncPoller] render() after concurrent re-pull threw:', e && e.message); }
+            }
+          }
+          // Re-schedule push without the 2s debounce — the user already
+          // waited once.
+          const rt = _runtime.get(sourceId);
+          if (rt) {
+            if (rt._pushDebounceTimer !== null) {
+              clearTimeout(rt._pushDebounceTimer);
+              rt._pushDebounceTimer = null;
+            }
+            rt._pushDebounceTimer = setTimeout(() => {
+              _pushTick(sourceId).catch(err => {
+                console.warn('[SyncPoller] _pushTick (concurrent retry) threw:',
+                  err && _stripUrlsAndTokens(String(err.message || err)));
+              });
+            }, 0);
+          }
+        } catch (pullErr) {
+          // Re-pull failed — degrade to regular transient handling; the
+          // pull-tick loop will retry with backoff.
+          console.warn('[SyncPoller] concurrent re-pull failed:',
+            pullErr && _stripUrlsAndTokens(String(pullErr.message || pullErr)));
+          runtime._concurrentRetries = 0;
+        }
+      })();
+      return;
+    }
+  }
+
+  function scheduleAutoPush(sourceId, reason) {
+    if (!sourceId || typeof sourceId !== 'string') return;
+
+    // Source-Lookup vor Debounce-Setup: wenn die Source autoMode='off'
+    // oder 'pull' hat, kein Timer aufsetzen — vermeidet 2 s leerlaufenden
+    // Timer bei jedem markDirty mit nicht-push-fähigen Sources.
+    const state = _loadState();
+    const source = _getSource(state, sourceId);
+    if (!source) return;
+    if (source.autoMode === 'off' || source.autoMode === 'pull') return;
+
+    // _runtime-Eintrag muss existieren — registerSource() erstellt ihn.
+    // Wenn nicht (z.B. Poller noch nicht gestartet): lazy create, damit
+    // markDirty vor SyncPoller.start() nicht verloren geht.
+    let runtime = _runtime.get(sourceId);
+    if (!runtime) {
+      runtime = _defaultRuntime(sourceId);
+      _runtime.set(sourceId, runtime);
+    }
+
+    // Hard-Pause-aware: kein Debounce-Timer wenn Source in Recovery oder
+    // Passphrase-Wartezustand. Sonst flackert pushDebouncePending in
+    // getStats() true -> false (Timer setzt, _pushTick aborted via
+    // _shouldSkipPush), und das Settings-UI zeigt einen Spinner für einen
+    // Push, der nie stattfindet.
+    if (runtime._needsRecovery) {
+      console.debug('[SyncPoller] scheduleAutoPush skipped, needsRecovery',
+        sourceId.slice(0, 8));
+      return;
+    }
+    if (runtime._waitingForPassphrase) {
+      console.debug('[SyncPoller] scheduleAutoPush skipped, waitingForPassphrase',
+        sourceId.slice(0, 8));
+      return;
+    }
+    if (runtime._configDrift) {
+      console.debug('[SyncPoller] scheduleAutoPush skipped, configDrift',
+        sourceId.slice(0, 8));
+      return;
+    }
+    // RC-Blocker (2026-05): kein Auto-Push während offenem Edit-Modal.
+    // markDirty() feuert mehrfach bei Form-Save-Klicks (Storage.saveConfig +
+    // Storage.saveRuntime hintereinander) und kann auch durch Auto-Pull-
+    // getriggertes applyEnvelopeForSource() ausgelöst werden. Ein 2s-Debounce
+    // läuft also typischerweise ab, während der User noch im selben Modal
+    // editiert; nach Erfolg ruft _pushTick keine Edit-Modal-vernichtende
+    // Routine, aber Re-Pull bei 412 schon (siehe oben). Sauberer: ganz
+    // pausieren, nach modalClosed() drainen.
+    if (_hasOpenEditModal()) {
+      _pendingPushAfterModal.add(sourceId);
+      return;
+    }
+
+    // Coalescing: läuft schon ein Timer, clearen und neu setzen — der
+    // letzte Edit gewinnt.
+    if (runtime._pushDebounceTimer !== null) {
+      clearTimeout(runtime._pushDebounceTimer);
+      runtime._pushDebounceTimer = null;
+    }
+
+    runtime._pushDebounceTimer = setTimeout(() => {
+      _pushTick(sourceId).catch(e => {
+        console.warn('[SyncPoller] _pushTick threw:', e && e.message);
+      });
+    }, PUSH_DEBOUNCE_MS);
+  }
+
+  // WP-16: Recovery-Hook für PassphraseRequiredError-Hard-Pause.
+  // Wiring: an jeder Stelle, wo Sync.setPassphraseForSource(id, ...)
+  // erfolgreich war, ruft die UI SyncPoller.passphraseProvided(id) auf.
+  // - _waitingForPassphrase = false (Skip-Gate öffnet)
+  // - lastAutoPollError = null (Settings-UI Badge verschwindet)
+  // - Direct-Tick mit 0 ms Delay (analog Online-Recovery)
+  // autoMode bleibt unverändert (im Gegensatz zu auth-Recovery), weil der
+  // User die Passphrase eingegeben hat, nicht den Modus geändert.
+  function passphraseProvided(sourceId) {
+    if (!sourceId || typeof sourceId !== 'string') return;
+    const runtime = _runtime.get(sourceId);
+    if (!runtime) return;
+    if (runtime._waitingForPassphrase !== true) return;  // No-op wenn nicht gewartet
+    runtime._waitingForPassphrase = false;
+
+    // lastAutoPollError cleanen, damit Settings-UI-Badge weg ist.
+    try {
+      const state = _loadState();
+      const source = _getSource(state, sourceId);
+      if (source && source.lastAutoPollError &&
+          source.lastAutoPollError.class === 'passphrase-required') {
+        source.lastAutoPollError = null;
+        try { Sync.save(state); } catch (e) { /* swallow */ }
+      }
+      // Direct-Tick triggern — sofern die Source pull-fähig ist und der
+      // Poller läuft. _scheduleNext clamps timer cleanup selbst.
+      if (source && source.autoMode && source.autoMode !== 'off') {
+        _scheduleNext(sourceId, source, runtime, 0);
+      }
+    } catch (e) {
+      console.warn('[SyncPoller] passphraseProvided post-clear failed:',
+        e && e.message);
+    }
+    console.debug('[SyncPoller] passphraseProvided', sourceId.slice(0, 8));
+  }
+
+  // RC-feature: Recovery-Hook für ConfigDriftError-Hard-Pause.
+  // Wiring: nach erfolgreichem Full-Pull (User hat im Drift-Modal
+  // "Konfiguration übernehmen" geklickt) ruft die UI
+  // SyncPoller.configDriftResolved(id) auf.
+  // - _configDrift = false (Skip-Gate öffnet)
+  // - lastAutoPollError = null (Settings-Badge + Header-Indikator weg)
+  // - Direct-Tick mit 0 ms Delay (analog passphraseProvided)
+  // autoMode bleibt unverändert — User hat die Quelle nicht deaktiviert,
+  // sondern die Drift behoben.
+  function configDriftResolved(sourceId) {
+    if (!sourceId || typeof sourceId !== 'string') return;
+    const runtime = _runtime.get(sourceId);
+    if (!runtime) return;
+    if (runtime._configDrift !== true) return;  // No-op wenn nicht im Drift
+    runtime._configDrift = false;
+
+    try {
+      const state = _loadState();
+      const source = _getSource(state, sourceId);
+      if (source && source.lastAutoPollError &&
+          source.lastAutoPollError.class === 'config-drift') {
+        source.lastAutoPollError = null;
+        try { Sync.save(state); } catch (e) { /* swallow */ }
+      }
+      if (source && source.autoMode && source.autoMode !== 'off') {
+        _scheduleNext(sourceId, source, runtime, 0);
+      }
+    } catch (e) {
+      console.warn('[SyncPoller] configDriftResolved post-clear failed:',
+        e && e.message);
+    }
+    console.debug('[SyncPoller] configDriftResolved', sourceId.slice(0, 8));
+  }
+
+  // Boot-Recovery: beim start() schauen wir, ob eine Source mit
+  // pendingPush != null im Storage liegt — Anzeichen dafür, dass ein
+  // vorheriger Tab/Window mitten im Push gecrasht ist. Hard-Pause der
+  // Source, bis Schritt 6 den User per Modal befragt (Retry / Discard).
+  //
+  // Schritt 6: Surface als persistenter Toast mit Retry/Discard. Watch-
+  // Point 13: payloadHash taucht NICHT im Toast-Body auf — nur als
+  // Diagnose im console.warn.
+  function _detectPendingPushOnBoot() {
+    const state = _loadState();
+    if (!state || !Array.isArray(state.sources)) return;
+    for (const src of state.sources) {
+      if (src.pendingPush) {
+        let runtime = _runtime.get(src.id);
+        if (!runtime) {
+          runtime = _defaultRuntime(src.id);
+          _runtime.set(src.id, runtime);
+        }
+        runtime._needsRecovery = true;
+        console.warn('[SyncPoller] boot-recovery: source has pendingPush, hard-paused',
+          src.id.slice(0, 8), 'startedAt=' + src.pendingPush.startedAt);
+
+        // Schritt 6: Recovery-Toast (H3). Persistent — User MUSS reagieren.
+        // payloadHash NICHT exponieren (Watch 13).
+        try {
+          if (typeof Toast !== 'undefined' && typeof t === 'function') {
+            const since = (typeof formatRelativeTime === 'function' && src.pendingPush.startedAt)
+              ? formatRelativeTime(new Date(src.pendingPush.startedAt).getTime())
+              : '';
+            const label = src.label || src.name || src.id.slice(0, 8);
+            Toast.show({
+              id: 'recovery-' + src.id.slice(0, 8),
+              level: 'warn',
+              title: t('sync.auto.toast.recovery_title'),
+              message: t('sync.auto.toast.recovery_body', { name: label, since: since }),
+              actions: [
+                { label: t('sync.auto.toast.recovery_retry'),   action: 'recovery-retry-' + src.id },
+                { label: t('sync.auto.toast.recovery_discard'), action: 'recovery-discard-' + src.id },
+              ],
+              durationMs: null,
+            });
+          }
+        } catch (e) {
+          console.warn('[SyncPoller] recovery-toast failed:', e && e.message);
+        }
+      }
+    }
+  }
+
+  // Schritt 6 (H2): Catch-Up-Toast für authError. Wenn der Tab wieder
+  // sichtbar wird und eine Source authError.acknowledged=false hat,
+  // zeigen wir EINMAL einen persistenten Toast. acknowledged=true
+  // markiert + persistiert, damit der Toast nicht beim nächsten
+  // visibilitychange erneut auftaucht.
+  function _surfaceAuthErrorsOnVisible() {
+    if (typeof Toast === 'undefined' || typeof t !== 'function') return;
+    let state = null;
+    try { state = Sync.load(); }
+    catch (e) { return; }
+    if (!state || !Array.isArray(state.sources)) return;
+
+    let changed = false;
+    for (const src of state.sources) {
+      if (!src.authError || src.authError.acknowledged === true) continue;
+      try {
+        const since = (typeof formatRelativeTime === 'function' && src.authError.timestamp)
+          ? formatRelativeTime(new Date(src.authError.timestamp).getTime())
+          : '';
+        const label = src.label || src.name || src.id.slice(0, 8);
+        Toast.show({
+          id: 'auth-error-' + src.id.slice(0, 8),
+          level: 'error',
+          title: t('sync.auto.toast.auth_expired_title'),
+          message: t('sync.auto.toast.auth_expired_body', { name: label, since: since }),
+          actions: [
+            { label: t('sync.auto.toast.dismiss'), action: 'dismiss-auth-' + src.id },
+          ],
+          durationMs: null,
+        });
+      } catch (e) {
+        console.warn('[SyncPoller] auth-toast failed:', e && e.message);
+      }
+      src.authError.acknowledged = true;
+      changed = true;
+    }
+    if (changed) {
+      try { Sync.save(state); } catch (e) { /* swallow */ }
+    }
+  }
+
+  function _rescheduleAllActive(directTick) {
+    const state = _loadState();
+    if (!state || !Array.isArray(state.sources)) return;
+    const sourcesById = {};
+    for (const s of state.sources) sourcesById[s.id] = s;
+
+    _runtime.forEach((runtime, sourceId) => {
+      const source = sourcesById[sourceId];
+      if (!source) return;
+      if (source.autoMode === 'off') return;
+      if (source.permissionRequired === true) return;
+      if (source.authError && source.authError.acknowledged === false) return;
+      if (directTick) {
+        // Sofort-Tick: 0ms delay. Falls schon inFlight, _tick() blockt
+        // durch den Re-Entrancy-Guard.
+        _scheduleNext(sourceId, source, runtime, 0);
+      } else {
+        _scheduleNext(sourceId, source, runtime);
+      }
+    });
+  }
+
+  // ---- Listener-Handler ----
+
+  function _onVisibilityChange() {
+    const hidden = (typeof document !== 'undefined') && document.hidden === true;
+    _global.visibilityMultiplier = hidden ? VISIBILITY_HIDDEN_MULTIPLIER : 1;
+    if (!hidden) {
+      // H4-Akzeptanzkriterium: NUR visibilityMultiplier resetten,
+      // errorDelayMs bleibt unangetastet. Sources mit aktivem Backoff
+      // erholen sich weiterhin gemäß ihrer eigenen Kurve.
+      console.debug('[SyncPoller] visibility -> visible');
+      // Schritt 6 (H2): Catch-Up-Toast für nicht-acknowledgte authErrors.
+      try { _surfaceAuthErrorsOnVisible(); }
+      catch (e) { console.warn('[SyncPoller] auth-catchup failed:', e && e.message); }
+      _rescheduleAllActive(/*directTick*/ false);
+    } else {
+      console.debug('[SyncPoller] visibility -> hidden (multiplier x' + VISIBILITY_HIDDEN_MULTIPLIER + ')');
+      _rescheduleAllActive(/*directTick*/ false);
+    }
+  }
+
+  function _onOnline() {
+    _global.isOnline = true;
+    // H1: offlineSince zurücksetzen, sobald wir wieder online sind.
+    try {
+      const state = Sync.load();
+      if (state && state.auto && state.auto.offlineSince !== null) {
+        state.auto.offlineSince = null;
+        Sync.save(state);
+      }
+    } catch (e) {
+      // WP-9: route through _stripUrlsAndTokens — same discipline as the
+      // tick-loop console.warn paths. Sync.load/save errors are unlikely to
+      // carry URLs/tokens, but the architecture rule is "all error.message
+      // that hits a console sink gets sanitized".
+      console.warn('[SyncPoller] online handler: Sync.load/save failed:',
+        e && _stripUrlsAndTokens(String(e.message || e)));
+    }
+    // H1: Direkter Tick für alle aktiven Sources — User soll nicht auf
+    // das nächste Intervall warten müssen.
+    console.debug('[SyncPoller] online -> direct tick for active sources');
+    _rescheduleAllActive(/*directTick*/ true);
+  }
+
+  function _onOffline() {
+    _global.isOnline = false;
+    try {
+      const state = Sync.load();
+      if (state && state.auto && state.auto.offlineSince === null) {
+        state.auto.offlineSince = new Date().toISOString();
+        Sync.save(state);
+      }
+    } catch (e) {
+      // WP-9: same sanitization as _onOnline above.
+      console.warn('[SyncPoller] offline handler: Sync.load/save failed:',
+        e && _stripUrlsAndTokens(String(e.message || e)));
+    }
+    console.debug('[SyncPoller] offline');
+    // Ticks werden in _shouldSkipTick() abgewiesen, Timer laufen weiter.
+  }
+
+  // ---- Lifecycle ----
+
+  function start() {
+    if (_global.started) return;
+    _global.started = true;
+
+    if (typeof document !== 'undefined') {
+      _global.visibilityMultiplier = document.hidden === true
+        ? VISIBILITY_HIDDEN_MULTIPLIER
+        : 1;
+      _global.visibilityListener = _onVisibilityChange;
+      document.addEventListener('visibilitychange', _global.visibilityListener);
+    }
+
+    if (typeof window !== 'undefined') {
+      _global.onlineListener = _onOnline;
+      _global.offlineListener = _onOffline;
+      window.addEventListener('online', _global.onlineListener);
+      window.addEventListener('offline', _global.offlineListener);
+    }
+
+    // V2.0 Schritt 4 (H3): Boot-Recovery — Sources mit pendingPush != null
+    // im Storage werden hard-paused, bis Schritt 6 das Recovery-Modal
+    // rendert. _needsRecovery=true verhindert sowohl Auto-Push als auch
+    // Auto-Pull für diese Source.
+    try { _detectPendingPushOnBoot(); }
+    catch (e) { console.warn('[SyncPoller] boot-recovery failed:', e && e.message); }
+  }
+
+  function stop() {
+    if (!_global.started) return;
+
+    // Watch-Point 5: stop() ist vollständiger Lifecycle-Reset (z.B. Tab-
+    // Cleanup, Source-Komplettentfernung). Wir leeren _runtime hier,
+    // damit ein späteres start() mit sauberen Backoff-Countern startet.
+    // pause() hingegen behält die Counter, weil pause() für User-Wartung
+    // gedacht ist und der Backoff sich nur durch echten Erfolg auflösen
+    // soll.
+    _runtime.forEach((rt) => {
+      if (rt.timerId !== null) {
+        clearTimeout(rt.timerId);
+        rt.timerId = null;
+      }
+      // V2.0 Schritt 4: Push-Debounce-Timer mitcancelen.
+      if (rt._pushDebounceTimer !== null) {
+        clearTimeout(rt._pushDebounceTimer);
+        rt._pushDebounceTimer = null;
+      }
+    });
+    _runtime.clear();
+
+    if (_global.visibilityListener && typeof document !== 'undefined') {
+      document.removeEventListener('visibilitychange', _global.visibilityListener);
+      _global.visibilityListener = null;
+    }
+    if (_global.onlineListener && typeof window !== 'undefined') {
+      window.removeEventListener('online', _global.onlineListener);
+      _global.onlineListener = null;
+    }
+    if (_global.offlineListener && typeof window !== 'undefined') {
+      window.removeEventListener('offline', _global.offlineListener);
+      _global.offlineListener = null;
+    }
+
+    _global.started = false;
+  }
+
+  function pause() {
+    if (_global.paused) return;
+    _global.paused = true;
+    // Watch-Point 5: laufende Timer cancelen, aber _runtime behalten.
+    // consecutiveFailures und errorDelayMs überleben resume() — bewusste
+    // Entscheidung: wenn Backend tot war und User während der Wartung
+    // pausiert/resumed, soll der Backoff sich erst durch echten Erfolg
+    // (success-Branch in _tick) auflösen.
+    _runtime.forEach((rt) => {
+      if (rt.timerId !== null) {
+        clearTimeout(rt.timerId);
+        rt.timerId = null;
+      }
+      // V2.0 Schritt 4: Push-Debounce-Timer ebenfalls pausieren. resume()
+      // setzt ihn NICHT automatisch neu — dazu braucht's einen neuen
+      // markDirty (User-Edit). Pending User-Edits gehen also bei pause()
+      // verloren, aber dirty=true bleibt im Storage und der nächste Edit
+      // nach resume() pusht alles auf einen Schlag.
+      if (rt._pushDebounceTimer !== null) {
+        clearTimeout(rt._pushDebounceTimer);
+        rt._pushDebounceTimer = null;
+      }
+      rt.nextTickAt = null;
+    });
+  }
+
+  function resume() {
+    if (!_global.paused) return;
+    _global.paused = false;
+    // Alle aktiven Sources mit ihrem aktuellen errorDelayMs neu planen.
+    _rescheduleAllActive(/*directTick*/ false);
+  }
+
+  // ---- Source-Registrierung ----
+
+  function registerSource(sourceId) {
+    if (!sourceId || typeof sourceId !== 'string') return;
+    if (_runtime.has(sourceId)) return;        // idempotent
+    const runtime = _defaultRuntime(sourceId);
+    _runtime.set(sourceId, runtime);
+
+    // Wenn Poller schon läuft UND die Source autoMode!=='off' hat:
+    // ersten Timer aufsetzen. Sonst (autoMode='off' oder Poller noch
+    // nicht gestartet) bleibt timerId null — sauberer Eintrag ohne Tick.
+    if (!_global.started) return;
+    const state = _loadState();
+    const source = _getSource(state, sourceId);
+    if (!source) return;
+    if (source.autoMode === 'off') return;
+    if (source.permissionRequired === true) return;
+    if (source.authError && source.authError.acknowledged === false) return;
+    _scheduleNext(sourceId, source, runtime);
+  }
+
+  function unregisterSource(sourceId) {
+    if (!sourceId) return;
+    const rt = _runtime.get(sourceId);
+    if (!rt) return;
+    if (rt.timerId !== null) {
+      clearTimeout(rt.timerId);
+      rt.timerId = null;
+    }
+    // V2.0 Schritt 4: Auto-Push-Debounce-Timer ebenfalls cancelen.
+    if (rt._pushDebounceTimer !== null) {
+      clearTimeout(rt._pushDebounceTimer);
+      rt._pushDebounceTimer = null;
+    }
+    _runtime.delete(sourceId);
+  }
+
+  // ---- Diagnose ----
+
+  function getStats() {
+    // Read-only Snapshot für Settings-UI (Schritt 5). Pro registrierter
+    // Source ein Objekt; persistente Felder kommen aus Sync.load(),
+    // RAM-Felder aus _runtime.
+    let persisted = null;
+    try {
+      persisted = Sync.load();
+    } catch (e) {
+      persisted = { sources: [] };
+    }
+    const sourcesById = {};
+    if (persisted && Array.isArray(persisted.sources)) {
+      for (const s of persisted.sources) sourcesById[s.id] = s;
+    }
+
+    const out = [];
+    _runtime.forEach((rt, sourceId) => {
+      const src = sourcesById[sourceId] || {};
+      out.push({
+        sourceId: sourceId,
+        autoMode: src.autoMode || 'off',
+        pollIntervalSec: typeof src.pollIntervalSec === 'number'
+          ? src.pollIntervalSec
+          : POLL_INTERVAL_DEFAULT_SEC,
+        lastAutoPollAt: src.lastAutoPollAt || null,
+        lastAutoPollError: src.lastAutoPollError || null,
+        authError: src.authError || null,
+        permissionRequired: src.permissionRequired === true,
+        // V2.0 Schritt 4: Push/Recovery-Diagnose für Settings-UI (Schritt 5).
+        pendingPush: src.pendingPush || null,
+        needsRecovery: rt._needsRecovery === true,
+        // WP-16: Hard-Pause weil Passphrase-Cache leer ist (RAM-only).
+        // TODO(cram-ui-engineer): Settings-UI Badge analog is-permission;
+        // i18n key z.B. sync.auto.badge_passphrase mit "Passphrase eingeben"-
+        // Button, der den existierenden Passphrase-Prompt öffnet.
+        waitingForPassphrase: rt._waitingForPassphrase === true,
+        // RC-feature: Hard-Pause weil Server-Config drift'et ist. Recovery
+        // via configDriftResolved() nach Full-Pull.
+        configDrift: rt._configDrift === true,
+        pushDebouncePending: rt._pushDebounceTimer !== null,
+        pushInFlight: rt._pushInFlight === true,
+        consecutiveFailures: rt.consecutiveFailures,
+        errorDelayMs: rt.errorDelayMs,
+        nextTickAt: rt.nextTickAt,
+        inFlight: rt.inFlight === true,
+        isOnline: _global.isOnline,
+        isPaused: _global.paused,
+        visibilityMultiplier: _global.visibilityMultiplier,
+      });
+    });
+    return out;
+  }
+
+  // RC-Blocker (2026-05): wird vom globalen closeModal() aufgerufen.
+  // Drained den während Edit-Phase angesammelten Render-Bedarf und die
+  // zurückgehaltenen Auto-Push-Aufträge. Defensiv: try/catch um jeden
+  // Drain-Schritt, damit ein UI-Fehler nicht den Sync-Recovery blockiert.
+  function modalClosed() {
+    // 1. Render-Drain: ein einziger render()-Aufruf für alle gestauten
+    //    State-Mutationen aus Auto-Pulls während Edit-Phase.
+    if (_pendingRenderAfterModal && typeof render === 'function') {
+      _pendingRenderAfterModal = false;
+      try { render(); }
+      catch (e) { console.warn('[SyncPoller] pending render after modal close threw:', e && e.message); }
+    } else {
+      _pendingRenderAfterModal = false;
+    }
+    // 2. Push-Drain: alle Sources, die während Modal-Edit markDirty
+    //    bekamen, jetzt regulär durch scheduleAutoPush wieder ein-
+    //    schleusen. Set leeren VOR dem Re-Schedule, weil scheduleAutoPush
+    //    bei erneut offenem Modal (Edge-Case: zweites Modal direkt nach
+    //    Close) sonst doppelt addiert.
+    if (_pendingPushAfterModal.size > 0) {
+      const ids = Array.from(_pendingPushAfterModal);
+      _pendingPushAfterModal.clear();
+      for (const sid of ids) {
+        try { scheduleAutoPush(sid, 'modal-close-drain'); }
+        catch (e) { console.warn('[SyncPoller] pending push reschedule threw:', e && e.message); }
+      }
+    }
+  }
+
+  // ---- Public API ----
+
+  return {
+    start, stop,
+    pause, resume,
+    registerSource, unregisterSource,
+    scheduleAutoPush,
+    modalClosed,         // RC-Blocker (2026-05): drained pending render+push
+    passphraseProvided,  // WP-16
+    configDriftResolved,  // RC-feature: drift-modal-resolution
+    getStats,
+    CONSTANTS: {
+      POLL_MODE,
+      VISIBILITY_HIDDEN_MULTIPLIER,
+      POLL_INTERVAL_MIN_SEC,
+      POLL_INTERVAL_MAX_SEC,
+      POLL_INTERVAL_DEFAULT_SEC,
+      BACKOFF_MAX_MULTIPLIER,
+      PUSH_DEBOUNCE_MS,
+    },
+  };
 })();
 
 /* =========================================================================
@@ -5207,6 +7279,16 @@ const TRANSLATIONS = {
     'header.sync_tooltip_error': 'Sync-Fehler: {msg}',
     'header.sync_status_config_drift': 'Konfig-Drift',
     'header.sync_tooltip_config_drift': 'Server hat eine andere Konfiguration. Klick öffnet Daten → Online für den Abgleich.',
+    // RC-feature: Live-Countdown im Header-Status-Indikator. Wird einmal pro
+    // Sekunde via _updateSyncStatusLabel aktualisiert, ersetzt das statische
+    // "Synced"-Label nur im 'synced'-State.
+    'sync.auto.status_synced_ago': 'Synced vor {n}s',
+    'sync.auto.status_synced_ago_min': 'Synced vor {n} min',
+    'sync.auto.status_synced_ago_hour': 'Synced vor {n} h',
+    'sync.auto.status_synced_ago_day': 'Synced vor {n} T',
+    'sync.auto.status_next_in': 'nächster in {n}s',
+    'sync.auto.status_never_synced': 'Nicht synchronisiert',
+    'sync.auto.status_separator': ' · ',
     'header.data': 'Daten',
     'header.data_tooltip': 'Import / Export',
     'header.print': 'Drucken',
@@ -5230,6 +7312,54 @@ const TRANSLATIONS = {
     'settings.tab_about': 'Info',
     'settings.sync_intro': 'Sync-Sources sind Endpunkte, gegen die manuell synchronisiert werden kann. V1.2 unterstützt HTTP(S)-Backends; weitere Backend-Typen folgen.',
     'settings.sync_no_sources': 'Keine Sync-Sources konfiguriert.',
+    'sync.migration_banner.title': 'Auto-Sync ist neu',
+    'sync.migration_banner.body': 'CRAM kann Sync-Sources jetzt automatisch im Hintergrund abgleichen. Die Funktion ist pro Source deaktiviert und muss bewusst eingeschaltet werden. Bestehende Sources bleiben unverändert im manuellen Modus.',
+    'sync.migration_banner.cta_settings': 'Quellen anzeigen',
+    'sync.migration_banner.dismiss': 'Verstanden',
+    // V2.0 Schritt 5: per-source Auto-Sync-Akkordeon
+    'sync.auto.section_title': 'Auto-Sync',
+    'sync.auto.mode_label': 'Modus',
+    'sync.auto.mode_off': 'Aus',
+    'sync.auto.mode_pull': 'Nur Pull',
+    'sync.auto.mode_push': 'Nur Push',
+    'sync.auto.mode_bidirectional': 'Bidirektional',
+    'sync.auto.interval_label': 'Polling-Intervall',
+    'sync.auto.interval_unit': 'Sek.',
+    'sync.auto.stats_section_title': 'Status',
+    'sync.auto.stats_last_poll': 'Letzter Auto-Poll',
+    'sync.auto.stats_last_error': 'Letzter Fehler',
+    'sync.auto.stats_consecutive_failures': 'Aufeinanderfolgende Fehler',
+    'sync.auto.stats_never': 'nie',
+    'sync.auto.stats_none': 'kein',
+    'sync.auto.badge_auth': 'Authentifizierung abgelaufen — neu anmelden',
+    'sync.auto.badge_permission': 'Dateizugriff erneut bestätigen',
+    'sync.auto.badge_recovery': 'Push hängt — Recovery nötig',
+    'sync.auto.badge_passphrase': 'Passphrase erneut eingeben',
+    'sync.auto.badge_drift': 'Konfig weicht ab',
+    'sync.auto.btn_grant_access': 'Zugriff gewähren',
+    'sync.auto.btn_retry_push': 'Erneut versuchen',
+    'sync.auto.btn_discard_push': 'Verwerfen',
+    'sync.auto.btn_enter_passphrase': 'Passphrase eingeben',
+    'sync.auto.btn_resolve_drift': 'Konfiguration übernehmen',
+    'sync.drift_modal.title': 'Konfiguration weicht ab',
+    'sync.drift_modal.body': 'Die Konfiguration auf dem Server hat sich geändert (neue Rollen, Personen oder Struktur). Ein reiner Status-Abgleich reicht nicht mehr — wenn du die fremde Konfiguration übernimmst, wird deine lokale Konfiguration für diese Quelle ersetzt. Bis du entschieden hast, ist die automatische Synchronisation für diese Quelle pausiert.',
+    'sync.drift_modal.per_source': '{name}: Konfiguration weicht ab',
+    'sync.drift_modal.btn_apply': 'Konfiguration übernehmen',
+    'sync.drift_modal.btn_later': 'Später',
+    'sync.drift_modal.none': 'Aktuell sind keine Drift-Quellen bekannt.',
+    'sync.auto.grant_no_handle': 'Kein Verzeichnis-Handle gespeichert. Bitte Quelle bearbeiten und Verzeichnis neu auswählen.',
+    // V2.0 Schritt 6: Toast-Strings
+    'sync.auto.toast.permission_granted_title': 'Dateizugriff gewährt',
+    'sync.auto.toast.permission_failed_title': 'Dateizugriff abgelehnt',
+    'sync.auto.toast.auth_expired_title': 'Authentifizierung abgelaufen',
+    'sync.auto.toast.auth_expired_body': '{name} — bitte neu anmelden (abgelaufen {since})',
+    'sync.auto.toast.recovery_title': 'Sync-Vorgang unterbrochen',
+    'sync.auto.toast.recovery_body': '{name} — letzter Push wurde nicht abgeschlossen ({since})',
+    'sync.auto.toast.recovery_retry': 'Erneut versuchen',
+    'sync.auto.toast.recovery_discard': 'Verwerfen',
+    'sync.auto.toast.dismiss': 'Schließen',
+    'sync.auto.toast.transient_error_title': 'Sync-Fehler',
+    'sync.auto.toast.transient_error_body': '{name} — wird automatisch erneut versucht',
     'settings.sync_add_http': 'Neue HTTP-Source',
     'settings.sync_form_add_title': 'Neue HTTP-Source anlegen',
     'settings.sync_form_edit_title': 'HTTP-Source bearbeiten',
@@ -5429,6 +7559,8 @@ const TRANSLATIONS = {
     'toast.import_done': 'Import übernommen — {levels} Ebenen, {persons} Personen',
     'audit.config_imported': 'Konfiguration importiert',
     'audit.config_exported': 'Konfiguration exportiert',
+    'storage.quota_exceeded_title': 'Speicherplatz voll',
+    'storage.quota_exceeded_body': 'Browser-Speicher ist voll. Status-Änderungen werden nicht gespeichert. Bitte alte Daten exportieren und löschen.',
     'manual.tooltip': 'Manuell zugeordnet — vom Algorithmus nicht überschreibbar',
     'manual.absent_hint': '(zugewiesene Person abwesend)',
     'manual.modal_title': 'Manuelle Zuordnung',
@@ -5727,6 +7859,13 @@ const TRANSLATIONS = {
     'header.sync_tooltip_error': 'Sync error: {msg}',
     'header.sync_status_config_drift': 'Config drift',
     'header.sync_tooltip_config_drift': 'Server has a different configuration. Click opens Data → Online to reconcile.',
+    'sync.auto.status_synced_ago': 'Synced {n}s ago',
+    'sync.auto.status_synced_ago_min': 'Synced {n} min ago',
+    'sync.auto.status_synced_ago_hour': 'Synced {n} h ago',
+    'sync.auto.status_synced_ago_day': 'Synced {n} d ago',
+    'sync.auto.status_next_in': 'next in {n}s',
+    'sync.auto.status_never_synced': 'Not synced',
+    'sync.auto.status_separator': ' · ',
     'header.data': 'Data',
     'header.data_tooltip': 'Import / Export',
     'header.print': 'Print',
@@ -5750,6 +7889,54 @@ const TRANSLATIONS = {
     'settings.tab_about': 'About',
     'settings.sync_intro': 'Sync sources are endpoints you can manually synchronise against. V1.2 supports HTTP(S) backends; more backend types follow.',
     'settings.sync_no_sources': 'No sync sources configured.',
+    'sync.migration_banner.title': 'Auto-sync is new',
+    'sync.migration_banner.body': 'CRAM can now reconcile sync sources automatically in the background. The feature is off per source and must be enabled deliberately. Existing sources remain in manual mode.',
+    'sync.migration_banner.cta_settings': 'Show sources',
+    'sync.migration_banner.dismiss': 'Got it',
+    // V2.0 step 5: per-source auto-sync accordion
+    'sync.auto.section_title': 'Auto-sync',
+    'sync.auto.mode_label': 'Mode',
+    'sync.auto.mode_off': 'Off',
+    'sync.auto.mode_pull': 'Pull only',
+    'sync.auto.mode_push': 'Push only',
+    'sync.auto.mode_bidirectional': 'Bidirectional',
+    'sync.auto.interval_label': 'Polling interval',
+    'sync.auto.interval_unit': 'sec',
+    'sync.auto.stats_section_title': 'Status',
+    'sync.auto.stats_last_poll': 'Last auto-poll',
+    'sync.auto.stats_last_error': 'Last error',
+    'sync.auto.stats_consecutive_failures': 'Consecutive failures',
+    'sync.auto.stats_never': 'never',
+    'sync.auto.stats_none': 'none',
+    'sync.auto.badge_auth': 'Authentication expired — sign in again',
+    'sync.auto.badge_permission': 'File access needs confirmation',
+    'sync.auto.badge_recovery': 'Push stuck — recovery needed',
+    'sync.auto.badge_passphrase': 'Passphrase needed — re-enter',
+    'sync.auto.badge_drift': 'Config out of sync',
+    'sync.auto.btn_grant_access': 'Grant access',
+    'sync.auto.btn_retry_push': 'Retry',
+    'sync.auto.btn_discard_push': 'Discard',
+    'sync.auto.btn_enter_passphrase': 'Enter passphrase',
+    'sync.auto.btn_resolve_drift': 'Adopt configuration',
+    'sync.drift_modal.title': 'Configuration out of sync',
+    'sync.drift_modal.body': 'The configuration on the server has changed (new roles, people or structure). A plain status sync no longer matches — if you adopt the remote configuration, your local configuration for this source will be replaced. Auto-sync stays paused for this source until you decide.',
+    'sync.drift_modal.per_source': '{name}: configuration out of sync',
+    'sync.drift_modal.btn_apply': 'Adopt configuration',
+    'sync.drift_modal.btn_later': 'Later',
+    'sync.drift_modal.none': 'No drifting sources are currently known.',
+    'sync.auto.grant_no_handle': 'No directory handle stored. Please edit the source and pick the directory again.',
+    // V2.0 step 6: toast strings
+    'sync.auto.toast.permission_granted_title': 'File access granted',
+    'sync.auto.toast.permission_failed_title': 'File access denied',
+    'sync.auto.toast.auth_expired_title': 'Authentication expired',
+    'sync.auto.toast.auth_expired_body': '{name} — please sign in again (expired {since})',
+    'sync.auto.toast.recovery_title': 'Sync interrupted',
+    'sync.auto.toast.recovery_body': '{name} — last push was not completed ({since})',
+    'sync.auto.toast.recovery_retry': 'Retry',
+    'sync.auto.toast.recovery_discard': 'Discard',
+    'sync.auto.toast.dismiss': 'Dismiss',
+    'sync.auto.toast.transient_error_title': 'Sync error',
+    'sync.auto.toast.transient_error_body': '{name} — will retry automatically',
     'settings.sync_add_http': 'New HTTP source',
     'settings.sync_form_add_title': 'Add a new HTTP source',
     'settings.sync_form_edit_title': 'Edit HTTP source',
@@ -5949,6 +8136,8 @@ const TRANSLATIONS = {
     'toast.import_done': 'Import applied — {levels} levels, {persons} people',
     'audit.config_imported': 'Configuration imported',
     'audit.config_exported': 'Configuration exported',
+    'storage.quota_exceeded_title': 'Storage full',
+    'storage.quota_exceeded_body': 'Browser storage is full. Status changes are not being saved. Please export and remove old data.',
     'manual.absent_hint': '(assigned person absent)',
     'manual.modal_title': 'Manual assignment',
     'manual.modal_intro': 'Pick a person for this role. The assignment overrides the automatic logic and stays until you release it.',
@@ -6246,6 +8435,13 @@ const TRANSLATIONS = {
     'header.sync_tooltip_error': 'Error de sync: {msg}',
     'header.sync_status_config_drift': 'Config diferente',
     'header.sync_tooltip_config_drift': 'El servidor tiene otra configuración. Click abre Datos → Online para reconciliar.',
+    'sync.auto.status_synced_ago': 'Sincronizado hace {n}s',
+    'sync.auto.status_synced_ago_min': 'Sincronizado hace {n} min',
+    'sync.auto.status_synced_ago_hour': 'Sincronizado hace {n} h',
+    'sync.auto.status_synced_ago_day': 'Sincronizado hace {n} d',
+    'sync.auto.status_next_in': 'próximo en {n}s',
+    'sync.auto.status_never_synced': 'No sincronizado',
+    'sync.auto.status_separator': ' · ',
     'header.data': 'Datos',
     'header.data_tooltip': 'Importar / Exportar',
     'header.print': 'Imprimir',
@@ -6269,6 +8465,54 @@ const TRANSLATIONS = {
     'settings.tab_about': 'Acerca de',
     'settings.sync_intro': 'Las fuentes de sincronización son endpoints contra los que puede sincronizar manualmente. V1.2 admite backends HTTP(S); seguirán más tipos.',
     'settings.sync_no_sources': 'Ninguna fuente configurada.',
+    'sync.migration_banner.title': 'La sincronización automática es nueva',
+    'sync.migration_banner.body': 'CRAM ahora puede reconciliar las fuentes de sincronización automáticamente en segundo plano. La función está desactivada por fuente y debe habilitarse de forma explícita. Las fuentes existentes permanecen en modo manual.',
+    'sync.migration_banner.cta_settings': 'Mostrar fuentes',
+    'sync.migration_banner.dismiss': 'Entendido',
+    // V2.0 paso 5: acordeón de sincronización automática por fuente
+    'sync.auto.section_title': 'Sincronización automática',
+    'sync.auto.mode_label': 'Modo',
+    'sync.auto.mode_off': 'Desactivado',
+    'sync.auto.mode_pull': 'Solo recepción',
+    'sync.auto.mode_push': 'Solo envío',
+    'sync.auto.mode_bidirectional': 'Bidireccional',
+    'sync.auto.interval_label': 'Intervalo de sondeo',
+    'sync.auto.interval_unit': 'seg',
+    'sync.auto.stats_section_title': 'Estado',
+    'sync.auto.stats_last_poll': 'Último sondeo automático',
+    'sync.auto.stats_last_error': 'Último error',
+    'sync.auto.stats_consecutive_failures': 'Errores consecutivos',
+    'sync.auto.stats_never': 'nunca',
+    'sync.auto.stats_none': 'ninguno',
+    'sync.auto.badge_auth': 'Autenticación expirada — iniciar sesión nuevamente',
+    'sync.auto.badge_permission': 'Confirmar acceso al archivo nuevamente',
+    'sync.auto.badge_recovery': 'Envío atascado — se necesita recuperación',
+    'sync.auto.badge_passphrase': 'Frase de contraseña necesaria — volver a introducir',
+    'sync.auto.badge_drift': 'Configuración divergente',
+    'sync.auto.btn_resolve_drift': 'Adoptar configuración',
+    'sync.drift_modal.title': 'Configuración divergente',
+    'sync.drift_modal.body': 'La configuración en el servidor ha cambiado (nuevos roles, personas o estructura). Una sincronización de estado por sí sola ya no encaja — si adoptas la configuración remota, tu configuración local para esta fuente será reemplazada. La sincronización automática queda en pausa para esta fuente hasta que decidas.',
+    'sync.drift_modal.per_source': '{name}: configuración divergente',
+    'sync.drift_modal.btn_apply': 'Adoptar configuración',
+    'sync.drift_modal.btn_later': 'Más tarde',
+    'sync.drift_modal.none': 'Actualmente no se conocen fuentes con configuración divergente.',
+    'sync.auto.btn_grant_access': 'Otorgar acceso',
+    'sync.auto.btn_retry_push': 'Reintentar',
+    'sync.auto.btn_discard_push': 'Descartar',
+    'sync.auto.btn_enter_passphrase': 'Introducir frase de contraseña',
+    'sync.auto.grant_no_handle': 'No hay identificador de directorio guardado. Edita la fuente y vuelve a seleccionar el directorio.',
+    // V2.0 paso 6: cadenas de toast
+    'sync.auto.toast.permission_granted_title': 'Acceso a archivo concedido',
+    'sync.auto.toast.permission_failed_title': 'Acceso a archivo denegado',
+    'sync.auto.toast.auth_expired_title': 'Autenticación caducada',
+    'sync.auto.toast.auth_expired_body': '{name} — vuelve a iniciar sesión (caducó {since})',
+    'sync.auto.toast.recovery_title': 'Sincronización interrumpida',
+    'sync.auto.toast.recovery_body': '{name} — el último envío no se completó ({since})',
+    'sync.auto.toast.recovery_retry': 'Reintentar',
+    'sync.auto.toast.recovery_discard': 'Descartar',
+    'sync.auto.toast.dismiss': 'Cerrar',
+    'sync.auto.toast.transient_error_title': 'Error de sincronización',
+    'sync.auto.toast.transient_error_body': '{name} — se reintentará automáticamente',
     'settings.sync_add_http': 'Nueva fuente HTTP',
     'settings.sync_form_add_title': 'Crear nueva fuente HTTP',
     'settings.sync_form_edit_title': 'Editar fuente HTTP',
@@ -6468,6 +8712,8 @@ const TRANSLATIONS = {
     'toast.import_done': 'Importación aplicada — {levels} niveles, {persons} personas',
     'audit.config_imported': 'Configuración importada',
     'audit.config_exported': 'Configuración exportada',
+    'storage.quota_exceeded_title': 'Almacenamiento lleno',
+    'storage.quota_exceeded_body': 'El almacenamiento del navegador está lleno. Los cambios de estado no se están guardando. Por favor, exporta y elimina datos antiguos.',
     'manual.tooltip': 'Asignación manual — el algoritmo no la sobrescribe',
     'manual.absent_hint': '(persona asignada ausente)',
     'manual.modal_title': 'Asignación manual',
@@ -6766,6 +9012,13 @@ const TRANSLATIONS = {
     'header.sync_tooltip_error': 'Erreur sync : {msg}',
     'header.sync_status_config_drift': 'Drift config',
     'header.sync_tooltip_config_drift': 'Le serveur a une configuration différente. Cliquer ouvre Données → Online pour réconcilier.',
+    'sync.auto.status_synced_ago': 'Synchro il y a {n}s',
+    'sync.auto.status_synced_ago_min': 'Synchro il y a {n} min',
+    'sync.auto.status_synced_ago_hour': 'Synchro il y a {n} h',
+    'sync.auto.status_synced_ago_day': 'Synchro il y a {n} j',
+    'sync.auto.status_next_in': 'prochain dans {n}s',
+    'sync.auto.status_never_synced': 'Pas synchronisé',
+    'sync.auto.status_separator': ' · ',
     'header.data': 'Données',
     'header.data_tooltip': 'Importer / Exporter',
     'header.print': 'Imprimer',
@@ -6789,6 +9042,54 @@ const TRANSLATIONS = {
     'settings.tab_about': 'À propos',
     'settings.sync_intro': 'Les sources de synchronisation sont des points d’accès contre lesquels vous pouvez synchroniser manuellement. La V1.2 prend en charge les backends HTTP(S); d’autres types suivront.',
     'settings.sync_no_sources': 'Aucune source configurée.',
+    'sync.migration_banner.title': 'La synchronisation automatique est nouvelle',
+    'sync.migration_banner.body': 'CRAM peut désormais réconcilier les sources de synchronisation automatiquement en arrière-plan. La fonction est désactivée par source et doit être activée délibérément. Les sources existantes restent en mode manuel.',
+    'sync.migration_banner.cta_settings': 'Afficher les sources',
+    'sync.migration_banner.dismiss': 'Compris',
+    // V2.0 étape 5: accordéon de synchronisation automatique par source
+    'sync.auto.section_title': 'Synchronisation automatique',
+    'sync.auto.mode_label': 'Mode',
+    'sync.auto.mode_off': 'Désactivé',
+    'sync.auto.mode_pull': 'Réception seule',
+    'sync.auto.mode_push': 'Envoi seul',
+    'sync.auto.mode_bidirectional': 'Bidirectionnel',
+    'sync.auto.interval_label': 'Intervalle de sondage',
+    'sync.auto.interval_unit': 'sec',
+    'sync.auto.stats_section_title': 'Statut',
+    'sync.auto.stats_last_poll': 'Dernier sondage automatique',
+    'sync.auto.stats_last_error': 'Dernière erreur',
+    'sync.auto.stats_consecutive_failures': 'Échecs consécutifs',
+    'sync.auto.stats_never': 'jamais',
+    'sync.auto.stats_none': 'aucun',
+    'sync.auto.badge_auth': 'Authentification expirée — se reconnecter',
+    'sync.auto.badge_permission': 'Confirmer à nouveau l\'accès au fichier',
+    'sync.auto.badge_recovery': 'Envoi bloqué — récupération nécessaire',
+    'sync.auto.badge_passphrase': 'Phrase secrète requise — saisir à nouveau',
+    'sync.auto.badge_drift': 'Config divergente',
+    'sync.auto.btn_resolve_drift': 'Adopter la configuration',
+    'sync.drift_modal.title': 'Configuration divergente',
+    'sync.drift_modal.body': 'La configuration sur le serveur a changé (nouveaux rôles, personnes ou structure). Une synchronisation d\'état seule ne correspond plus — si tu adoptes la configuration distante, ta configuration locale pour cette source sera remplacée. La synchronisation automatique reste en pause pour cette source jusqu\'à ta décision.',
+    'sync.drift_modal.per_source': '{name}: configuration divergente',
+    'sync.drift_modal.btn_apply': 'Adopter la configuration',
+    'sync.drift_modal.btn_later': 'Plus tard',
+    'sync.drift_modal.none': 'Aucune source en dérive n\'est actuellement connue.',
+    'sync.auto.btn_grant_access': 'Accorder l\'accès',
+    'sync.auto.btn_retry_push': 'Réessayer',
+    'sync.auto.btn_discard_push': 'Abandonner',
+    'sync.auto.btn_enter_passphrase': 'Saisir la phrase secrète',
+    'sync.auto.grant_no_handle': 'Aucun identifiant de répertoire enregistré. Modifiez la source et sélectionnez à nouveau le répertoire.',
+    // V2.0 étape 6 : chaînes de toast
+    'sync.auto.toast.permission_granted_title': 'Accès au fichier accordé',
+    'sync.auto.toast.permission_failed_title': 'Accès au fichier refusé',
+    'sync.auto.toast.auth_expired_title': 'Authentification expirée',
+    'sync.auto.toast.auth_expired_body': '{name} — veuillez vous reconnecter (expirée {since})',
+    'sync.auto.toast.recovery_title': 'Synchronisation interrompue',
+    'sync.auto.toast.recovery_body': '{name} — le dernier envoi n\'a pas abouti ({since})',
+    'sync.auto.toast.recovery_retry': 'Réessayer',
+    'sync.auto.toast.recovery_discard': 'Abandonner',
+    'sync.auto.toast.dismiss': 'Fermer',
+    'sync.auto.toast.transient_error_title': 'Erreur de synchronisation',
+    'sync.auto.toast.transient_error_body': '{name} — nouvelle tentative automatique',
     'settings.sync_add_http': 'Nouvelle source HTTP',
     'settings.sync_form_add_title': 'Ajouter une source HTTP',
     'settings.sync_form_edit_title': 'Modifier la source HTTP',
@@ -6988,6 +9289,8 @@ const TRANSLATIONS = {
     'toast.import_done': 'Import appliqué — {levels} niveaux, {persons} personnes',
     'audit.config_imported': 'Configuration importée',
     'audit.config_exported': 'Configuration exportée',
+    'storage.quota_exceeded_title': 'Stockage saturé',
+    'storage.quota_exceeded_body': 'Le stockage du navigateur est saturé. Les changements de statut ne sont pas enregistrés. Veuillez exporter et supprimer les anciennes données.',
     'manual.tooltip': 'Affectation manuelle — non remplacée par l\u2019algorithme',
     'manual.absent_hint': '(personne affectée absente)',
     'manual.modal_title': 'Affectation manuelle',
@@ -7286,6 +9589,14 @@ const TRANSLATIONS = {
     'header.sync_tooltip_error': '同步错误：{msg}',
     'header.sync_status_config_drift': '配置不同',
     'header.sync_tooltip_config_drift': '服务器配置不同。点击打开 数据 → 在线 进行同步。',
+    // TODO(i18n): ZH translation best-effort, review by native speaker pending.
+    'sync.auto.status_synced_ago': '{n}秒前已同步',
+    'sync.auto.status_synced_ago_min': '{n}分钟前已同步',
+    'sync.auto.status_synced_ago_hour': '{n}小时前已同步',
+    'sync.auto.status_synced_ago_day': '{n}天前已同步',
+    'sync.auto.status_next_in': '{n}秒后再次同步',
+    'sync.auto.status_never_synced': '未同步',
+    'sync.auto.status_separator': ' / ',
     'header.data': '数据',
     'header.data_tooltip': '导入 / 导出',
     'header.print': '打印',
@@ -7309,6 +9620,57 @@ const TRANSLATIONS = {
     'settings.tab_about': '关于',
     'settings.sync_intro': '同步源是可以手动同步的端点。V1.2 支持 HTTP(S) 后端；后续会增加更多类型。',
     'settings.sync_no_sources': '未配置同步源。',
+    /* V2.0 step 1: ZH translations are best-effort; needs a native speaker review (cram-ux-reviewer). */
+    // TODO V2.0-GA: native ZH-speaker review required for sync.migration_banner.* strings
+    'sync.migration_banner.title': '自动同步是新功能',
+    'sync.migration_banner.body': 'CRAM 现在可以在后台自动协调同步源。该功能默认按源关闭，需要手动启用。现有的同步源仍保持手动模式。',
+    'sync.migration_banner.cta_settings': '显示源',
+    'sync.migration_banner.dismiss': '知道了',
+    // V2.0 step 5: per-source auto-sync accordion
+    // TODO V2.0-GA: native ZH-speaker review required for sync.auto.* strings
+    'sync.auto.section_title': '自动同步',
+    'sync.auto.mode_label': '模式',
+    'sync.auto.mode_off': '关闭',
+    'sync.auto.mode_pull': '仅拉取',
+    'sync.auto.mode_push': '仅推送',
+    'sync.auto.mode_bidirectional': '双向',
+    'sync.auto.interval_label': '轮询间隔',
+    'sync.auto.interval_unit': '秒',
+    'sync.auto.stats_section_title': '状态',
+    'sync.auto.stats_last_poll': '上次自动轮询',
+    'sync.auto.stats_last_error': '上次错误',
+    'sync.auto.stats_consecutive_failures': '连续失败次数',
+    'sync.auto.stats_never': '从未',
+    'sync.auto.stats_none': '无',
+    'sync.auto.badge_auth': '认证已过期 — 请重新登录',
+    'sync.auto.badge_permission': '需要重新确认文件访问权限',
+    'sync.auto.badge_recovery': '推送卡住 — 需要恢复',
+    'sync.auto.badge_passphrase': '需要密码 — 请重新输入', // TODO(i18n): native ZH review
+    'sync.auto.badge_drift': '配置不一致', // TODO(i18n): native ZH review
+    'sync.auto.btn_resolve_drift': '采用配置', // TODO(i18n): native ZH review
+    'sync.drift_modal.title': '配置不一致', // TODO(i18n): native ZH review
+    'sync.drift_modal.body': '服务器上的配置已更改（新的角色、人员或结构）。仅同步状态已不足以匹配 — 如果你采用远程配置，此源的本地配置将被替换。在你做出决定前，此源的自动同步将暂停。', // TODO(i18n): native ZH review
+    'sync.drift_modal.per_source': '{name}：配置不一致', // TODO(i18n): native ZH review
+    'sync.drift_modal.btn_apply': '采用配置', // TODO(i18n): native ZH review
+    'sync.drift_modal.btn_later': '稍后', // TODO(i18n): native ZH review
+    'sync.drift_modal.none': '当前没有已知的配置不一致源。', // TODO(i18n): native ZH review
+    'sync.auto.btn_grant_access': '授予访问权限',
+    'sync.auto.btn_retry_push': '重试',
+    'sync.auto.btn_discard_push': '丢弃',
+    'sync.auto.btn_enter_passphrase': '输入密码', // TODO(i18n): native ZH review
+    'sync.auto.grant_no_handle': '未保存目录句柄。请编辑源并重新选择目录。',
+    // V2.0 第 6 步：Toast 字符串 (TODO: native review)
+    'sync.auto.toast.permission_granted_title': '已授予文件访问权限',
+    'sync.auto.toast.permission_failed_title': '文件访问被拒绝',
+    'sync.auto.toast.auth_expired_title': '认证已过期',
+    'sync.auto.toast.auth_expired_body': '{name} — 请重新登录（已过期 {since}）',
+    'sync.auto.toast.recovery_title': '同步已中断',
+    'sync.auto.toast.recovery_body': '{name} — 上次推送未完成（{since}）',
+    'sync.auto.toast.recovery_retry': '重试',
+    'sync.auto.toast.recovery_discard': '丢弃',
+    'sync.auto.toast.dismiss': '关闭',
+    'sync.auto.toast.transient_error_title': '同步错误',
+    'sync.auto.toast.transient_error_body': '{name} — 将自动重试',
     'settings.sync_add_http': '新建 HTTP 源',
     'settings.sync_form_add_title': '添加新的 HTTP 源',
     'settings.sync_form_edit_title': '编辑 HTTP 源',
@@ -7508,6 +9870,9 @@ const TRANSLATIONS = {
     'toast.import_done': '已导入 — {levels} 层级，{persons} 人员',
     'audit.config_imported': '配置已导入',
     'audit.config_exported': '配置已导出',
+    // TODO(i18n): ZH-Übersetzung von Native-Speaker prüfen lassen
+    'storage.quota_exceeded_title': '存储空间已满',
+    'storage.quota_exceeded_body': '浏览器存储空间已满。状态更改未被保存。请导出并删除旧数据。',
     'manual.tooltip': '手动分配 — 不受算法覆盖',
     'manual.absent_hint': '（指定人员缺席）',
     'manual.modal_title': '手动分配',
@@ -7949,6 +10314,32 @@ function renderSyncIndicator() {
     }
   }
 
+  // RC-feature: Auto-Poll hat ConfigDriftError gemeldet → Hard-Pause für
+  // diese Source. Indikator MUSS sichtbar rot werden, unabhängig vom
+  // Preview-Cache (User hatte vielleicht den Sync-Modal nie geöffnet).
+  // Quelle: lastAutoPollError.class === 'config-drift' (persistiert) oder
+  // SyncPoller.getStats().configDrift (RAM, redundant aber defensiv).
+  if (status !== 'config-drift') {
+    try {
+      const syncState = Sync.load();
+      if (syncState && Array.isArray(syncState.sources)) {
+        for (const src of syncState.sources) {
+          if (src.lastAutoPollError && src.lastAutoPollError.class === 'config-drift') {
+            status = 'config-drift';
+            break;
+          }
+        }
+      }
+      if (status !== 'config-drift' && typeof SyncPoller !== 'undefined' &&
+          typeof SyncPoller.getStats === 'function') {
+        const all = SyncPoller.getStats();
+        for (const s of all) {
+          if (s && s.configDrift === true) { status = 'config-drift'; break; }
+        }
+      }
+    } catch (e) { /* swallow — indicator must never throw */ }
+  }
+
   if (status === 'disabled') {
     el.hidden = true;
     el.removeAttribute('data-state');
@@ -7978,17 +10369,247 @@ function renderSyncIndicator() {
   else if (status === 'config-drift'){ icon = '⚠'; labelKey = 'header.sync_status_config_drift'; tooltipKey = 'header.sync_tooltip_config_drift'; }
   else /* error */                  { icon = '✗'; labelKey = 'header.sync_status_error';         tooltipKey = 'header.sync_tooltip_error'; }
 
+  // RC-feature: Live-Countdown im Header. Im 'synced'-Zustand ersetzen wir
+  // das statische "Synced"-Label durch ein dynamisches "Synced vor Xs ·
+  // nächster in Ys" (Auto-Mode) bzw. "Synced vor Xs" (Manual-Mode). Der
+  // Tick-Timer (setInterval, 1s) aktualisiert NUR den textContent dieses
+  // einen Spans — kein voller renderSyncIndicator(), sonst flackern Tooltips
+  // und der klickbare State. Error-States (syncing/out-of-sync/config-drift/
+  // error) zeigen weiterhin ihr statisches Label.
+  let labelText = t(labelKey);
+  if (status === 'synced') {
+    const liveStatus = _formatAutoSyncStatus();
+    const liveText = _renderAutoSyncLabel(liveStatus, labelText);
+    if (liveText) labelText = liveText;
+  }
+
   el.innerHTML =
     '<span class="sync-indicator-icon">' + escapeHTML(icon) + '</span>' +
-    '<span class="sync-indicator-label">' + escapeHTML(t(labelKey)) + '</span>';
+    '<span class="sync-indicator-label" data-sync-status-label>' + escapeHTML(labelText) + '</span>';
   el.title = t(tooltipKey, tInfo);
   // Im config-drift-Zustand wird der Indikator klickbar und öffnet
-  // Data-Modal → Online-Tab. Sonst kein onclick.
+  // das dedizierte Drift-Modal. Sonst kein onclick.
   if (status === 'config-drift') {
-    el.setAttribute('data-action', 'sync-indicator-open-data');
+    el.setAttribute('data-action', 'sync-drift-open');
   } else {
     el.removeAttribute('data-action');
   }
+}
+
+/* RC-feature: Live-Countdown Helper.
+   Liefert einen Snapshot der Auto-Sync-Statistik aus dem SyncPoller:
+   - mode: 'auto' wenn mindestens eine Source autoMode!='off' hat
+   - mode: 'manual' sonst (alle Sources autoMode='off')
+   - lastSec: Sekunden seit letztem erfolgreichen Poll (über ALLE Sources),
+              null wenn noch nie ein Poll erfolgreich war
+   - nextSec: Sekunden bis nächster Auto-Tick (Minimum über Auto-Sources),
+              null im Manual-Mode oder wenn kein Tick geplant
+   Gibt null zurück wenn SyncPoller nicht verfügbar oder keine Sources
+   registriert sind — Caller fällt dann auf das statische Label zurück. */
+function _formatAutoSyncStatus() {
+  try {
+    if (typeof SyncPoller === 'undefined' || typeof SyncPoller.getStats !== 'function') {
+      return null;
+    }
+    const stats = SyncPoller.getStats();
+    if (!stats || stats.length === 0) return null;
+
+    const now = Date.now();
+    let lastSuccessMs = 0;
+    for (const s of stats) {
+      if (s.lastAutoPollAt) {
+        const ms = Date.parse(s.lastAutoPollAt);
+        if (!isNaN(ms) && ms > lastSuccessMs) lastSuccessMs = ms;
+      }
+    }
+    const lastSec = lastSuccessMs > 0 ? Math.max(0, Math.floor((now - lastSuccessMs) / 1000)) : null;
+
+    const autoSources = stats.filter(s => s.autoMode !== 'off');
+    if (autoSources.length === 0) {
+      return { mode: 'manual', lastSec: lastSec, nextSec: null };
+    }
+
+    let nextTickAt = Infinity;
+    for (const s of autoSources) {
+      if (typeof s.nextTickAt === 'number' && s.nextTickAt < nextTickAt) {
+        nextTickAt = s.nextTickAt;
+      }
+    }
+    const nextSec = isFinite(nextTickAt) ? Math.max(0, Math.floor((nextTickAt - now) / 1000)) : null;
+    return { mode: 'auto', lastSec: lastSec, nextSec: nextSec };
+  } catch (e) { /* swallow — indicator must never throw */ }
+  return null;
+}
+
+/* RC-Bug-Fix (2026-05-20): Human-readable Schwellen für den "synced
+   ago"-Anteil. Vorher zählte das Label in Sekunden hoch — bei Stale-State
+   (manueller Sync nach langer Pause, Auto-off Source mit letztem Sync von
+   gestern) wurden daraus 5- oder 6-stellige Sekundenzahlen ("vor 76150 S"),
+   was den Sync-Indikator-Container über die Header-Grid-Spalte hinaus
+   wachsen ließ und mit dem Sprach-Switcher kollidierte. Schwellen:
+     <60s    : "vor N s"
+     <60min  : "vor N min"
+     <24h    : "vor N h"
+     ≥24h    : "vor N d"
+   Die 4 _min/_hour/_day-Varianten sind in allen 5 Sprachen lokalisiert. */
+function _renderSyncedAgo(sec) {
+  if (sec < 60) return t('sync.auto.status_synced_ago', { n: sec });
+  if (sec < 3600) return t('sync.auto.status_synced_ago_min', { n: Math.floor(sec / 60) });
+  if (sec < 86400) return t('sync.auto.status_synced_ago_hour', { n: Math.floor(sec / 3600) });
+  return t('sync.auto.status_synced_ago_day', { n: Math.floor(sec / 86400) });
+}
+
+/* RC-feature: Live-Label-Builder.
+   Wandelt das _formatAutoSyncStatus-Ergebnis in den Anzeige-String um.
+   Fallback (status==null oder lastSec==null im Auto-Mode ohne nextSec):
+   gibt fallbackText zurück (statisches "Synced"-Label aus i18n). */
+function _renderAutoSyncLabel(status, fallbackText) {
+  if (!status) return null;
+  if (status.mode === 'auto') {
+    if (status.lastSec === null && status.nextSec === null) return fallbackText;
+    if (status.lastSec === null) {
+      // Noch nie synchronisiert, aber Auto-Mode aktiv mit geplantem Tick
+      return t('sync.auto.status_never_synced') + t('sync.auto.status_separator') +
+             t('sync.auto.status_next_in', { n: status.nextSec || 0 });
+    }
+    if (status.nextSec === null) {
+      return _renderSyncedAgo(status.lastSec);
+    }
+    return _renderSyncedAgo(status.lastSec) +
+           t('sync.auto.status_separator') +
+           t('sync.auto.status_next_in', { n: status.nextSec });
+  }
+  if (status.mode === 'manual') {
+    if (status.lastSec === null) return t('sync.auto.status_never_synced');
+    return _renderSyncedAgo(status.lastSec);
+  }
+  return fallbackText;
+}
+
+/* RC-feature: 1s-Tick-Update.
+   Aktualisiert NUR den textContent des Live-Labels innerhalb des bestehenden
+   Indikator-DOM. Kein voller Re-Render — wir wollen weder die Tooltip-Position
+   noch das data-action-Attribut auf jedem Tick neu schreiben. Wenn der
+   Indikator nicht im 'synced'-State ist (Error/Syncing/Drift/Out-of-sync),
+   No-op: das statische Label bleibt stehen. */
+function _updateSyncStatusLabel() {
+  try {
+    const indicator = document.getElementById('sync-indicator');
+    if (!indicator || indicator.hidden) return;
+    const state = indicator.getAttribute('data-state');
+    if (state !== 'synced') return;
+    const labelEl = indicator.querySelector('[data-sync-status-label]');
+    if (!labelEl) return;
+    const liveStatus = _formatAutoSyncStatus();
+    const liveText = _renderAutoSyncLabel(liveStatus, t('header.sync_status_synced'));
+    if (liveText && labelEl.textContent !== liveText) {
+      labelEl.textContent = liveText;
+    }
+  } catch (e) { /* swallow — tick must never throw */ }
+}
+
+/* RC-feature: Drift-Modal.
+   Listet alle Sources mit config-drift (entweder _configDrift==true im
+   Poller-RAM oder lastAutoPollError.class==='config-drift' im persistierten
+   Storage — beides bleibt synchron, redundant gegen Refresh-Reihenfolgen).
+   Pro Source: Name + zwei Buttons (Konfiguration übernehmen / Später).
+   "Übernehmen" triggert dataOnlinePullFull(sourceId), das den existierenden
+   Full-Pull-Pfad fährt (Confirm-Dialog mit Diff-Stats inklusive). Nach
+   erfolgreichem Pull: SyncPoller.configDriftResolved(sid). */
+function _collectDriftSources() {
+  const out = [];
+  try {
+    const syncState = Sync.load();
+    if (!syncState || !Array.isArray(syncState.sources)) return out;
+    let pollerStats = null;
+    if (typeof SyncPoller !== 'undefined' && typeof SyncPoller.getStats === 'function') {
+      try { pollerStats = SyncPoller.getStats(); } catch (e) { pollerStats = null; }
+    }
+    const driftIds = new Set();
+    if (pollerStats) {
+      for (const s of pollerStats) if (s && s.configDrift === true) driftIds.add(s.sourceId);
+    }
+    for (const src of syncState.sources) {
+      const persistedDrift = src.lastAutoPollError &&
+        src.lastAutoPollError.class === 'config-drift';
+      if (persistedDrift || driftIds.has(src.id)) {
+        out.push(src);
+      }
+    }
+  } catch (e) { /* swallow */ }
+  return out;
+}
+
+function openDriftModal() {
+  renderDriftModal();
+  document.getElementById('modal-backdrop').style.display = 'flex';
+}
+
+function renderDriftModal() {
+  document.getElementById('modal-title').textContent = t('sync.drift_modal.title');
+  const body = document.getElementById('modal-body');
+  const footer = document.getElementById('modal-footer');
+  const sources = _collectDriftSources();
+
+  let listHTML = '';
+  if (sources.length === 0) {
+    listHTML = `<div class="drift-empty">${escapeHTML(t('sync.drift_modal.none'))}</div>`;
+  } else {
+    listHTML = '<div class="drift-source-list">';
+    for (const src of sources) {
+      const label = src.label || src.id.slice(0, 8);
+      listHTML += `
+        <div class="drift-source-item">
+          <div class="drift-source-name">${escapeHTML(t('sync.drift_modal.per_source', { name: label }))}</div>
+          <div class="drift-source-actions">
+            <button class="btn-primary" data-action="sync-drift-apply" data-source-id="${escapeHTML(src.id)}">
+              ${escapeHTML(t('sync.drift_modal.btn_apply'))}
+            </button>
+            <button class="btn-secondary" data-action="sync-drift-later" data-source-id="${escapeHTML(src.id)}">
+              ${escapeHTML(t('sync.drift_modal.btn_later'))}
+            </button>
+          </div>
+        </div>
+      `;
+    }
+    listHTML += '</div>';
+  }
+
+  body.innerHTML = `
+    <div class="drift-modal-body">
+      <p class="drift-modal-intro">${escapeHTML(t('sync.drift_modal.body'))}</p>
+      ${listHTML}
+    </div>
+  `;
+  footer.innerHTML = `
+    <button class="btn-secondary" data-action="modal-close">${escapeHTML(t('sync.drift_modal.btn_later'))}</button>
+  `;
+}
+
+/* RC-feature: Apply-Action im Drift-Modal.
+   Schließt das Modal, ruft dataOnlinePullFull (Full-Mode, lädt Config+Status,
+   eingebauter Confirm-Dialog mit Diff-Summary). Bei Erfolg löst der Pull
+   intern den Drift-Resolved-Hook aus; wir rufen es defensiv hier auch noch,
+   weil dataOnlinePullFull selbst nicht weiß, ob die Source vorher im Drift
+   war. */
+async function driftModalApply(sourceId) {
+  closeModal();
+  try {
+    await dataOnlinePullFull(sourceId);
+    if (typeof SyncPoller !== 'undefined' &&
+        typeof SyncPoller.configDriftResolved === 'function') {
+      SyncPoller.configDriftResolved(sourceId);
+    }
+    renderSyncIndicator();
+  } catch (e) {
+    showToast(t('sync.online_pull_failed', { msg: String(e.message || e) }), 'error');
+  }
+}
+
+/* "Später"-Action: Modal schließen. Source bleibt im Hard-Pause. Header-
+   Indikator bleibt rot — User soll an die offene Drift erinnert werden. */
+function driftModalLater(sourceId) {
+  closeModal();
 }
 
 function formatRelativeTime(timestamp) {
@@ -8927,6 +11548,11 @@ const CLICK_HANDLERS = {
     dataModalState.mode = 'online';
     renderDataModal();
   },
+  // RC-feature: Drift-Modal. Header-Indikator und Akkordeon-Badge zeigen
+  // beide auf diesen Handler.
+  'sync-drift-open':  ()   => openDriftModal(),
+  'sync-drift-apply': (el) => driftModalApply(el.dataset.sourceId),
+  'sync-drift-later': (el) => driftModalLater(el.dataset.sourceId),
   // V1.3 Data-Online Cards
   'data-online-refresh':    (el) => dataOnlineRefresh(el.dataset.sourceId),
   'data-online-unlock':     (el) => dataOnlineUnlock(el.dataset.sourceId),
@@ -8948,6 +11574,26 @@ const CLICK_HANDLERS = {
   'settings-tab':           (el) => switchSettingsTab(el.dataset.tab),
   'sync-add-http':          () => syncFormShowAddHttp(),
   'sync-add-fs':            () => syncFormShowAddFs(),
+  // V2.0 step 1: migration-banner buttons. Dismiss persists in Sync state
+  // so reload won't show it again. open-settings is a placeholder scroll
+  // for now (TODO step 5: scroll to / open the per-source AutoMode accordion).
+  'sync-migration-dismiss': () => {
+    const state = Sync.load();
+    if (state.auto) {
+      state.auto.migrationBannerDismissed = true;
+      Sync.save(state);
+    }
+    renderSettingsModal();
+  },
+  'sync-migration-open-settings': () => {
+    // TODO V2.0 step 5: target the AutoMode accordion of the first source
+    // instead of just scrolling the list into view.
+    const list = document.querySelector('.sync-source-list')
+              || document.querySelector('.sync-no-sources');
+    if (list && typeof list.scrollIntoView === 'function') {
+      list.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  },
   'sync-edit-source':       (el) => syncFormShowEdit(el.dataset.sourceId),
   'sync-share-source':      (el) => openSyncShareModal(el.dataset.sourceId),
   'sync-delete-source':     (el) => syncDeleteSource(el.dataset.sourceId, el.dataset.label),
@@ -8962,18 +11608,64 @@ const CLICK_HANDLERS = {
   'bundle-import-file':     () => syncImportFromFile(),
   'bundle-import-apply':    () => syncImportApply(),
   'bundle-import-close':    () => syncImportClose(),
+
+  // V2.0 Schritt 5: Per-Source Auto-Sync-Akkordeon.
+  // Hinweis: -mode-change / -interval-change kommen vom change/input-Event
+  // (siehe renderSettingsModal-Bindings), nicht vom Click-Dispatcher — die
+  // Einträge hier dienen vor allem als Keyboard-Fallback und Dokumentation.
+  'sync-auto-toggle-accordion': (el) => syncAutoToggleAccordion(el.dataset.sourceId),
+  'sync-auto-mode-change':      (el) => syncAutoModeChange(el.dataset.sourceId, el.value),
+  'sync-auto-interval-change':  (el) => syncAutoIntervalChange(el.dataset.sourceId, el.value),
+  'sync-auto-grant-access':     (el) => syncAutoGrantAccess(el.dataset.sourceId),
+  'sync-auto-retry-push':       (el) => syncAutoRetryPush(el.dataset.sourceId),
+  'sync-auto-discard-push':     (el) => syncAutoDiscardPush(el.dataset.sourceId),
+  'sync-auto-enter-passphrase': (el) => syncAutoEnterPassphrase(el.dataset.sourceId),
 };
+
+// V2.0 Schritt 6: Toast-Actions enthalten Source-IDs als Suffix
+// (recovery-retry-<sid>, recovery-discard-<sid>, dismiss-auth-<sid>,
+// toast-dismiss-<id>). Statt einen Eintrag pro Source in CLICK_HANDLERS
+// einzutragen, lösen wir diese Präfixe dynamisch auf.
+function _resolveDynamicAction(action) {
+  if (typeof action !== 'string') return null;
+  if (action.indexOf('recovery-retry-') === 0) {
+    const sid = action.slice('recovery-retry-'.length);
+    return () => {
+      Toast.dismiss('recovery-' + sid.slice(0, 8));
+      try { syncAutoRetryPush(sid); }
+      catch (e) { console.warn('[toast] retry-push failed:', e && e.message); }
+    };
+  }
+  if (action.indexOf('recovery-discard-') === 0) {
+    const sid = action.slice('recovery-discard-'.length);
+    return () => {
+      Toast.dismiss('recovery-' + sid.slice(0, 8));
+      try { syncAutoDiscardPush(sid); }
+      catch (e) { console.warn('[toast] discard-push failed:', e && e.message); }
+    };
+  }
+  if (action.indexOf('dismiss-auth-') === 0) {
+    const sid = action.slice('dismiss-auth-'.length);
+    return () => { Toast.dismiss('auth-error-' + sid.slice(0, 8)); };
+  }
+  if (action.indexOf('toast-dismiss-') === 0) {
+    const id = action.slice('toast-dismiss-'.length);
+    return () => { Toast.dismiss(id); };
+  }
+  return null;
+}
 
 function handleGlobalClick(e) {
   const el = e.target.closest('[data-action]');
   if (!el) return;
-  const handler = CLICK_HANDLERS[el.dataset.action];
+  const action = el.dataset.action;
+  const handler = CLICK_HANDLERS[action] || _resolveDynamicAction(action);
   if (!handler) return;
   e.stopPropagation();
   try {
     handler(el, e);
   } catch (err) {
-    console.error('Dispatch-Fehler für', el.dataset.action, err);
+    console.error('Dispatch-Fehler für', action, err);
     showToast('Fehler: ' + (err.message || err), 'warning');
   }
 }
@@ -8986,7 +11678,8 @@ function handleGlobalKeyDown(e) {
   if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') return;
   if (el.tagName === 'BUTTON') return; // Browser handhabt Enter/Space nativ
   e.preventDefault();
-  const handler = CLICK_HANDLERS[el.dataset.action];
+  const action = el.dataset.action;
+  const handler = CLICK_HANDLERS[action] || _resolveDynamicAction(action);
   if (handler) handler(el, e);
 }
 
@@ -9173,6 +11866,13 @@ function closeModal() {
   if (typeof qrCleanupOnModalClose === 'function') qrCleanupOnModalClose();
   // QR-Scanner stoppen, falls aktiv
   if (typeof qrStopScanner === 'function') qrStopScanner();
+  // RC-Blocker (2026-05): während offenem Edit-Modal waren Auto-Renders
+  // und Auto-Pushes pausiert (sonst Modal-Vernichtung / Edit-Datenverlust).
+  // Jetzt drainen: pending render + ggf. pending push re-scheduled.
+  if (typeof SyncPoller !== 'undefined' && typeof SyncPoller.modalClosed === 'function') {
+    try { SyncPoller.modalClosed(); }
+    catch (e) { console.warn('SyncPoller.modalClosed() threw:', e && e.message); }
+  }
 }
 
 function markUnavailable(personId, category, note) {
@@ -9228,6 +11928,111 @@ function showToast(message, tone = 'info') {
 
   setTimeout(() => toast.remove(), 3000);
 }
+
+/* =========================================================================
+   V2.0 TOAST-API (Schritt 6)
+   ----------------------------------------------------------------
+   Toast.show({ id, level, title, message, actions, durationMs })
+   Toast.dismiss(id)
+
+   Unterschied zu showToast(): persistent möglich, Dedup über id (gleiche
+   id = Update statt zweiter Toast), strukturierte Actions (kein HTML),
+   levels (info/warn/error).
+
+   Security (Watch-Point 12): title und message werden hier einmalig
+   escaped — Caller MUSS keinen escapeHTML-Aufruf vorab machen. HTML-
+   Markup in Toast-Body ist damit nicht möglich, was die Trennung
+   sauber hält.
+
+   Action-Dispatch: actions: [{label, action}]. action ist ein String,
+   der über das normale data-action-Dispatcher-System läuft. Wenn der
+   Caller benutzerdefiniertes Verhalten will, registriert er einen
+   CLICK_HANDLERS-Eintrag.
+   ========================================================================= */
+const Toast = (function () {
+  function _ensureStack() {
+    let stack = document.getElementById('cram-toast-stack');
+    if (!stack) {
+      stack = document.createElement('div');
+      stack.id = 'cram-toast-stack';
+      document.body.appendChild(stack);
+    }
+    return stack;
+  }
+
+  function _renderToast(toastEl, opts) {
+    // Title, message, action-labels werden via escapeHTML in innerHTML
+    // injiziert. Watch-Point 12: Caller MUSS NICHT vorab escapen.
+    const lvl = (opts.level === 'warn' || opts.level === 'error') ? opts.level : 'info';
+    toastEl.dataset.level = lvl;
+    toastEl.dataset.toastId = opts.id || '';
+
+    const titleHTML = opts.title
+      ? `<div class="cram-toast-title">${escapeHTML(String(opts.title))}</div>`
+      : '';
+    const msgHTML = opts.message
+      ? `<div class="cram-toast-message">${escapeHTML(String(opts.message))}</div>`
+      : '';
+
+    let actionsHTML = '';
+    if (Array.isArray(opts.actions) && opts.actions.length > 0) {
+      const buttons = opts.actions.map(a => {
+        const label = escapeHTML(String(a && a.label != null ? a.label : ''));
+        const action = escapeHTML(String(a && a.action != null ? a.action : ''));
+        return `<button type="button" data-action="${action}">${label}</button>`;
+      }).join('');
+      actionsHTML = `<div class="cram-toast-actions">${buttons}</div>`;
+    }
+
+    const closeAction = 'toast-dismiss-' + escapeHTML(String(opts.id || ''));
+    const closeBtn = `<button type="button" class="cram-toast-close" data-action="${closeAction}" aria-label="Close">×</button>`;
+
+    toastEl.innerHTML = titleHTML + msgHTML + actionsHTML + closeBtn;
+  }
+
+  function show(opts) {
+    if (!opts || typeof opts !== 'object') return null;
+    const stack = _ensureStack();
+    const id = opts.id || ('toast-' + Math.random().toString(36).slice(2, 10));
+
+    // Dedup: existierenden Toast mit gleicher ID updaten statt neu zu rendern.
+    let toastEl = stack.querySelector('[data-toast-id="' + CSS.escape(id) + '"]');
+    const isUpdate = !!toastEl;
+    if (!toastEl) {
+      toastEl = document.createElement('div');
+      toastEl.className = 'cram-toast';
+      stack.appendChild(toastEl);
+    }
+    _renderToast(toastEl, Object.assign({}, opts, { id: id }));
+
+    // Auto-Dismiss-Timer. durationMs === null → persistent.
+    if (toastEl._cramToastTimer) {
+      clearTimeout(toastEl._cramToastTimer);
+      toastEl._cramToastTimer = null;
+    }
+    const dur = (opts.durationMs === null) ? null
+      : (typeof opts.durationMs === 'number' ? opts.durationMs : 5000);
+    if (dur !== null) {
+      toastEl._cramToastTimer = setTimeout(() => dismiss(id), dur);
+    }
+    return id;
+  }
+
+  function dismiss(id) {
+    if (!id) return;
+    const stack = document.getElementById('cram-toast-stack');
+    if (!stack) return;
+    const toastEl = stack.querySelector('[data-toast-id="' + CSS.escape(String(id)) + '"]');
+    if (!toastEl) return;
+    if (toastEl._cramToastTimer) {
+      clearTimeout(toastEl._cramToastTimer);
+      toastEl._cramToastTimer = null;
+    }
+    toastEl.remove();
+  }
+
+  return { show, dismiss };
+})();
 
 /* =========================================================================
    TABS
@@ -10458,6 +13263,11 @@ async function syncOnlineUnlockCard(sourceId) {
     const key = await SyncCrypto.deriveKey(passphrase, saltB64);
     Sync.setKeyForSource(src.id, key);
     Sync.setPassphraseForSource(src.id, passphrase);
+    // WP-16: Hard-Pause aufheben falls aktiv.
+    if (typeof SyncPoller !== 'undefined' &&
+        typeof SyncPoller.passphraseProvided === 'function') {
+      SyncPoller.passphraseProvided(src.id);
+    }
     clearPreviewCache(sourceId);
     renderSyncModal();
   } catch (e) {
@@ -10703,6 +13513,11 @@ async function withPassphraseRecovery(source, opFn) {
       const key = await SyncCrypto.deriveKey(passphrase, saltB64);
       Sync.setKeyForSource(source.id, key);
       Sync.setPassphraseForSource(source.id, passphrase);
+      // WP-16: dieser Wrapper läuft genau im Recovery-Fall — Hard-Pause weg.
+      if (typeof SyncPoller !== 'undefined' &&
+          typeof SyncPoller.passphraseProvided === 'function') {
+        SyncPoller.passphraseProvided(source.id);
+      }
     } catch (deriveErr) {
       throw new Error(t('settings.sync_err_key_derive', { msg: String(deriveErr.message || deriveErr) }));
     }
@@ -11829,7 +14644,7 @@ function updateMobileNavUI() {
    }
    ========================================================================= */
 const EXPORT_FORMAT_VERSION = 1;
-const APP_VERSION = '1.3.0';
+const APP_VERSION = '2.0.0';
 
 // State für Import-Modal (parsed file content + ursprünglicher Filename)
 let dataModalState = {
@@ -12198,6 +15013,11 @@ async function dataOnlineUnlock(sourceId) {
     const key = await SyncCrypto.deriveKey(passphrase, saltB64);
     Sync.setKeyForSource(src.id, key);
     Sync.setPassphraseForSource(src.id, passphrase);
+    // WP-16: Hard-Pause aufheben falls aktiv.
+    if (typeof SyncPoller !== 'undefined' &&
+        typeof SyncPoller.passphraseProvided === 'function') {
+      SyncPoller.passphraseProvided(src.id);
+    }
     clearPreviewCache(sourceId);
     renderDataModal();
   } catch (e) {
@@ -12228,11 +15048,18 @@ async function dataOnlinePullFull(sourceId) {
   try {
     await withPassphraseRecovery(src, () => Sync.pull(sourceId, { mode: 'full' }));
     showToast(t('data.online_pulled_full', { label: src.label }), 'success');
+    // RC-feature: erfolgreicher Full-Pull löst eine eventuelle Drift-Hard-
+    // Pause auf. Hook ist No-Op wenn die Source vorher nicht im Drift war.
+    if (typeof SyncPoller !== 'undefined' &&
+        typeof SyncPoller.configDriftResolved === 'function') {
+      SyncPoller.configDriftResolved(sourceId);
+    }
     render();
   } catch (e) {
     showToast(t('sync.online_pull_failed', { msg: String(e.message || e) }), 'error');
   }
   clearPreviewCache(sourceId);
+  renderSyncIndicator();
   const backdrop = document.getElementById('modal-backdrop');
   if (backdrop && backdrop.style.display === 'flex') renderDataModal();
 }
@@ -12848,11 +15675,15 @@ let settingsState = {
   editingSourceId: null,
   formMode: null,         // 'add' | 'edit' | null
   formSourceType: null,   // 'http' | 'fileSystem'
+  // V2.0 Schritt 5: expandedAccordions ist nur RAM, nicht persistiert.
+  // Set<sourceId>: welche Auto-Sync-Akkordeons sind aktuell aufgeklappt.
+  expandedAccordions: new Set(),
 };
 
 function openSettingsModal() {
   settingsState = {
     activeTab: 'general', editingSourceId: null, formMode: null, formSourceType: null,
+    expandedAccordions: new Set(),
   };
   renderSettingsModal();
 }
@@ -12930,6 +15761,22 @@ function renderSettingsModal() {
       const labelEl = document.getElementById('sync-form-label');
       if (labelEl) labelEl.focus();
     }, 50);
+  } else if (settingsState.activeTab === 'sync' && !settingsState.formMode) {
+    // V2.0 Schritt 5: Bindings für expanded Auto-Sync-Akkordeons.
+    // - radio:change → Mode-Wechsel
+    // - range:input  → Live-Label, debounced save (in syncAutoIntervalChange)
+    document.querySelectorAll('input[type="radio"][data-action="sync-auto-mode-change"]')
+      .forEach((el) => {
+        el.addEventListener('change', () => {
+          if (el.checked) syncAutoModeChange(el.dataset.sourceId, el.value);
+        });
+      });
+    document.querySelectorAll('input[type="range"][data-action="sync-auto-interval-change"]')
+      .forEach((el) => {
+        el.addEventListener('input', () => {
+          syncAutoIntervalChange(el.dataset.sourceId, el.value);
+        });
+      });
   }
 }
 
@@ -13000,10 +15847,36 @@ function renderBrowserSupportBanner() {
   `;
 }
 
+/* V2.0 step 1: informational banner shown to V1.3 upgraders once.
+   - Triggers when state.auto.migratedAt is set (set by Sync._migrate() on
+     first load with existing sources) AND not yet dismissed.
+   - Fresh installs never see it because migratedAt stays null.
+   - Returns '' when not applicable so it can be inlined unconditionally. */
+function renderSyncMigrationBanner() {
+  // Read through the public API. load() is safe because _migrate is
+  // idempotent — calling it during a render is cheap.
+  const s = (typeof Sync.load === 'function') ? Sync.load() : null;
+  const auto = s && s.auto ? s.auto : null;
+  if (!auto || !auto.migratedAt || auto.migrationBannerDismissed) return '';
+  return `
+    <div class="sync-migration-banner" role="status">
+      <strong>${escapeHTML(t('sync.migration_banner.title'))}</strong>
+      <div class="sync-migration-banner-body">${escapeHTML(t('sync.migration_banner.body'))}</div>
+      <div class="sync-migration-banner-actions">
+        <button class="btn-secondary" data-action="sync-migration-open-settings">${escapeHTML(t('sync.migration_banner.cta_settings'))}</button>
+        <button class="btn-ghost" data-action="sync-migration-dismiss">${escapeHTML(t('sync.migration_banner.dismiss'))}</button>
+      </div>
+    </div>
+  `;
+}
+
 function renderSettingsSync() {
   const sources = Sync.listSources();
-  let html = `<div class="sync-explain">${escapeHTML(t('settings.sync_intro'))}</div>`;
+  // Banner order (V2.0 step 1 polish): both hint boxes grouped at the top
+  // (migration -> browser-support), then the explanatory prose below.
+  let html = renderSyncMigrationBanner();
   html += renderBrowserSupportBanner();
+  html += `<div class="sync-explain">${escapeHTML(t('settings.sync_intro'))}</div>`;
 
   if (settingsState.formMode) {
     html += '<div style="margin-top: 12px;">' + renderSyncForm() + '</div>';
@@ -13026,18 +15899,33 @@ function renderSettingsSync() {
         metaLine = '';
       }
       const typeLabel = t('settings.sync_type_' + s.type) || s.type;
+      const expanded = settingsState.expandedAccordions
+        && settingsState.expandedAccordions.has(s.id);
+      const mode = s.autoMode || 'off';
+      const modeSummaryKey = 'sync.auto.mode_' + mode;
       html += `
-        <div class="sync-source-row">
-          <span class="sync-source-type-badge">${escapeHTML(typeLabel)}</span>
-          <div class="sync-source-info">
-            <div class="sync-source-label">${escapeHTML(s.label)}</div>
-            <div class="sync-source-meta">${escapeHTML(metaLine)}</div>
+        <div class="sync-source-card">
+          <div class="sync-source-row">
+            <span class="sync-source-type-badge">${escapeHTML(typeLabel)}</span>
+            <div class="sync-source-info">
+              <div class="sync-source-label">${escapeHTML(s.label)}</div>
+              <div class="sync-source-meta">${escapeHTML(metaLine)}</div>
+            </div>
+            <div class="sync-source-actions">
+              <button data-action="sync-share-source" data-source-id="${escapeHTML(s.id)}">${escapeHTML(t('settings.sync_btn_share'))}</button>
+              <button data-action="sync-edit-source" data-source-id="${escapeHTML(s.id)}">${escapeHTML(t('settings.sync_btn_edit'))}</button>
+              <button class="danger" data-action="sync-delete-source" data-source-id="${escapeHTML(s.id)}" data-label="${escapeHTML(s.label)}">${escapeHTML(t('settings.sync_btn_delete'))}</button>
+            </div>
           </div>
-          <div class="sync-source-actions">
-            <button data-action="sync-share-source" data-source-id="${escapeHTML(s.id)}">${escapeHTML(t('settings.sync_btn_share'))}</button>
-            <button data-action="sync-edit-source" data-source-id="${escapeHTML(s.id)}">${escapeHTML(t('settings.sync_btn_edit'))}</button>
-            <button class="danger" data-action="sync-delete-source" data-source-id="${escapeHTML(s.id)}" data-label="${escapeHTML(s.label)}">${escapeHTML(t('settings.sync_btn_delete'))}</button>
-          </div>
+          <button class="sync-auto-toggle"
+                  data-action="sync-auto-toggle-accordion"
+                  data-source-id="${escapeHTML(s.id)}"
+                  data-expanded="${expanded ? 'true' : 'false'}"
+                  aria-expanded="${expanded ? 'true' : 'false'}">
+            <span><span class="sync-auto-toggle-caret">▶</span> ${escapeHTML(t('sync.auto.section_title'))}</span>
+            <span class="sync-auto-mode-summary">${escapeHTML(t(modeSummaryKey))}</span>
+          </button>
+          ${expanded ? renderSyncAutoAccordion(s) : ''}
         </div>
       `;
     });
@@ -13056,6 +15944,171 @@ function renderSettingsSync() {
   }
 
   return html;
+}
+
+/* V2.0 Schritt 5: Auto-Sync-Akkordeon pro Source.
+   Drei Sektionen: Mode-Radios, Polling-Slider, Stats + Badges.
+   SECURITY: jede dynamische String-Interpolation in innerHTML MUSS durch
+   escapeHTML(). lastAutoPollError ist im Poller-Schritt 3 bereits sanitized,
+   aber escapeHTML hier ist Defense-in-Depth (Watch-Point 11). */
+function renderSyncAutoAccordion(source) {
+  const sid = source.id;
+  const mode = source.autoMode || 'off';
+  // Defensiver Floor (Schritt 3 Watch-Point 3): Slider darf nie unter
+  // POLL_INTERVAL_MIN_SEC=30 fallen. Default und Clamping passieren auch
+  // im Poller, aber hier setzen wir den UI-Wert konsistent.
+  const POLL_MIN = (typeof SyncPoller !== 'undefined' && SyncPoller.CONSTANTS)
+    ? SyncPoller.CONSTANTS.POLL_INTERVAL_MIN_SEC : 30;
+  const POLL_MAX = (typeof SyncPoller !== 'undefined' && SyncPoller.CONSTANTS)
+    ? SyncPoller.CONSTANTS.POLL_INTERVAL_MAX_SEC : 300;
+  const POLL_DEFAULT = (typeof SyncPoller !== 'undefined' && SyncPoller.CONSTANTS)
+    ? SyncPoller.CONSTANTS.POLL_INTERVAL_DEFAULT_SEC : 90;
+  let interval = (typeof source.pollIntervalSec === 'number')
+    ? source.pollIntervalSec : POLL_DEFAULT;
+  if (interval < POLL_MIN) interval = POLL_MIN;
+  if (interval > POLL_MAX) interval = POLL_MAX;
+
+  // Stats aus Poller-RAM (read-only Snapshot). Wenn der Poller die Source
+  // nicht (mehr) kennt, getStats() liefert leeres Array — wir fallen auf
+  // source-persisted Felder zurück.
+  let stats = null;
+  if (typeof SyncPoller !== 'undefined' && typeof SyncPoller.getStats === 'function') {
+    try {
+      const all = SyncPoller.getStats();
+      stats = all.find(x => x.sourceId === sid) || null;
+    } catch (e) { stats = null; }
+  }
+  const lastPoll = (stats && stats.lastAutoPollAt) || source.lastAutoPollAt || null;
+  const lastErr  = (stats && stats.lastAutoPollError) || source.lastAutoPollError || null;
+  const fails    = stats ? (stats.consecutiveFailures | 0) : 0;
+  const authErr  = (stats && stats.authError) || source.authError || null;
+  const permReq  = stats ? !!stats.permissionRequired : !!source.permissionRequired;
+  const pending  = (stats && stats.pendingPush) || source.pendingPush || null;
+  const recover  = stats ? !!stats.needsRecovery : false;
+  // WP-16 UI: Hard-Pause (Passphrase-Cache leer) — Badge analog is-permission.
+  const waitPp   = stats ? !!stats.waitingForPassphrase : false;
+  // RC-feature: Config-Drift Hard-Pause. RAM-Flag oder persistierter
+  // lastAutoPollError.class — beides triggert das Badge.
+  const drift    = (stats && stats.configDrift === true) ||
+                   (lastErr && lastErr.class === 'config-drift');
+
+  const radio = (val, key) => `
+    <label>
+      <input type="radio" name="sync-auto-mode-${escapeHTML(sid)}" value="${escapeHTML(val)}"
+             data-action="sync-auto-mode-change" data-source-id="${escapeHTML(sid)}"
+             ${mode === val ? 'checked' : ''} />
+      <span>${escapeHTML(t(key))}</span>
+    </label>
+  `;
+
+  // Stats-Werte mit escapeHTML — auch wenn sanitized, gilt Watch-Point 11.
+  const lastPollText = lastPoll
+    ? escapeHTML(formatDateTime(lastPoll))
+    : escapeHTML(t('sync.auto.stats_never'));
+  let lastErrText;
+  if (lastErr) {
+    const cls = lastErr.class || lastErr.code || '';
+    const msg = lastErr.message || '';
+    const combined = (cls ? cls + ': ' : '') + msg;
+    // Defense-in-Depth: explizit escapeHTML, obwohl Poller-Schritt 3 schon
+    // sanitized hat.
+    lastErrText = `<span class="is-error">${escapeHTML(combined)}</span>`;
+  } else {
+    lastErrText = escapeHTML(t('sync.auto.stats_none'));
+  }
+
+  // Badges (Watch-Point 11: alle Strings escaped).
+  let badges = '';
+  if (authErr) {
+    badges += `
+      <div class="sync-auto-badge is-auth" role="alert">
+        <span class="sync-auto-badge-text">${escapeHTML(t('sync.auto.badge_auth'))}</span>
+      </div>
+    `;
+  }
+  if (permReq) {
+    badges += `
+      <div class="sync-auto-badge is-permission" role="alert">
+        <span class="sync-auto-badge-text">${escapeHTML(t('sync.auto.badge_permission'))}</span>
+        <span class="sync-auto-badge-actions">
+          <button data-action="sync-auto-grant-access" data-source-id="${escapeHTML(sid)}">${escapeHTML(t('sync.auto.btn_grant_access'))}</button>
+        </span>
+      </div>
+    `;
+  }
+  if (waitPp) {
+    badges += `
+      <div class="sync-auto-badge is-passphrase" role="alert">
+        <span class="sync-auto-badge-text">${escapeHTML(t('sync.auto.badge_passphrase'))}</span>
+        <span class="sync-auto-badge-actions">
+          <button data-action="sync-auto-enter-passphrase" data-source-id="${escapeHTML(sid)}">${escapeHTML(t('sync.auto.btn_enter_passphrase'))}</button>
+        </span>
+      </div>
+    `;
+  }
+  if (pending || recover) {
+    badges += `
+      <div class="sync-auto-badge is-recovery" role="alert">
+        <span class="sync-auto-badge-text">${escapeHTML(t('sync.auto.badge_recovery'))}</span>
+        <span class="sync-auto-badge-actions">
+          <button data-action="sync-auto-retry-push" data-source-id="${escapeHTML(sid)}">${escapeHTML(t('sync.auto.btn_retry_push'))}</button>
+          <button data-action="sync-auto-discard-push" data-source-id="${escapeHTML(sid)}">${escapeHTML(t('sync.auto.btn_discard_push'))}</button>
+        </span>
+      </div>
+    `;
+  }
+  if (drift) {
+    badges += `
+      <div class="sync-auto-badge is-drift" role="alert">
+        <span class="sync-auto-badge-text">${escapeHTML(t('sync.auto.badge_drift'))}</span>
+        <span class="sync-auto-badge-actions">
+          <button data-action="sync-drift-open" data-source-id="${escapeHTML(sid)}">${escapeHTML(t('sync.auto.btn_resolve_drift'))}</button>
+        </span>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="sync-auto-accordion" data-source-id="${escapeHTML(sid)}">
+      ${badges}
+
+      <div class="sync-auto-section">
+        <div class="sync-auto-section-title">${escapeHTML(t('sync.auto.mode_label'))}</div>
+        <div class="sync-auto-mode-radios">
+          ${radio('off',           'sync.auto.mode_off')}
+          ${radio('pull',          'sync.auto.mode_pull')}
+          ${radio('push',          'sync.auto.mode_push')}
+          ${radio('bidirectional', 'sync.auto.mode_bidirectional')}
+        </div>
+      </div>
+
+      <div class="sync-auto-section">
+        <div class="sync-auto-section-title">${escapeHTML(t('sync.auto.interval_label'))}</div>
+        <div class="sync-auto-interval-row">
+          <input type="range"
+                 id="sync-auto-interval-${escapeHTML(sid)}"
+                 data-action="sync-auto-interval-change"
+                 data-source-id="${escapeHTML(sid)}"
+                 min="${POLL_MIN}" max="${POLL_MAX}" step="15"
+                 value="${interval}" />
+          <div class="sync-auto-interval-value"
+               id="sync-auto-interval-label-${escapeHTML(sid)}">${interval} ${escapeHTML(t('sync.auto.interval_unit'))}</div>
+        </div>
+      </div>
+
+      <div class="sync-auto-section">
+        <div class="sync-auto-section-title">${escapeHTML(t('sync.auto.stats_section_title'))}</div>
+        <div class="sync-auto-stats">
+          <span class="sync-auto-stats-label">${escapeHTML(t('sync.auto.stats_last_poll'))}</span>
+          <span class="sync-auto-stats-value">${lastPollText}</span>
+          <span class="sync-auto-stats-label">${escapeHTML(t('sync.auto.stats_last_error'))}</span>
+          <span class="sync-auto-stats-value">${lastErrText}</span>
+          <span class="sync-auto-stats-label">${escapeHTML(t('sync.auto.stats_consecutive_failures'))}</span>
+          <span class="sync-auto-stats-value">${fails}</span>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 function renderSyncForm() {
@@ -13492,6 +16545,7 @@ async function syncFormSave() {
       config,
       encryption,
     });
+    // Poller-Wiring nun zentral in Sync.addSource()
     showToast(t('toast.sync_source_added'), 'success');
   }
 
@@ -13503,6 +16557,12 @@ async function syncFormSave() {
   if (settingsState._pendingPassphrase && savedSource) {
     Sync.setPassphraseForSource(savedSource.id, settingsState._pendingPassphrase);
     delete settingsState._pendingPassphrase;
+    // WP-16: typischer Recovery-Pfad — User legt die Passphrase im
+    // Settings-Editor neu an. Hard-Pause aufheben falls aktiv.
+    if (typeof SyncPoller !== 'undefined' &&
+        typeof SyncPoller.passphraseProvided === 'function') {
+      SyncPoller.passphraseProvided(savedSource.id);
+    }
   }
 
   // Directory-Handle in IndexedDB persistieren (nur fileSystem)
@@ -13526,12 +16586,238 @@ async function syncDeleteSource(sourceId, label) {
   const msg = t('settings.sync_delete_confirm', { label: label || '' });
   if (!window.confirm(msg)) return;
   const src = Sync.getSource(sourceId);
+  // Poller-Wiring nun zentral in Sync.removeSource() (räumt vor Mutation auf)
   Sync.removeSource(sourceId);
   // Bei fileSystem: zusätzlich den DirectoryHandle aus IndexedDB entfernen.
   if (src && src.type === 'fileSystem') {
     try { await SyncFileStore.removeHandle(sourceId); } catch (e) { /* ignore */ }
   }
   showToast(t('toast.sync_source_deleted'), 'success');
+  renderSettingsModal();
+}
+
+/* =========================================================================
+   V2.0 Schritt 5: Auto-Sync-Akkordeon Action-Handler.
+   - Toggle: rein UI-State (settingsState.expandedAccordions Set)
+   - Mode-Change: persistiert, ruft Poller register/unregister je nach mode
+   - Interval-Change: debounced 300ms save, Live-Label-Update sofort
+   - Grant-Access: S5 FS-Permission neu anfordern (handle aus IndexedDB)
+   - Retry/Discard-Push: räumt pendingPush/_needsRecovery auf
+   Toast-System (Schritt 6) ist noch nicht da → showToast existiert bereits
+   global, aber per Spec wird hier auf Inline-Badges + console.warn gesetzt
+   für Fehlerpfade.
+   ========================================================================= */
+
+function syncAutoToggleAccordion(sourceId) {
+  if (!sourceId) return;
+  if (!settingsState.expandedAccordions) {
+    settingsState.expandedAccordions = new Set();
+  }
+  if (settingsState.expandedAccordions.has(sourceId)) {
+    settingsState.expandedAccordions.delete(sourceId);
+  } else {
+    settingsState.expandedAccordions.add(sourceId);
+  }
+  renderSettingsModal();
+}
+
+function syncAutoModeChange(sourceId, newMode) {
+  if (!sourceId) return;
+  const valid = ['off', 'pull', 'push', 'bidirectional'];
+  if (valid.indexOf(newMode) < 0) {
+    console.warn('[settings] invalid autoMode', newMode);
+    return;
+  }
+  const src = Sync.getSource(sourceId);
+  if (!src) return;
+  const wasActive = src.autoMode && src.autoMode !== 'off';
+  const willActive = newMode !== 'off';
+  Sync.updateSource(sourceId, { autoMode: newMode });
+
+  // Poller-Wiring: bei off->aktiv registrieren, bei aktiv->off unregistrieren.
+  // Idempotent — gleichbleibender Zustand ist no-op.
+  if (typeof SyncPoller !== 'undefined') {
+    try {
+      if (!wasActive && willActive && SyncPoller.registerSource) {
+        SyncPoller.registerSource(sourceId);
+      } else if (wasActive && !willActive && SyncPoller.unregisterSource) {
+        SyncPoller.unregisterSource(sourceId);
+      }
+      // Bei aktiv-zu-aktiv-Wechsel (z.B. pull -> bidirectional) reicht das
+      // updateSource(); der Timer-Tick liest autoMode jeden Cycle frisch.
+    } catch (e) {
+      console.warn('[settings] SyncPoller wiring failed:', e && e.message);
+    }
+  }
+  renderSettingsModal();
+}
+
+// Debounce-Map pro Source-ID, damit Slider-Drag nicht jedem Pixel ein save()
+// auslöst. 300ms gemäß Spec.
+const _syncAutoIntervalDebounce = new Map();
+
+function syncAutoIntervalChange(sourceId, rawValue) {
+  if (!sourceId) return;
+  const POLL_MIN = (typeof SyncPoller !== 'undefined' && SyncPoller.CONSTANTS)
+    ? SyncPoller.CONSTANTS.POLL_INTERVAL_MIN_SEC : 30;
+  const POLL_MAX = (typeof SyncPoller !== 'undefined' && SyncPoller.CONSTANTS)
+    ? SyncPoller.CONSTANTS.POLL_INTERVAL_MAX_SEC : 300;
+  let val = parseInt(rawValue, 10);
+  if (!isFinite(val)) return;
+  if (val < POLL_MIN) val = POLL_MIN;
+  if (val > POLL_MAX) val = POLL_MAX;
+
+  // Live-Label-Update sofort (ohne Re-Render).
+  const labelEl = document.getElementById('sync-auto-interval-label-' + sourceId);
+  if (labelEl) {
+    // textContent → kein HTML-Pfad, kein escapeHTML nötig, aber wir nutzen
+    // t() ohnehin für die Einheit.
+    labelEl.textContent = val + ' ' + t('sync.auto.interval_unit');
+  }
+
+  // Save mit 300ms Debounce.
+  const prev = _syncAutoIntervalDebounce.get(sourceId);
+  if (prev) clearTimeout(prev);
+  const timer = setTimeout(() => {
+    _syncAutoIntervalDebounce.delete(sourceId);
+    try {
+      Sync.updateSource(sourceId, { pollIntervalSec: val });
+    } catch (e) {
+      console.warn('[settings] save interval failed:', e && e.message);
+    }
+  }, 300);
+  _syncAutoIntervalDebounce.set(sourceId, timer);
+}
+
+async function syncAutoGrantAccess(sourceId) {
+  if (!sourceId) return;
+  const src = Sync.getSource(sourceId);
+  if (!src || src.type !== 'fileSystem') {
+    console.warn('[settings] grant-access only valid for fileSystem source');
+    return;
+  }
+  const label = (src.label || src.name || sourceId.slice(0, 8));
+  try {
+    const handle = await SyncFileStore.getHandle(sourceId);
+    if (!handle) {
+      console.warn('[settings] no handle in IndexedDB for', sourceId.slice(0, 8));
+      // Schritt 6: alert() ersetzt durch Toast.
+      Toast.show({
+        id: 'grant-' + sourceId.slice(0, 8),
+        level: 'error',
+        title: t('sync.auto.toast.permission_failed_title'),
+        message: t('sync.auto.grant_no_handle'),
+        durationMs: 7000,
+      });
+      return;
+    }
+    if (!handle.requestPermission) {
+      console.warn('[settings] FS handle has no requestPermission()');
+      return;
+    }
+    // Wichtig: requestPermission() MUSS in der User-Activation-Kette laufen.
+    // Da wir hier direkt im Click-Handler sind, ist das gegeben.
+    const res = await handle.requestPermission({ mode: 'readwrite' });
+    if (res === 'granted') {
+      Sync.updateSource(sourceId, { permissionRequired: false });
+      Toast.show({
+        id: 'grant-' + sourceId.slice(0, 8),
+        level: 'info',
+        title: t('sync.auto.toast.permission_granted_title'),
+        message: label,
+        durationMs: 4000,
+      });
+      // Poller wieder anwerfen, falls die Source jetzt wieder pollen darf.
+      if (typeof SyncPoller !== 'undefined' && SyncPoller.registerSource) {
+        try { SyncPoller.registerSource(sourceId); }
+        catch (e) { console.warn('[settings] re-register failed:', e && e.message); }
+      }
+    } else {
+      console.warn('[settings] permission denied:', res);
+      Toast.show({
+        id: 'grant-' + sourceId.slice(0, 8),
+        level: 'warn',
+        title: t('sync.auto.toast.permission_failed_title'),
+        message: label,
+        durationMs: 5000,
+      });
+    }
+  } catch (e) {
+    console.warn('[settings] grant-access failed:', e && e.message);
+    Toast.show({
+      id: 'grant-' + sourceId.slice(0, 8),
+      level: 'error',
+      title: t('sync.auto.toast.permission_failed_title'),
+      message: label,
+      durationMs: 5000,
+    });
+  }
+  renderSettingsModal();
+}
+
+function syncAutoRetryPush(sourceId) {
+  if (!sourceId) return;
+  const src = Sync.getSource(sourceId);
+  if (!src) return;
+  // pendingPush + recovery-Flag löschen, dann frischen Push einplanen.
+  Sync.updateSource(sourceId, { pendingPush: null });
+  if (typeof SyncPoller !== 'undefined') {
+    try {
+      // _needsRecovery liegt im Poller-RAM; scheduleAutoPush(reset=true)
+      // existiert noch nicht — wir umgehen das, indem wir die Source kurz
+      // unregistrieren und neu registrieren (clean state).
+      if (SyncPoller.unregisterSource) SyncPoller.unregisterSource(sourceId);
+      if (SyncPoller.registerSource)   SyncPoller.registerSource(sourceId);
+      if (SyncPoller.scheduleAutoPush) SyncPoller.scheduleAutoPush(sourceId, 'retry');
+    } catch (e) {
+      console.warn('[settings] retry-push wiring failed:', e && e.message);
+    }
+  }
+  renderSettingsModal();
+}
+
+// WP-16 UI: Passphrase-Hard-Pause aufheben.
+// Öffnet den bestehenden promptPassphrase-Flow (siehe syncOnlineUnlockCard /
+// openSyncShareModal), schreibt Key+Passphrase in den RAM-Cache und ruft
+// SyncPoller.passphraseProvided(sid) — das clearen des _waitingForPassphrase-
+// Flags + direct-tick übernimmt der Poller selbst.
+async function syncAutoEnterPassphrase(sourceId) {
+  if (!sourceId) return;
+  const src = Sync.getSource(sourceId);
+  if (!src) return;
+  const passphrase = await promptPassphrase(src);
+  if (!passphrase) { renderSettingsModal(); return; }
+  try {
+    const saltB64 = (src.encryption || {}).salt || SyncCrypto.randomSaltB64();
+    if (!(src.encryption || {}).salt) {
+      Sync.updateSource(src.id, { encryption: Object.assign({}, src.encryption || {}, { enabled: true, salt: saltB64 }) });
+    }
+    const key = await SyncCrypto.deriveKey(passphrase, saltB64);
+    Sync.setKeyForSource(src.id, key);
+    Sync.setPassphraseForSource(src.id, passphrase);
+    if (typeof SyncPoller !== 'undefined' &&
+        typeof SyncPoller.passphraseProvided === 'function') {
+      SyncPoller.passphraseProvided(src.id);
+    }
+  } catch (e) {
+    showToast(t('settings.sync_err_key_derive', { msg: String(e.message || e) }), 'error');
+  }
+  renderSettingsModal();
+}
+
+function syncAutoDiscardPush(sourceId) {
+  if (!sourceId) return;
+  // Bewusster User-Decline: pendingPush vergessen, RAM-Recovery aufheben
+  // durch unregister/re-register (clean RAM-State).
+  Sync.updateSource(sourceId, { pendingPush: null });
+  if (typeof SyncPoller !== 'undefined') {
+    try {
+      if (SyncPoller.unregisterSource) SyncPoller.unregisterSource(sourceId);
+      if (SyncPoller.registerSource)   SyncPoller.registerSource(sourceId);
+    } catch (e) {
+      console.warn('[settings] discard-push wiring failed:', e && e.message);
+    }
+  }
   renderSettingsModal();
 }
 
@@ -13561,6 +16847,11 @@ async function openSyncShareModal(sourceId) {
       const key = await SyncCrypto.deriveKey(passphrase, saltB64);
       Sync.setKeyForSource(sourceId, key);
       Sync.setPassphraseForSource(sourceId, passphrase);
+      // WP-16: Hard-Pause aufheben falls aktiv.
+      if (typeof SyncPoller !== 'undefined' &&
+          typeof SyncPoller.passphraseProvided === 'function') {
+        SyncPoller.passphraseProvided(sourceId);
+      }
     } catch (e) {
       showToast(t('settings.sync_err_key_derive', { msg: String(e.message || e) }), 'error');
       return;
@@ -13897,6 +17188,11 @@ function setupPWA() {
 </g>
 </svg>`;
   const iconDataURI = 'data:image/svg+xml;base64,' + btoa(svgIcon);
+  // PNG-Icons (192/512) als Base64-Data-URIs. Lighthouse-PWA-Audit und
+  // iOS-Home-Screen bevorzugen explizite Pixelgrößen gegenüber SVG sizes=any.
+  // Single-file-Constraint bleibt intakt — beide PNGs sind hier eingebettet.
+  const iconPng192 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAIAAADdvvtQAAAB2UlEQVR42u3b2Q2DMBBAQeqjOmqkEdMC+GK9HvQ+kbVBI6KAc5zXLVV3uAQCSAAJIAEkASSABJAAkgASQAJIAEkACSABJIAkgASQABJAAkgCSAAJIAEkASSABJAAkgASQAJIAEkACSABJIAEkASQABJAAkgCSAAJIAEkASSABJAAkgASQAJIAEkACSABJIAEkASQABJAAkgCSAAJIAEkASSABJAAkgASQAJIAAmgfyrfj45LvVx58swtYwAEEEAAAQQQQAABlBFQ6X2kX7nuZIAAAmjuTTvNygABBBBAAAGUA9CIH5IAAQRQ74+dj+a4qQACCCCAAIoPaMUHiQABBNCWgILQBAgggAACCCCAAAIIoBjPgf7a+xdzKoAAAggggBZ64RBz6ztAAAG05X4ggAACCCCAAAr+zrxlDIAAAsh/41N/0QAEEEAAAQQQQAABBJD2CyABJIAEkACSABJAAkgASQAJIAEkgCSABJAAEkASQAJIAAkgASQBJIAEkACSABJAAkgASQAJIAEkgCSABJAAEkACSAJIAAkgASQBJIAEkACSABJAAkgASQAJIAEkgCSABJAAEkACSAJIAAkgASQBJIAEkACSABJAAkgASQAJIAEkgASQVNUDVg4FWPewW74AAAAASUVORK5CYII=';
+  const iconPng512 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAgAAAAIACAIAAAB7GkOtAAAIm0lEQVR42u3awRGlOBBEQdmHddiII8ICbgK6SzmR542Z+qjfZcdxXgBsaJgAQAAAEAAABAAAAQBAAAAQAAAEAAABAEAAABAAAAQAAAEAQAAAEAAABAAAAQBAAAAQAAAEAAABAEAAABAAAAQAQAAAEAAABAAAAQBAAAAQAAAEAAABAEAAABAAAAQAAAEAQAAAEAAABAAAAQBAAAAQAAAEAAABAEAAABAAAAQAQACsACAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACACAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACACAAVgAQAAAEAAABAEAAABAAAAQAAAEAQAAAEAAABAAAAQBAAAAQAAAEAAABAEAAABAAAAQAAAEAQAAAEAAABAAAAQAQAAAEAAABAEAAABAAAAQAAAEAQAAAEAAABAAAAQBAAAAQAAAEAAABAEAAABAAAAQAAAEAQAAAEAAABAAAAQAQAAAEAAABAEAAABAAAAQAAAEAQAAAEAAABAAAAQBAAAAQAAAEAAABAEAAABAAAAQAAAEAQAAAEAAABAAAAQBAAAAEAAABAEAAABAAAAQAAAEAQAAAEAAABAAAAQBAAAAQAAAEAAABAEAAABAAAAQAAAEAQAAAEAAABAAAAQBAAAAEAAABAEAAABAAAAQAAAEAQAAAEAAABAAAAQBAAAAQgOpm1T/x/8Bf1vBtLPwHdvxRBACPXAB8GwIgAHjkAuDbEAABEACPXAB8GwIgAALgkQuAb0MABEAABEAAfBsCIAACIAAC4NsQAAEQAAEQAN+GAAiAAAiAAAiAAAiAAAiAAAiAAAiAAAiAAAiAAAiAAAiAAAiAAAiAAAiAAAiAAAiAAAiAAAiAAAiAAAiAAAiAAAiAk/fGZ20Na1RYo/5fQwAEwCO3hjUEQAAEwCO3hjUEQAAEwCO3hjUEQAAEwCO3hjUEQAAEwCO3hjUEQADCAhD2d7aGNQRAAATAI7eGNQRAAATAI7eGNQRAAATAI7eGNQRAAATAI7eGNQRAAATAI7eGNQRAAATAybOGNQRAAATAybOGNQRAAATAybOGAAiAAAiAk2cNAejyRwAEwCO3hjUEQAAEwCO3hjUEQAAEwCO3hjUEQAAEwCO3hjUEQAAEwMmzhjUEQAAEwBpOnjWC/8sC4OQJgJNnDQEQACfPGk6eNQRAAJw8azh51hAAAXDyrOHkWUMABMDJs4aTZw2/oAA4edZw8qzhFxQAJ88aAmANv6AAOHnWEAAB8AsKgJPXd42Of6whAAIgAD4RJ88aAiAAAiAATp41BEAABEAAnDxrCIAACIAAOHnW8F8WACdPAJw8awiAADh51uh1xeRQAARAAHwiAiAAAiAAAuATEQABEAABEACfiAAIgAAIgAAIgAAIgAAIgAAIgAAIgAAIgAAIgAAIgP+yADh5AiAAAiAAAiAA1hAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARAAARCA1DU67uzvbA0BEAABcD78na0hAAIgAM6HAFhDAJw8AXA+BMAvKABOnjWcDwHwCwqAk2cN50MA/IIC4ORZw/nwC/oFBUAArOF8+AX9ggIgAALgfPgF/YICIABbPfL54R/fhgAIgAB45ALg2xAAARAAn7UA+DYEQAAEwGctAL4NARAAAfBZC4BvQwAEQAB81gLg2xAAARAAj9zl9W1YQwAEwCMXAN+GNQRAADxyAfBtWEMABMAjFwDfhgAIgAB45ALg2xAAARAAj1wAfBsCIAAC4JELgG9DAARAADxyAfBtCIAACIBHLgC+Da9bAJIC0PFP/OV18qwhAAIgAALg5FlDAARAAATAybOGAAiAAAiAk2cNARAAARAAJ88aAiAAAiAATp41BGDDf3NALfyPj06eNQRAAARAAJw8awiAAAiAADh51hAAARAAAXDyrCEAAiAAAuDkWUMABEAAPHInzxoCIAAC4JFbwxoCIAAC4JFbwxoCgAA4edawhgAgAE6eNawhAAIgAE6eNQRAAARAAJw8awiAAAiAADh51hAAARAAAXDyrCEAAiAAAuDkWUMABAAAAQBAAAAQAAAEAAABAEAAABAAAAQAAAEAQAAAEAAABAAAAQBAAAAQAAABAEAAABAAAAQAAAEAQAAAEAAABAAAAQBAAAAQAAAEAAABAEAAABAAAAQAAAEAQAAAEAAABAAAAQBAAAAQAAABMAGAAAAgAAAIAAACAIAAACAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAgAAAIAAACACAAAAgAAAIAAACAIAAACAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAgAAAIAAACACAAFgBQAAAEAAABAAAAQBAAAAQAAAEAAABAEAAABAAAAQAAAEAQAAAEAAABAAAAQBAAAAQAAAEAAABAEAAABAAAAQAQAAAEAAABAAAAQBAAAAQAAAEAAABAEAAABAAAAQAAAEAQAAAEAAABAAAAQBAAAAQAAAEAAABAEAAABAAAAQAQACsACAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACACAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACACAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAA8uAFTc1Ro9Hk4zgAAAABJRU5ErkJggg==';
 
   const manifest = {
     name: 'Crisis Role Availability Manager',
@@ -13914,6 +17210,18 @@ function setupPWA() {
         src: iconDataURI,
         sizes: 'any',
         type: 'image/svg+xml',
+        purpose: 'any maskable',
+      },
+      {
+        src: iconPng192,
+        sizes: '192x192',
+        type: 'image/png',
+        purpose: 'any maskable',
+      },
+      {
+        src: iconPng512,
+        sizes: '512x512',
+        type: 'image/png',
         purpose: 'any maskable',
       },
     ],
@@ -14008,6 +17316,28 @@ function init() {
 
   // Sync-Awareness-Indikator: bei jeder Sync-State-Mutation neu rendern
   Sync.onChange(() => renderSyncIndicator());
+
+  // RC-feature: Live-Countdown im Header. 1s-Tick aktualisiert NUR den
+  // textContent des Live-Labels (Defense-in-Depth: kein voller Re-Render,
+  // sonst flackern Tooltips und das data-action-Attribut wird auf jedem
+  // Tick neu geschrieben). Im Error/Drift/Syncing/Out-of-sync-State ist
+  // _updateSyncStatusLabel ein No-op.
+  setInterval(_updateSyncStatusLabel, 1000);
+
+  // V2.0 Auto-Sync Poller: globale Listener registrieren (Visibility, Online/
+  // Offline) und alle existierenden Sources eintragen. Default autoMode='off'
+  // bedeutet: kein Timer startet, bis User in Settings opt-in macht.
+  try {
+    SyncPoller.start();
+    const syncState = Sync.load();
+    if (syncState && Array.isArray(syncState.sources)) {
+      for (const src of syncState.sources) {
+        SyncPoller.registerSource(src.id);
+      }
+    }
+  } catch (e) {
+    console.warn('SyncPoller-Setup übersprungen:', e && e.message);
+  }
 
   render();
 }

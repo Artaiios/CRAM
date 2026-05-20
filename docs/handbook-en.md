@@ -2,6 +2,10 @@
 
 This handbook describes the operation of CRAM — the Crisis Role Availability Manager. It is split into two parts. The **user section** is for any member of a crisis committee who works with the tool during an incident. The **administration section** is for those who maintain the configuration, distribute new versions, and are responsible for operations.
 
+![Chart overview with the Enterprise demo configuration loaded](screenshots/01-main-chart-overview.png)
+
+> Screenshots show the included Enterprise demo configuration (`cram-demo-enterprise-en.json`) with placeholder names. Real organisational data is never shown.
+
 ---
 
 # Part 1: User Section
@@ -28,6 +32,10 @@ After starting, you see three main areas:
 - **Main area**: Organisation chart with levels and roles. Each role is displayed as a card.
 - **Right sidebar**: Three tabs — **Roster** (current occupancy and absence list), **People** (all persons by name), **Log** (audit trail)
 
+![Roster sidebar at higher display density — absences at the top, then active occupants grouped by role](screenshots/02-roster-density-overview.png)
+
+![Main view with the People sidebar open — chart and directory side by side](screenshots/03-main-view-with-people-sidebar.png)
+
 ## Understanding role cards
 
 Each role card shows the following information:
@@ -39,6 +47,8 @@ Each role card shows the following information:
 - At the bottom, the complete **substitution chain** (`CHAIN`): Primary → Sub1 → Sub2 → … with struck-through entries for people who are currently unavailable
 
 A **lock symbol** in the top right indicates that this role has been manually assigned and does not follow the automatic logic.
+
+![Role card with a manual assignment active — the lock badge and the pinned person are visible](screenshots/08-manual-assignment-active.png)
 
 ## Marking a person unavailable
 
@@ -61,6 +71,10 @@ After confirmation, the person counts as unavailable. All roles in which they ar
 As the number of absences grows, cascades form: A role loses its primary, the substitute steps in — but is itself primary in another role, triggering a further shift there.
 
 CRAM visualises such cascades with animated dashed arrows between the affected role cards. This makes it immediately visible which substitution chains are currently under stress — an important piece of information for the committee lead when assessing how robust the current lineup is.
+
+![Cascade visualisation with arrows pointing from home roles to current cover targets](screenshots/06-cascade-visualization.png)
+
+![Multi-level cascade — several substitutions in flight at once, with critical-role arrows in red](screenshots/07-cascade-multi-level.png)
 
 If no person is available anywhere in a chain, the role is flagged as **Unoccupied**. The corresponding pill in the header shows the count of unoccupied roles; it turns red when a critical role is affected.
 
@@ -123,6 +137,8 @@ Sometimes a specific person should hold a role — regardless of the automatic s
 
 For these cases there is **manual assignment**. In edit mode, or via the pin button on a role card, a dialog opens in which a person can be picked from the overall list. The assignment remains until explicitly released ("Release manual assignment").
 
+![Manual-assignment dialog — search and pick the person who should hold this role](screenshots/09-manual-assignment-modal.png)
+
 Manually assigned roles are marked with a 🔒 symbol on the role card and flagged as such in the Roster tab. They are included in sync transfers (both code sync and QR transfer).
 
 ## Transferring data to another device
@@ -145,6 +161,8 @@ Prerequisite: Sender and receiver share the same base configuration. The first f
 
 Entered codes are validated live: A mistyped character leads to a fingerprint mismatch and is detected before anything is applied.
 
+![Sync code send view with fingerprint, character count, and people statistics](screenshots/16-sync-code-send.png)
+
 **Limits:** The sync code transfers **only status**, no configuration. For initial setup or changes to roles/people, use the other channels.
 
 ### QR transfer (camera)
@@ -161,6 +179,8 @@ For the **initial distribution of a configuration** or when configurations diffe
 3. Click "Generate QR code(s)"
 4. Small configurations show a single QR code; larger ones produce a series of fragments
 5. With multiple fragments, activate "▶ Auto-advance" — every 2.5 seconds the next QR is shown automatically
+
+![QR transfer send view — scope picker, generated QR code, fragment progress](screenshots/17-sync-qr-send-options.png)
 
 **Receiver operation:**
 
@@ -185,6 +205,8 @@ For **archival, email distribution, or version control**. The configuration (and
 3. If needed, tick "Include runtime state" to include status as well
 4. Click "Download" — a file `cram-export-YYYY-MM-DD-HH-MM-SS.json` is saved
 
+![Data → Export — scope selector with runtime-state toggle](screenshots/19-data-export.png)
+
 **Import:**
 
 1. Open data modal, tab "↓ Import"
@@ -192,11 +214,13 @@ For **archival, email distribution, or version control**. The configuration (and
 3. Review preview (number of levels, roles, people)
 4. Click "Import" — existing data is overwritten
 
+![Data → Import — preview with level/role/person counts before applying](screenshots/20-data-import.png)
+
 ### Online sync (since V1.2)
 
 For **regular status reconciliation across a distributed team** over the network. Unlike Code / QR / file, online sync does **not** require live contact between sender and receiver — everyone pushes their state to a shared endpoint and pulls the latest combined state from there.
 
-In V1.2 both actions are **manual** (two buttons in the Sync modal). V2.0 will automate this.
+In V1.2/V1.3 both actions are **manual** (two buttons in the Sync modal). Since V2.0 there is an additional **automatic mode per source** — opt-in, default OFF (see "Auto-Sync (since V2.0)" further down).
 
 **Two backend types are supported:**
 
@@ -204,6 +228,8 @@ In V1.2 both actions are **manual** (two buttons in the Sync modal). V2.0 will a
 - **Local directory** — typically a folder that OneDrive / Dropbox / Google Drive synchronises between devices. CRAM writes the file into the folder; the vendor's desktop sync client handles distribution. No server to run.
 
 **Add a sync source:**
+
+There is no dedicated header button for the Settings dialog. The path is always: enter edit mode, then click ⚙ **Settings** in the edit banner. Notice banners (e.g. after an update) also expose a direct "Open settings" button.
 
 1. Enter edit mode (✎ in the header)
 2. Click ⚙ **Settings** in the edit banner
@@ -215,6 +241,8 @@ In V1.2 both actions are **manual** (two buttons in the Sync modal). V2.0 will a
 6. Save.
 
 Once the source is configured, a small **sync indicator** appears left of the status pills in the header showing the current state: ✓ Synced, ↑ Changes (unpushed local edits), ↻ Syncing, ✗ Error.
+
+![Sync → Online channel — per-source Pull/Push buttons and current state](screenshots/18-sync-online-status.png)
 
 **Manual synchronisation:**
 
@@ -262,6 +290,57 @@ The split is a safety property: status sync cannot accidentally overwrite the co
 
 **Awareness indicator (header):** when a server probe (Sync or Data modal opened) finds the configurations differ, the indicator switches to red "⚠ Config drift" — clickable, jumps directly to Data → Online.
 
+![Data → Online — full configuration + status transfer with an explicit confirmation step](screenshots/21-data-online-full-config.png)
+
+### Auto-Sync (since V2.0)
+
+V2.0 adds a **background poller per source** so that status updates propagate between devices without a manual click. The mode is enabled **per source individually**. After updating from V1.x the default is **OFF** — the manual buttons keep working as before.
+
+![Settings modal, Sync sources tab — per-source Auto-Sync mode and polling interval](screenshots/14-settings-sync-sources-tab.png)
+
+After updating from V1.3, a one-time migration banner appears in the Sync sources tab the first time the tab opens. It explains the new mode field and the default off-state. The notice only shows up in the Settings dialog on the **Sync sources** tab — not in the header sync dialog (⇄) and not in the header data dialog. Looking for it there is a dead end.
+
+**Enable Auto-Sync:**
+
+1. Edit mode → ⚙ Settings → **Sync sources** tab
+2. Each source has an **Auto-Sync accordion** with:
+   - **Mode** (toggle):
+     - `off` — no auto-sync (default)
+     - `pull` — poll the server periodically (passive consumer)
+     - `push` — push immediately on local changes (active publisher, no polling)
+     - `bidirectional` — both
+   - **Polling interval:** slider 30 / 60 / 90 / 120 / 180 / 300 seconds
+3. Once Auto-Sync is active, the header indicator shows a **live countdown** to the next action: "Synced 12s ago · next in 18s".
+
+**Behaviour in special states:**
+
+- **Tab in the background:** polling interval is stretched ×4. On returning to the tab, CRAM pulls immediately, regardless of the polling cycle.
+- **Browser offline (`navigator.onLine = false`):** polling stops completely, no retry storm. Sidebar shows "Offline since HH:MM". When the browser comes back online, an immediate resume tick fires.
+- **Auth loss (401/403):** Auto-Mode is switched OFF automatically. A persistent badge in the Sync tab and the Settings accordion shows "Authentication expired — please sign in again". On the next tab focus, a one-shot catch-up toast displays the time of the auth loss.
+- **Passphrase missing** (e.g. after a tab restart on an encrypted source): Auto-Sync pauses, accordion shows a "Passphrase required" badge. User action: re-enter the passphrase.
+- **File access lost** (S5, local directory — after reboot or third-party process): hard-pause, no retries. Sidebar shows "Confirm file access again" with a "Grant access" button.
+- **Push conflict** (someone else wrote in between, ETag mismatch → HTTP 412): CRAM automatically pulls, merges locally, pushes again. If that fails after 3 attempts: toast "Sync conflict — please review".
+- **Configuration drift** (server has a different committee structure): treated as its own error class — auto-push pauses for this source, the indicator turns red "⚠ Config drift", a modal lists the affected sources with the options "Take the server's configuration" (triggers a full pull via Data → Online) or "Later".
+
+**Crash recovery (crash mid-push):**
+
+If the tab is closed during a push, CRAM detects a sentinel on the next start and shows a modal: "The last sync operation was interrupted — please review manually". Two options: "Push again (with conflict check)" or "Discard". Auto-Sync for that source is paused until the user decides.
+
+**Toast notifications:**
+
+- *State updated by [user] at [time]* — when an incoming pull changed visible data
+- *Your edit was replaced by a newer version — see log* — when a local edit was lost to a sync conflict (subtle red, 8 s)
+- *Sync conflict resolved* — after a successful pull-merge-push retry
+
+**What Auto-Sync NEVER does:**
+
+- Auto-Sync touches **status only** (absences + manual assignments). Structural configuration changes (new role, person added, committee restructured) **always** go through Data → Online with an explicit confirmation dialog. Automatic configuration takeover without a user click is architecturally impossible.
+- Auto-Sync never triggers a modal dialog for incoming updates — only toasts. The UX rationale: during an incident no dialog should compete for attention.
+
+**Note on S5 (local directory):** The File System Access API has no ETag/If-Match equivalent. With two parallel writes to an S5 source, one version can be lost without CRAM detecting the conflict. This is surfaced in the Settings accordion of S5 sources with an explicit hint. Auto-Pull on S5 works; Auto-Push on S5 is disabled in V2.0-rc1.
+
+**iPhone note (PWA standalone mode):** Apple clears Web App data after roughly 7 days of inactivity. Anyone installing CRAM as a PWA on iOS and only opening it sporadically risks losing local sources, the audit log, and the configuration. Mitigation: export JSON regularly, **or** make sure an HTTP sync source is configured — after data loss a single Pull restores the state. The iPhone smoke test has not yet been verified against a physical device in V2.0-rc1 (see CHANGELOG "Deferred").
+
 ## Printing
 
 CRAM has three print templates for paper copies, and all three work with A4, A3 or Letter in portrait or landscape.
@@ -279,11 +358,17 @@ CRAM has three print templates for paper copies, and all three work with A4, A3 
 3. Pick paper size and orientation
 4. "Open print dialog" — in the browser's print dialog, choose "Save as PDF" as destination if needed
 
+![Print modal — template chooser with paper size and orientation](screenshots/22-print-template-chooser.png)
+
+![Overview print template rendered against the Enterprise demo committee](screenshots/23-print-overview-output.png)
+
 The organisation and print titles set in Settings appear in the header of every printout. If empty, a language-dependent default title is used.
 
 ## Switching language
 
 The language selector is in the header. Currently available: German, English, Spanish, French, Chinese. The selection persists between sessions.
+
+![Language switcher in the header — German, English, Spanish, French, Chinese](screenshots/12-language-switcher.png)
 
 ## Display
 
@@ -292,6 +377,10 @@ The ☀/☾ symbol in the header toggles between light and dark theme.
 The **S/M/L/XL** size steps adjust the display density of the organisation chart to screen size. On mobile devices there is a dedicated layout variant with bottom navigation.
 
 ## Reading the audit log
+
+![Audit log tab listing recent configuration changes, absences, and sync events](screenshots/05-sidebar-audit-log.png)
+
+![People tab — alphabetical directory with availability state](screenshots/04-sidebar-people-tab.png)
 
 The Log tab shows all changes over the past 30 days:
 
@@ -319,6 +408,14 @@ The tool administrator of a crisis committee is typically the person who:
 Typically this is someone from IT Security, Business Continuity Management, or the crisis management office. The role is not technically demanding — the tool is deliberately kept simple — but requires an overview of the committee and its processes.
 
 ## Building the initial configuration
+
+The Settings dialog (⚙ in edit mode) is the entry point for the organisation name, print title, language, density, and the Sync sources tab.
+
+![Settings → General — organisation name, print title, language, density](screenshots/13-settings-general-tab.png)
+
+The About tab in Settings carries the version, the build hash, and the list of embedded libraries.
+
+![Settings → About — version, build hash, embedded libraries](screenshots/15-settings-about-tab.png)
 
 Starting from scratch, there are two options:
 
@@ -348,12 +445,18 @@ Recommendations:
 
 ## Defining roles
 
+Edit mode is activated with the ✎ icon in the header. While in edit mode, role cards expose pencil and pin handles for direct manipulation, and the sidebar tabs become editors for people and levels.
+
+![Edit mode active — role cards show inline edit handles](screenshots/10-edit-mode-active.png)
+
 A role consists of:
 
 - **Name** (mandatory) — should describe the function, not the current person
 - **Description** (optional, but strongly recommended) — a sentence that makes the responsibilities clear. Under stress, nobody pulls up external documents.
 - **Critical flag** — marks the role as critical; it is highlighted in print and statistics
 - **Assignments** — primary plus substitutes in a defined order
+
+![Edit-role modal — name, description, critical flag, ordered substitution chain](screenshots/11-edit-role-modal.png)
 
 **Guiding principles:**
 

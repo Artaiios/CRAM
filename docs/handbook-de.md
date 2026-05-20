@@ -2,6 +2,10 @@
 
 Dieses Handbuch beschreibt den Betrieb von CRAM — dem Crisis Role Availability Manager. Es ist in zwei Teile gegliedert: der **Anwenderteil** richtet sich an alle Mitglieder eines Krisenstabs, die mit dem Tool während eines Ereignisses arbeiten. Der **Administrationsteil** richtet sich an diejenigen, die die Konfiguration pflegen, neue Versionen verteilen und für den Betrieb zuständig sind.
 
+![Übersicht des Organigramms mit geladener Enterprise-Demo-Konfiguration](screenshots/01-main-chart-overview.png)
+
+> Screenshots zeigen die enthaltene Enterprise-Demo-Konfiguration (`cram-demo-enterprise-en.json`) auf englischer UI-Sprache. Echte Organisationsdaten werden nie gezeigt.
+
 ---
 
 # Teil 1: Anwenderteil
@@ -28,6 +32,10 @@ Nach dem Start sieht man drei Hauptbereiche:
 - **Hauptbereich**: Organigramm mit Ebenen und Rollen. Jede Rolle wird als Karte dargestellt.
 - **Seitenleiste rechts**: Drei Tabs — **Roster** (aktuelle Besetzung und Abwesenheitsliste), **People** (alle Personen nach Namen), **Log** (Audit-Protokoll)
 
+![Roster-Sidebar mit höherer Dichte — Abwesenheiten oben, aktive Besetzungen nach Rolle gruppiert](screenshots/02-roster-density-overview.png)
+
+![Hauptansicht mit geöffnetem People-Tab — Organigramm und Personenverzeichnis nebeneinander](screenshots/03-main-view-with-people-sidebar.png)
+
 ## Rollenkarten verstehen
 
 Jede Rollenkarte zeigt folgende Informationen:
@@ -39,6 +47,8 @@ Jede Rollenkarte zeigt folgende Informationen:
 - Unten die vollständige **Vertretungskette** (`CHAIN`): Primär → Sub1 → Sub2 → … mit durchgestrichenen Einträgen für abwesende Personen
 
 Ein **Schloss-Symbol** oben rechts zeigt an, dass diese Rolle manuell zugewiesen wurde und nicht der automatischen Logik folgt.
+
+![Rollenkarte mit aktiver manueller Zuordnung — Schloss-Badge und gepinnte Person sichtbar](screenshots/08-manual-assignment-active.png)
 
 ## Eine Person als abwesend markieren
 
@@ -61,6 +71,10 @@ Nach dem Bestätigen gilt die Person als abwesend. Alle Rollen, in denen sie ein
 Wenn die Anzahl der Abwesenheiten zunimmt, entstehen Kaskaden: Eine Rolle verliert ihren Primärbesetzer, die Vertretung springt ein — ist aber selbst Primär in einer anderen Rolle, sodass dort eine weitere Verschiebung ausgelöst wird.
 
 CRAM visualisiert solche Kaskaden mit animierten gestrichelten Pfeilen zwischen den betroffenen Rollenkarten. Das macht auf einen Blick sichtbar, welche Vertretungsketten aktuell unter Druck stehen — eine wichtige Information für die Krisenstabsleitung, wenn es darum geht abzuschätzen, wie robust die aktuelle Aufstellung ist.
+
+![Kaskaden-Visualisierung mit Pfeilen von Heim- zu Ziel-Rollen](screenshots/06-cascade-visualization.png)
+
+![Mehrstufige Kaskade — mehrere Vertretungen gleichzeitig, kritische Ziele mit roten Pfeilen](screenshots/07-cascade-multi-level.png)
 
 Gibt es keine verfügbare Person mehr in einer Kette, wird die Rolle als **Unoccupied** markiert. Das entsprechende Pill in der Kopfleiste zeigt die Anzahl unbesetzter Rollen an; bei kritischen Rollen wird das Pill rot eingefärbt.
 
@@ -123,6 +137,8 @@ Manchmal soll eine bestimmte Person eine Rolle halten — unabhängig von der au
 
 Für diesen Fall gibt es die **manuelle Zuordnung**. Im Edit-Modus oder über den Pin-Button auf einer Rollenkarte öffnet sich ein Dialog, in dem eine Person aus der Gesamtliste ausgewählt werden kann. Die Zuordnung bleibt bestehen, bis sie explizit wieder aufgehoben wird („Release manual assignment").
 
+![Dialog für manuelle Zuordnung — Suche und Auswahl der Person, die diese Rolle halten soll](screenshots/09-manual-assignment-modal.png)
+
 Manuelle Zuordnungen werden mit einem 🔒-Symbol auf der Rollenkarte markiert und im Roster-Tab entsprechend ausgewiesen. Sie werden bei Sync-Übertragungen (Code-Sync und QR-Transfer) mitgeschickt.
 
 ## Daten auf ein anderes Gerät übertragen
@@ -145,6 +161,8 @@ Voraussetzung: Sender und Empfänger haben dieselbe Basiskonfiguration. Die erst
 
 Eingegebene Codes werden live validiert: Eine falsch getippte Ziffer führt zu einem Fingerprint-Mismatch und wird erkannt, bevor etwas angewandt wird.
 
+![Sync-Code Sendeansicht mit Fingerprint, Zeichenzahl und Personenstatistik](screenshots/16-sync-code-send.png)
+
 **Grenzen:** Der Sync-Code überträgt **nur den Status**, keine Konfiguration. Für Ersteinrichtung oder Änderungen an Rollen/Personen sind die anderen Wege zu nutzen.
 
 ### QR-Transfer (Kamera)
@@ -161,6 +179,8 @@ Für die **Erstverteilung einer Konfiguration** oder wenn Abweichungen in den Ko
 3. „QR-Code(s) erzeugen" klicken
 4. Bei kleinen Configs erscheint ein einziger QR-Code, bei größeren eine Serie von Fragmenten
 5. Bei mehreren Fragmenten „▶ Automatisch durchschalten" aktivieren — alle 2,5 Sekunden wird automatisch zum nächsten QR gewechselt
+
+![QR-Transfer Sendeansicht — Scope-Auswahl, erzeugter QR-Code, Fragment-Fortschritt](screenshots/17-sync-qr-send-options.png)
 
 **Bedienung Empfänger:**
 
@@ -185,6 +205,8 @@ Für **Archivierung, E-Mail-Versand oder Versionskontrolle**. Die Konfiguration 
 3. Bei Bedarf Häkchen „Include runtime state" setzen, um auch Status mit einzuschließen
 4. „Download" klicken — es entsteht eine Datei `cram-export-YYYY-MM-DD-HH-MM-SS.json`
 
+![Daten → Export — Scope-Auswahl mit Runtime-State-Toggle](screenshots/19-data-export.png)
+
 **Bedienung Import:**
 
 1. Daten-Modal öffnen, Tab „↓ Import"
@@ -192,11 +214,13 @@ Für **Archivierung, E-Mail-Versand oder Versionskontrolle**. Die Konfiguration 
 3. Vorschau prüfen (Anzahl Ebenen, Rollen, Personen)
 4. „Import" klicken — bestehende Daten werden überschrieben
 
+![Daten → Import — Vorschau mit Ebenen-/Rollen-/Personenzahl vor dem Anwenden](screenshots/20-data-import.png)
+
 ### Online-Sync (ab V1.2)
 
 Für die **regelmäßige Statusabgleichung verteilter Teams** über das Netzwerk. Im Gegensatz zu Code/QR/Datei ist hier **kein Live-Kontakt** zwischen Sender und Empfänger nötig — jeder schickt seinen Stand an einen geteilten Server und holt sich von dort den aktuellen Gesamtstand.
 
-In V1.2 sind beide Aktionen **manuell** (zwei Buttons im Sync-Modal). V2.0 wird das automatisieren.
+In V1.2/V1.3 sind beide Aktionen **manuell** (zwei Buttons im Sync-Modal). Ab V2.0 gibt es zusätzlich einen **automatischen Modus pro Source** — opt-in, Default OFF (siehe Abschnitt „Auto-Sync (ab V2.0)" weiter unten).
 
 **Zwei Backend-Typen werden unterstützt:**
 
@@ -204,6 +228,8 @@ In V1.2 sind beide Aktionen **manuell** (zwei Buttons im Sync-Modal). V2.0 wird 
 - **Lokales Verzeichnis** — typisch ein Ordner, der von OneDrive / Dropbox / Google Drive zwischen Geräten synchronisiert wird. CRAM schreibt nur die Datei in den Ordner, der Cloud-Sync-Client des Anbieters macht die Verteilung. Kein eigener Server nötig.
 
 **Eine Sync-Source einrichten:**
+
+Den Einstellungen-Dialog gibt es nicht als eigenen Header-Button. Der Pfad ist immer: Edit-Modus aktivieren, dann im Edit-Banner ⚙ **Einstellungen** klicken. Alternativ zeigen Hinweisbanner (z.B. nach einem Update) einen direkten Knopf „Einstellungen öffnen".
 
 1. Edit-Modus aktivieren (✎ in der Kopfleiste)
 2. Im Edit-Banner ⚙ **Einstellungen** klicken
@@ -215,6 +241,8 @@ In V1.2 sind beide Aktionen **manuell** (zwei Buttons im Sync-Modal). V2.0 wird 
 6. Speichern.
 
 Sobald die Source angelegt ist, erscheint links der Status-Pills in der Kopfleiste ein kleiner **Sync-Indikator** mit aktuellem Zustand: ✓ Synchron, ↑ Änderungen (lokale ungepushte Edits), ↻ Sync läuft, ✗ Fehler.
+
+![Sync → Online — Pull/Push-Buttons pro Source mit aktuellem Zustand](screenshots/18-sync-online-status.png)
 
 **Manuell synchronisieren:**
 
@@ -262,6 +290,57 @@ Die Trennung ist Sicherheit: Status-Sync kann nicht versehentlich die Stab-Struk
 
 **Awareness-Indikator (im Header):** Wenn nach einem Server-Probe (Sync- oder Data-Modal geöffnet) festgestellt wird, dass die Konfigurationen abweichen, wechselt der Indikator auf rotes „⚠ Konfig-Drift" — anklickbar, springt direkt zu Data → Online.
 
+![Daten → Online — Voll-Konfig + Status mit explizitem Bestätigungsdialog](screenshots/21-data-online-full-config.png)
+
+### Auto-Sync (ab V2.0)
+
+V2.0 ergänzt einen **Hintergrund-Poller pro Source**, damit Status-Updates ohne manuellen Klick zwischen Geräten verteilt werden. Der Modus wird **pro Source einzeln** aktiviert. Default nach Update von V1.x ist **OFF** — die manuellen Buttons funktionieren weiter wie vorher.
+
+![Einstellungs-Modal, Tab Sync-Sources — Auto-Sync-Modus und Polling-Intervall pro Source](screenshots/14-settings-sync-sources-tab.png)
+
+Nach dem Update von V1.3 zeigt CRAM beim ersten Öffnen des Sync-Tabs einmalig ein Migrations-Banner. Es erklärt das neue Modus-Feld und den Default-OFF-Zustand. Der Hinweis erscheint ausschließlich im Einstellungen-Dialog im Reiter **Sync-Sources** — nicht im Header-Sync-Dialog (⇄) und nicht im Header-Daten-Dialog. Wer ihn dort sucht, wird ihn nicht finden.
+
+**Auto-Sync aktivieren:**
+
+1. Edit-Modus → ⚙ Einstellungen → Tab **Sync-Sources**
+2. Pro Source erscheint ein **Auto-Sync-Akkordeon** mit folgenden Optionen:
+   - **Modus** (Toggle):
+     - `off` — kein Auto-Sync (Default)
+     - `pull` — nur regelmäßig vom Server holen (passiv konsumieren)
+     - `push` — bei lokalen Änderungen sofort schicken (aktiv publizieren, kein Polling)
+     - `bidirectional` — beides
+   - **Polling-Intervall:** Slider 30 / 60 / 90 / 120 / 180 / 300 Sekunden
+3. Sobald Auto-Sync aktiv ist, zeigt der Header-Indikator im Auto-Modus zusätzlich eine **Live-Countdown** zur nächsten Aktion: „Synced vor 12s · nächster in 18s".
+
+**Verhalten bei besonderen Zuständen:**
+
+- **Tab im Hintergrund:** Polling-Intervall wird ×4 gedehnt. Beim Zurückwechseln des Tabs holt CRAM sofort den aktuellen Stand, unabhängig vom Polling-Cycle.
+- **Browser offline (`navigator.onLine = false`):** Polling pausiert komplett, keine Retries im Leerlauf. Sidebar zeigt „Offline seit HH:MM". Sobald Browser wieder online ist, ein sofortiger Resume-Tick.
+- **Auth-Verlust (401/403):** Auto-Mode wird automatisch auf OFF gesetzt. Ein persistentes Badge im Sync-Tab und im Settings-Akkordeon zeigt „Authentifizierung abgelaufen — neu anmelden". Beim nächsten Tab-Fokus erscheint einmalig ein Catch-Up-Toast mit dem Zeitpunkt des Auth-Verlusts.
+- **Passphrase fehlt** (z.B. nach Tab-Neustart bei verschlüsselter Source): Auto-Sync pausiert, Badge „Passphrase erforderlich" am Akkordeon. User-Aktion: Passphrase nachreichen.
+- **Datei-Zugriff verloren** (S5, lokales Verzeichnis — nach Reboot oder Drittprozess): Hard-Pause, keine Retries. Sidebar zeigt „Dateizugriff erneut bestätigen" mit Button „Zugriff gewähren".
+- **Konflikt beim Push** (jemand anderes hat zwischenzeitlich geschrieben, ETag-Mismatch → HTTP 412): CRAM macht automatisch einen Pull, mergt lokal, pusht erneut. Wenn das nach 3 Versuchen nicht klappt, Toast „Sync-Konflikt — bitte prüfen".
+- **Konfigurations-Drift** (Server hat eine andere Stab-Struktur): wird als eigene Fehlerklasse behandelt — Auto-Push pausiert für diese Source, Indikator wird rot „⚠ Konfig-Drift", modaler Dialog listet betroffene Sources mit den Optionen „Konfiguration vom Server übernehmen" (löst einen Voll-Pull über Data → Online aus) oder „Später".
+
+**Crash-Recovery (Crash mitten im Push):**
+
+Wenn der Tab während eines Pushes geschlossen wird, erkennt CRAM beim nächsten Start einen Sentinel und zeigt einen modalen Dialog: „Letzter Sync-Vorgang wurde unterbrochen — bitte manuell prüfen". Zwei Optionen: „Erneut pushen (mit Conflict-Check)" oder „Verwerfen". Bis zur Entscheidung wird Auto-Sync für diese Source pausiert.
+
+**Toast-Benachrichtigungen:**
+
+- *Stand aktualisiert von [User] um [Zeit]* — wenn ein eingehender Pull sichtbare Daten verändert hat
+- *Dein Edit wurde durch eine neuere Version ersetzt — siehe Log* — wenn ein lokaler Edit im Sync-Konflikt verloren ging (dezent rot, 8 Sek)
+- *Sync-Konflikt aufgelöst* — nach erfolgreichem Pull-Merge-Push-Retry
+
+**Was Auto-Sync NIE tut:**
+
+- Auto-Sync berührt **nur Status** (Abwesenheiten + manuelle Zuweisungen). Strukturelle Konfigurationsänderungen (neue Rolle, Person hinzugefügt, Stab umstrukturiert) gehen **immer** über Data → Online mit explizitem Bestätigungs-Dialog. Eine automatische Konfigurations-Übernahme ohne User-Klick ist baulich ausgeschlossen.
+- Auto-Sync löst keinen modalen Dialog für eingehende Updates aus — nur Toasts. Die UX-Entscheidung dahinter: im Krisenfall darf kein Dialog die Aufmerksamkeit binden.
+
+**Hinweis S5 (lokales Verzeichnis):** Die File-System-Access-API kennt kein ETag/If-Match. Bei zwei parallelen Schreibvorgängen auf einer S5-Source kann eine Version verloren gehen, ohne dass CRAM den Konflikt bemerkt. Wird im Settings-Akkordeon einer S5-Source mit einem Hinweis kenntlich gemacht. Auto-Pull auf S5 funktioniert, Auto-Push auf S5 ist in V2.0-rc1 deaktiviert.
+
+**iPhone-Hinweis (PWA-Standalone-Mode):** Apple löscht PWA-Daten nach ca. 7 Tagen Inaktivität. Wer CRAM als PWA auf iOS installiert und nur sporadisch öffnet, riskiert Verlust der lokalen Sources, des Audit-Logs und der Konfiguration. Mitigation: regelmäßig JSON exportieren, **oder** sicherstellen dass eine HTTP-Sync-Source eingerichtet ist — nach Datenverlust ist ein einmaliger Pull genug, um wieder auf Stand zu sein. Der iPhone-Smoke-Test ist in V2.0-rc1 noch nicht gegen ein physisches Gerät verifiziert worden (siehe CHANGELOG „Deferred").
+
 ## Drucken
 
 CRAM hat drei Druckvorlagen für den Papieraushang, und alle drei funktionieren mit A4, A3 oder Letter in Hoch- und Querformat.
@@ -279,11 +358,17 @@ CRAM hat drei Druckvorlagen für den Papieraushang, und alle drei funktionieren 
 3. Papierformat und Ausrichtung wählen
 4. „Druckdialog öffnen" — im Browser-Druckdialog kann als Ziel „Als PDF speichern" gewählt werden
 
+![Druck-Modal — Template-Auswahl mit Papiergröße und Ausrichtung](screenshots/22-print-template-chooser.png)
+
+![Übersichts-Druckvorlage, gerendert für den Enterprise-Demo-Krisenstab](screenshots/23-print-overview-output.png)
+
 Die Organisations- und Drucktitel, die in den Einstellungen gesetzt sind, erscheinen in der Kopfzeile jedes Ausdrucks. Sind sie leer, wird ein sprachabhängiger Standardtitel eingesetzt.
 
 ## Sprache wechseln
 
 Die Sprachauswahl ist in der Kopfleiste. Aktuell verfügbar: Deutsch, Englisch, Spanisch, Französisch, Chinesisch. Die Auswahl bleibt zwischen Sitzungen bestehen.
+
+![Sprachumschalter in der Kopfleiste — Deutsch, Englisch, Spanisch, Französisch, Chinesisch](screenshots/12-language-switcher.png)
 
 ## Darstellung
 
@@ -292,6 +377,10 @@ Das ☀/☾-Symbol in der Kopfleiste wechselt zwischen hellem und dunklem Theme.
 Die Größenstufen **S/M/L/XL** passen die Darstellungsdichte des Organigramms an die Bildschirmgröße an. Bei Mobilgeräten gibt es eine eigene Layout-Variante mit Bottom-Navigation.
 
 ## Audit-Log lesen
+
+![Audit-Log-Tab mit jüngsten Konfigurations-, Abwesenheits- und Sync-Ereignissen](screenshots/05-sidebar-audit-log.png)
+
+![People-Tab — alphabetisches Verzeichnis mit Verfügbarkeitsstatus](screenshots/04-sidebar-people-tab.png)
 
 Der Log-Tab zeigt alle Änderungen der letzten 30 Tage:
 
@@ -319,6 +408,14 @@ Der Tool-Administrator eines Krisenstabs ist typischerweise diejenige Person, di
 Typischerweise ist das eine Person aus IT-Security, Business Continuity Management oder dem BKM-Office. Die Rolle ist nicht technisch anspruchsvoll — das Tool ist bewusst einfach gehalten —, aber erfordert Überblick über den Krisenstab und seine Prozesse.
 
 ## Die initiale Konfiguration aufbauen
+
+Der Einstellungsdialog (⚙ im Edit-Modus) ist der Einstiegspunkt für Organisationsname, Drucktitel, Sprache, Dichte und den Sync-Sources-Tab.
+
+![Einstellungen → Allgemein — Organisationsname, Drucktitel, Sprache, Dichte](screenshots/13-settings-general-tab.png)
+
+Der About-Tab in den Einstellungen führt Version, Build-Hash und die Liste der eingebetteten Bibliotheken.
+
+![Einstellungen → About — Version, Build-Hash, eingebettete Bibliotheken](screenshots/15-settings-about-tab.png)
 
 Wer aus dem Stand startet, hat zwei Optionen:
 
@@ -348,12 +445,18 @@ Empfehlungen:
 
 ## Rollen definieren
 
+Der Edit-Modus wird über das ✎-Symbol in der Kopfleiste aktiviert. In ihm werden auf den Rollenkarten Stift- und Pin-Handles eingeblendet, und die Sidebar-Tabs werden zu Editoren für Personen und Ebenen.
+
+![Edit-Modus aktiv — Rollenkarten zeigen Inline-Edit-Handles](screenshots/10-edit-mode-active.png)
+
 Eine Rolle besteht aus:
 
 - **Name** (Pflicht) — sollte die Funktion beschreiben, nicht die aktuelle Person
 - **Beschreibung** (optional, aber sehr empfohlen) — ein Satz, der die Aufgaben klar macht. Im Stress greift keiner mehr auf externe Dokumente zu.
 - **Critical-Flag** — markiert die Rolle als kritisch; im Druck und in der Statistik wird sie hervorgehoben
 - **Assignments** — Primär plus Vertreter in einer definierten Reihenfolge
+
+![Rolle-bearbeiten-Modal — Name, Beschreibung, Critical-Flag, geordnete Vertretungskette](screenshots/11-edit-role-modal.png)
 
 **Leitprinzipien:**
 
