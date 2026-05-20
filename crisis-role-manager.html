@@ -3519,6 +3519,142 @@ button:focus-visible,
   }
 }
 
+/* ---- V2.1.1: Spalten-Wrapper-Layout (Desktop ≥1024px) ----
+   Pools sitzen visuell direkt unter ihrer Lead-Card in derselben Spalte.
+   Cross-Reference-Hinweise verlinken auf das primary-Vorkommen.
+   Below 1024px wird das alte V2.1.0-Layout (horizontaler Pool am
+   Level-Ende) per CSS rekonstruiert, indem .role-column auf
+   display: contents schaltet und der Level-End-Fallback sichtbar wird. */
+
+/* Default (Tablet/Mobile <1024px): Spalten-Wrapper transparent — die
+   role-card landet direkt im roles-grid wie in V2.1.0. */
+.level-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(var(--card-min-width), var(--card-max-width)));
+  gap: var(--space-3);
+}
+.role-column {
+  display: contents;
+}
+.role-column .level-pool,
+.role-column .pool-xref,
+.role-column .add-pool-inline {
+  /* Im Tablet/Mobile-Modus ist der primary-Pool nicht in der Spalte
+     sichtbar — der level-pools-container am Level-Ende übernimmt. */
+  display: none;
+}
+/* Level-End-Fallback ist im Tablet/Mobile-Modus sichtbar. */
+.level-pools-container[data-level-pools-fallback] {
+  display: flex;
+}
+
+/* Desktop ≥1024px: Spalten-Wrapper-Modus aktivieren. */
+@media (min-width: 1024px) {
+  .role-column {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    align-items: stretch;
+  }
+  /* Pool-Block in der Spalte sichtbar machen. */
+  .role-column .level-pool,
+  .role-column .pool-xref,
+  .role-column .add-pool-inline {
+    display: block;
+  }
+  .role-column .level-pool {
+    /* Klammer-Border raus, Top-Connector als räumlicher Hinweis. */
+    border-left: none;
+    border-bottom: none;
+    border-top: 2px solid var(--border-strong);
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    margin: 0;
+    padding: var(--space-2);
+    background: var(--bg-base);
+  }
+  /* "POOL OF: Lead"-Label entfällt im Spalten-Modus — räumliche
+     Zuordnung kommuniziert das. Pool-Name bleibt als Identifier. */
+  .role-column .level-pool .level-pool-bracket-label {
+    display: none;
+  }
+  /* Level-End-Fallback im Desktop-Modus verstecken. */
+  .level-pools-container[data-level-pools-fallback] {
+    display: none;
+  }
+  /* Member-Pills im Spalten-Modus enger gepackt (Spalte ist schmal). */
+  .role-column .level-pool .level-pool-members {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Cross-Reference: kompakter Hinweis in der secondary-Lead-Spalte. */
+.pool-xref {
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding: 4px 8px;
+  background: var(--bg-subtle);
+  border-radius: var(--radius-sm);
+  border-left: 2px dotted var(--border-subtle);
+  line-height: 1.4;
+}
+.pool-xref-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+.pool-xref-link {
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: underline;
+  font-weight: 500;
+}
+.pool-xref-link:hover { color: var(--text-primary); }
+.pool-xref-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* "+ Pool" Inline-Button am Ende einer role-column. */
+.add-pool-inline {
+  align-self: flex-start;
+  padding: 4px 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  background: transparent;
+  border: 1px dashed var(--border-subtle);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+.add-pool-inline:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  border-style: solid;
+}
+
+/* Edit-Mode-Buttons am Pool-Header (✎/×). */
+.level-pool-header .pool-edit-actions {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* Scroll-Highlight beim pool-scroll-to. Kurzes Aufleuchten. */
+.level-pool-flash {
+  animation: levelPoolFlash 1.4s ease-out;
+}
+@keyframes levelPoolFlash {
+  0%   { box-shadow: 0 0 0 2px var(--accent); background: var(--accent-bg); }
+  100% { box-shadow: 0 0 0 0 transparent; background: var(--bg-base); }
+}
+
 /* ---- Sync-Modal Online-Tab (V1.2 → V1.3 Karten-Layout) ---- */
 .sync-online-list {
   display: flex;
@@ -3933,7 +4069,9 @@ button:focus-visible,
     overflow: auto;
     -webkit-overflow-scrolling: touch;
   }
-  .roles-grid {
+  /* V2.1.1: .roles-grid wurde durch .level-body ersetzt. Single-Column
+     Mobile-Override greift jetzt auf level-body. */
+  .level-body {
     grid-template-columns: 1fr !important;
     gap: var(--space-2);
   }
@@ -8276,6 +8414,7 @@ const TRANSLATIONS = {
     'chart.pool_toggle_collapse': 'Pool einklappen',
     'chart.orphaned_pools_title': 'Pools ohne Lead-Rolle',
     'chart.orphaned_pools_hint': 'Diese Pools haben keine zugewiesene Lead-Rolle. Bearbeite sie in Einstellungen → Pools oder lösche sie.',
+    'chart.pool_xref_label': 'Auch als Sekundär-Pool aktiv:',
     'role.unoccupied': '◯ UNBESETZT',
     'role.no_substitution': 'Keine Vertretung verfügbar',
     'role.replaces': 'Vertritt:',
@@ -8880,6 +9019,10 @@ const TRANSLATIONS = {
     'edit.tt_move_down': 'Nach unten',
     'edit.tt_edit': 'Bearbeiten',
     'edit.tt_delete': 'Löschen',
+    'edit.add_pool': '+ Pool',
+    'edit.tt_add_pool': 'Pool für {lead} anlegen',
+    'edit.tt_edit_pool': 'Pool bearbeiten',
+    'edit.tt_delete_pool': 'Pool löschen',
     'edit.err_name_required': 'Name ist erforderlich',
     'edit.err_email_invalid': 'E-Mail-Adresse ungültig',
     'edit.err_person_in_chain': 'Diese Person ist bereits in der Kette',
@@ -8926,6 +9069,7 @@ const TRANSLATIONS = {
     'chart.pool_toggle_collapse': 'Collapse pool',
     'chart.orphaned_pools_title': 'Unassigned pools',
     'chart.orphaned_pools_hint': 'These pools have no lead role. Edit them in Settings → Pools, or delete them.',
+    'chart.pool_xref_label': 'Also active as secondary pool:',
     'role.unoccupied': '◯ UNOCCUPIED',
     'role.no_substitution': 'No substitute available',
     'role.replaces': 'Replacing:',
@@ -9526,6 +9670,10 @@ const TRANSLATIONS = {
     'edit.tt_move_down': 'Move down',
     'edit.tt_edit': 'Edit',
     'edit.tt_delete': 'Delete',
+    'edit.add_pool': '+ Pool',
+    'edit.tt_add_pool': 'Add pool for {lead}',
+    'edit.tt_edit_pool': 'Edit pool',
+    'edit.tt_delete_pool': 'Delete pool',
     'edit.err_name_required': 'Name is required',
     'edit.err_email_invalid': 'Invalid e-mail address',
     'edit.err_person_in_chain': 'This person is already in the chain',
@@ -9572,6 +9720,7 @@ const TRANSLATIONS = {
     'chart.pool_toggle_collapse': 'Plegar grupo',
     'chart.orphaned_pools_title': 'Grupos sin rol principal',
     'chart.orphaned_pools_hint': 'Estos grupos no tienen un rol principal asignado. Edítalos en Ajustes → Grupos o elimínalos.',
+    'chart.pool_xref_label': 'También activo como grupo secundario:',
     'role.unoccupied': '◯ SIN CUBRIR',
     'role.no_substitution': 'Sin suplente disponible',
     'role.replaces': 'Sustituye a:',
@@ -10173,6 +10322,10 @@ const TRANSLATIONS = {
     'edit.tt_move_down': 'Bajar',
     'edit.tt_edit': 'Editar',
     'edit.tt_delete': 'Eliminar',
+    'edit.add_pool': '+ Grupo',
+    'edit.tt_add_pool': 'Añadir grupo para {lead}',
+    'edit.tt_edit_pool': 'Editar grupo',
+    'edit.tt_delete_pool': 'Eliminar grupo',
     'edit.err_name_required': 'El nombre es obligatorio',
     'edit.err_email_invalid': 'Correo electrónico no válido',
     'edit.err_person_in_chain': 'Esta persona ya está en la cadena',
@@ -10219,6 +10372,7 @@ const TRANSLATIONS = {
     'chart.pool_toggle_collapse': 'Replier le pool',
     'chart.orphaned_pools_title': 'Pools sans rôle principal',
     'chart.orphaned_pools_hint': 'Ces pools n’ont pas de rôle principal attribué. Modifie-les dans Paramètres → Pools, ou supprime-les.',
+    'chart.pool_xref_label': 'Aussi actif comme pool secondaire :',
     'role.unoccupied': '◯ NON POURVU',
     'role.no_substitution': 'Aucun suppléant disponible',
     'role.replaces': 'Remplace :',
@@ -10820,6 +10974,10 @@ const TRANSLATIONS = {
     'edit.tt_move_down': 'Descendre',
     'edit.tt_edit': 'Modifier',
     'edit.tt_delete': 'Supprimer',
+    'edit.add_pool': '+ Pool',
+    'edit.tt_add_pool': 'Ajouter un pool pour {lead}',
+    'edit.tt_edit_pool': 'Modifier le pool',
+    'edit.tt_delete_pool': 'Supprimer le pool',
     'edit.err_name_required': 'Le nom est obligatoire',
     'edit.err_email_invalid': 'Adresse e-mail invalide',
     'edit.err_person_in_chain': 'Cette personne est déjà dans la chaîne',
@@ -10867,6 +11025,7 @@ const TRANSLATIONS = {
     'chart.pool_toggle_collapse': '收起池', // TODO native review
     'chart.orphaned_pools_title': '无主导角色的池', // TODO native review
     'chart.orphaned_pools_hint': '这些池没有分配的主导角色。请在 设置 → 池 中编辑或删除它们。', // TODO native review
+    'chart.pool_xref_label': '也作为次级池使用：', // TODO native review
     'role.unoccupied': '◯ 空缺',
     'role.no_substitution': '无可用替补',
     'role.replaces': '代替：',
@@ -11473,6 +11632,10 @@ const TRANSLATIONS = {
     'edit.tt_move_down': '下移',
     'edit.tt_edit': '编辑',
     'edit.tt_delete': '删除',
+    'edit.add_pool': '+ 池', // TODO native review
+    'edit.tt_add_pool': '为 {lead} 添加池', // TODO native review
+    'edit.tt_edit_pool': '编辑池', // TODO native review
+    'edit.tt_delete_pool': '删除池', // TODO native review
     'edit.err_name_required': '姓名为必填项',
     'edit.err_email_invalid': '邮箱格式无效',
     'edit.err_person_in_chain': '此人员已在顺位中',
@@ -12189,6 +12352,17 @@ function renderOrgChart() {
     </div>
   ` : '';
 
+  // V2.1.1: Migration-Banner wandert aus dem Settings-Pools-Tab in den
+  // Chart-Edit-Mode, weil Pools jetzt primär dort verwaltet werden.
+  // Bedingung: Edit-Mode aktiv UND pools-Migration-Pending Pref ist gesetzt
+  // UND chart-spezifischer Dismiss steht noch aus.
+  const prefs = State.prefs || {};
+  const chartBannerHTML = (State.isEditMode &&
+                           prefs.v21MigrationBannerPending === true &&
+                           prefs.poolsMigrationDismissedChart !== true)
+    ? renderPoolsMigrationBannerChart()
+    : '';
+
   const levelsHTML = State.config.levels.length > 0
     ? State.config.levels.map((level, idx) => renderLevel(level, idx)).join('')
     : `<div class="level-empty" style="margin: 24px 0;">${escapeHTML(t('edit.empty_org'))}</div>`;
@@ -12206,7 +12380,7 @@ function renderOrgChart() {
     .filter(p => p && !p.leadRoleId);
   const orphanedHTML = renderOrphanedPoolsSection(orphanedPools);
 
-  container.innerHTML = bannerHTML + levelsHTML + orphanedHTML + addLevelHTML;
+  container.innerHTML = bannerHTML + chartBannerHTML + levelsHTML + orphanedHTML + addLevelHTML;
 
   // Alle Click-Handler laufen jetzt über den globalen Dispatcher (data-action).
   // Keyboard-Navigation für Rollenkarten: Enter/Space öffnet Detail
@@ -12235,9 +12409,6 @@ function renderOrgChart() {
 
 function renderLevel(level, idx) {
   const roleCount = level.roles.length;
-  const rolesHTML = level.roles.length > 0
-    ? level.roles.map((role, ri) => renderRoleCard(role, level, ri)).join('')
-    : `<div class="level-empty">${escapeHTML(t('edit.empty_level'))}</div>`;
 
   const editControls = State.isEditMode ? `
     <div class="level-edit-controls">
@@ -12249,15 +12420,41 @@ function renderLevel(level, idx) {
     </div>
   ` : '';
 
-  // V2.1 Schritt 5: Pool-Sektionen am Level-Ende. Sammelt alle Pools deren
-  // leadRoleId auf eine Rolle in DIESEM Level zeigt. Pools ohne leadRoleId
-  // (orphaned) werden separat am Chart-Ende über renderOrphanedPoolsSection
-  // gerendert, nicht hier.
-  const levelRoleIds = new Set(level.roles.map(r => r.id));
+  // V2.1.1: Spalten-Wrapper-Layout. Pro Rolle ein .role-column-Wrapper, der
+  // im Desktop-Modus (≥1024px) die Lead-Card und deren primary-Pools vertikal
+  // stapelt. Below 1024px wird .role-column zu display:contents, sodass die
+  // Cards direkt im Grid-Layout liegen und die Pools über einen separaten
+  // Level-Pools-Container am Level-Ende gerendert werden (alte V2.1.0-Optik).
+  // Beides wird gerendert; CSS-Media-Query schaltet Sichtbarkeit.
+  //
+  // Secondary-Pool-Vorkommen werden NICHT als Pool dupliziert, sondern als
+  // kompakter Cross-Reference-Hinweis in der secondary-Lead-Spalte.
   const allPools = Array.isArray(State.config.pools) ? State.config.pools : [];
+
+  let bodyHTML;
+  if (level.roles.length === 0) {
+    bodyHTML = `<div class="level-empty">${escapeHTML(t('edit.empty_level'))}</div>`;
+  } else {
+    bodyHTML = level.roles.map((role, ri) => {
+      const card = renderRoleCard(role, level, ri);
+      const primaryPools = allPools.filter(p => p && p.leadRoleId === role.id);
+      const secondaryPools = allPools.filter(p =>
+        p && p.leadRoleId !== role.id && Array.isArray(p.secondaryLeadRoleIds) &&
+        p.secondaryLeadRoleIds.indexOf(role.id) !== -1
+      );
+      const colPoolsHTML = primaryPools.map(p => renderLevelPool(p, level, 'primary')).join('');
+      const colXRefHTML = secondaryPools.map(p => renderPoolXRef(p, level)).join('');
+      const colAddBtnHTML = State.isEditMode ? renderAddPoolButton(level, role, idx) : '';
+      return `<div class="role-column" data-role-id="${escapeHTML(role.id)}">${card}${colPoolsHTML}${colXRefHTML}${colAddBtnHTML}</div>`;
+    }).join('');
+  }
+
+  // Sekundärer Pools-Container am Level-Ende: behält das V2.1.0-Layout für
+  // Tablet/Mobile (< 1024px). Im Desktop-Modus wird er per CSS versteckt.
+  const levelRoleIds = new Set(level.roles.map(r => r.id));
   const levelPools = allPools.filter(p => p && p.leadRoleId && levelRoleIds.has(p.leadRoleId));
-  const poolsHTML = levelPools.length > 0
-    ? `<div class="level-pools-container">${levelPools.map(p => renderLevelPool(p, level)).join('')}</div>`
+  const fallbackPoolsHTML = levelPools.length > 0
+    ? `<div class="level-pools-container" data-level-pools-fallback>${levelPools.map(p => renderLevelPool(p, level, 'level-end')).join('')}</div>`
     : '';
 
   return `
@@ -12268,8 +12465,8 @@ function renderLevel(level, idx) {
         <span class="level-meta">${escapeHTML(t('level.roles_count', { n: roleCount }))}</span>
         ${editControls}
       </div>
-      <div class="roles-grid">${rolesHTML}</div>
-      ${poolsHTML}
+      <div class="level-body">${bodyHTML}</div>
+      ${fallbackPoolsHTML}
     </div>
   `;
 }
@@ -12283,7 +12480,12 @@ function renderLevel(level, idx) {
    Lead-Rolle steht (inkl. Primary).
    Mobile: data-mobile-collapsed="true" per Default (siehe CSS-Block).
    ========================================================================= */
-function renderLevelPool(pool, level) {
+function renderLevelPool(pool, level, occurrence) {
+  // occurrence:
+  //   'primary'    — neuer Spalten-Wrapper-Kontext (Desktop ≥1024px sichtbar)
+  //   'level-end'  — V2.1.0-Fallback am Level-Ende (Tablet/Mobile sichtbar)
+  // Default für Abwärtskompatibilität: 'level-end'.
+  occurrence = occurrence || 'level-end';
   const leadRole = level.roles.find(r => r.id === pool.leadRoleId);
   const leadName = leadRole ? leadRole.name : '?';
   // Mobile-Default: collapsed. Erkennung via matchMedia, sonst false (kein
@@ -12295,10 +12497,22 @@ function renderLevelPool(pool, level) {
   const expandedAttr = isMobile ? 'false' : 'true';
   const toggleLabelKey = isMobile ? 'chart.pool_toggle_expand' : 'chart.pool_toggle_collapse';
 
+  // V2.1.1: Edit-Mode-Buttons (✎/×) inline am Pool-Header, analog zu
+  // Role-Card-Edit-Pattern. Existieren in beiden Vorkommen (Spalten-Wrapper
+  // und Level-Ende-Fallback) — bei doppelter Render-Logik egal, weil
+  // jeweils nur ein Vorkommen sichtbar ist.
+  const editActions = State.isEditMode ? `
+    <span class="pool-edit-actions">
+      <button class="btn-edit-inline" data-action="chart-pool-edit" data-pool-id="${escapeHTML(pool.id)}" title="${escapeHTML(t('edit.tt_edit_pool'))}" aria-label="${escapeHTML(t('edit.tt_edit_pool'))}">✎</button>
+      <button class="btn-edit-inline btn-edit-inline-danger" data-action="chart-pool-delete" data-pool-id="${escapeHTML(pool.id)}" title="${escapeHTML(t('edit.tt_delete_pool'))}" aria-label="${escapeHTML(t('edit.tt_delete_pool'))}">×</button>
+    </span>
+  ` : '';
+
   return `
-    <div class="level-pool" data-pool-id="${escapeHTML(pool.id)}" aria-expanded="${expandedAttr}"${collapsedAttr}>
+    <div class="level-pool" data-pool-id="${escapeHTML(pool.id)}" data-occurrence="${escapeHTML(occurrence)}" aria-expanded="${expandedAttr}"${collapsedAttr}>
       <div class="level-pool-header">
         <span class="level-pool-bracket-label">${escapeHTML(t('chart.pool_of', { lead: leadName }))}</span>
+        ${editActions}
         <button class="level-pool-toggle"
                 data-action="pool-toggle-collapse"
                 data-pool-id="${escapeHTML(pool.id)}"
@@ -12310,6 +12524,36 @@ function renderLevelPool(pool, level) {
         ${renderPoolMemberPills(pool, level)}
       </div>
     </div>
+  `;
+}
+
+/* V2.1.1: Cross-Reference-Block in der secondary-Lead-Spalte. Statt den
+   Pool dort vollständig zu duplizieren, zeigt ein kompakter Hinweis den
+   Pool-Namen + Click-Target, der zum primary-Vorkommen scrollt. */
+function renderPoolXRef(pool, level) {
+  if (!pool) return '';
+  return `
+    <div class="pool-xref" data-pool-xref data-pool-id="${escapeHTML(pool.id)}">
+      <span class="pool-xref-label">${escapeHTML(t('chart.pool_xref_label'))}</span>
+      <a class="pool-xref-link" data-action="pool-scroll-to" data-pool-id="${escapeHTML(pool.id)}" role="button" tabindex="0">${escapeHTML(pool.name || '')}</a>
+    </div>
+  `;
+}
+
+/* V2.1.1: Inline „+ Pool"-Button pro Rolle-Spalte (Edit-Mode). Öffnet
+   Settings-Pools-Tab im Create-Form mit Lead-Vorbelegung. */
+function renderAddPoolButton(level, role, levelIdx) {
+  if (!State.isEditMode) return '';
+  const tip = t('edit.tt_add_pool', { lead: role.name || '' });
+  return `
+    <button class="add-pool-inline"
+            data-action="add-pool"
+            data-level-idx="${String(levelIdx)}"
+            data-role-id="${escapeHTML(role.id)}"
+            title="${escapeHTML(tip)}"
+            aria-label="${escapeHTML(tip)}">
+      ${escapeHTML(t('edit.add_pool'))}
+    </button>
   `;
 }
 
@@ -12358,10 +12602,17 @@ function renderPoolMemberPill(person, isSubForLead) {
 function renderOrphanedPoolsSection(pools) {
   if (!pools || pools.length === 0) return '';
   const items = pools.map(pool => {
+    const editActions = State.isEditMode ? `
+      <span class="pool-edit-actions">
+        <button class="btn-edit-inline" data-action="chart-pool-edit" data-pool-id="${escapeHTML(pool.id)}" title="${escapeHTML(t('edit.tt_edit_pool'))}" aria-label="${escapeHTML(t('edit.tt_edit_pool'))}">✎</button>
+        <button class="btn-edit-inline btn-edit-inline-danger" data-action="chart-pool-delete" data-pool-id="${escapeHTML(pool.id)}" title="${escapeHTML(t('edit.tt_delete_pool'))}" aria-label="${escapeHTML(t('edit.tt_delete_pool'))}">×</button>
+      </span>
+    ` : '';
     return `
-      <div class="level-pool" data-pool-id="${escapeHTML(pool.id)}" aria-expanded="true">
+      <div class="level-pool" data-pool-id="${escapeHTML(pool.id)}" data-occurrence="orphan" aria-expanded="true">
         <div class="level-pool-header">
           <span class="level-pool-bracket-label">${escapeHTML(pool.name || '')}</span>
+          ${editActions}
         </div>
         <div class="level-pool-members">
           ${renderPoolMemberPills(pool, { roles: [] })}
@@ -13602,6 +13853,20 @@ const CLICK_HANDLERS = {
   // V2.1 step 5: Pool im Chart kollabieren/expandieren (Mobile-Default
   // collapsed, Desktop ignoriert das mobile-collapsed-Attribut via CSS).
   'pool-toggle-collapse':           (el) => poolToggleCollapse(el.dataset.poolId),
+
+  // V2.1.1: Chart-Inline-Pool-Actions (Edit-Mode). add-pool öffnet das
+  // Pool-Edit-Form im Settings-Modal mit Lead-Vorbelegung; chart-pool-edit/
+  // delete spiegeln die Settings-Pools-Tab-Aktionen, aber rerendern danach
+  // den Chart statt das Settings-Modal.
+  'add-pool':                       (el) => chartPoolAdd(
+                                              el.dataset.levelIdx,
+                                              el.dataset.roleId
+                                            ),
+  'chart-pool-edit':                (el) => chartPoolEdit(el.dataset.poolId),
+  'chart-pool-delete':              (el) => chartPoolDelete(el.dataset.poolId),
+  'pool-scroll-to':                 (el) => poolScrollTo(el.dataset.poolId),
+  'pools-migration-chart-dismiss':  () => poolsMigrationChartDismiss(),
+  'pools-migration-chart-cta':      () => poolsMigrationChartCta(),
 };
 
 // V2.0 Schritt 6: Toast-Actions enthalten Source-IDs als Suffix
@@ -16825,7 +17090,7 @@ function updateMobileNavUI() {
    }
    ========================================================================= */
 const EXPORT_FORMAT_VERSION = 1;
-const APP_VERSION = '2.1.0';
+const APP_VERSION = '2.1.1';
 
 // State für Import-Modal (parsed file content + ursprünglicher Filename)
 let dataModalState = {
@@ -18736,6 +19001,25 @@ function renderPoolsMigrationBanner() {
   `;
 }
 
+/* V2.1.1: Chart-Variante des Migration-Banners. Wird im Edit-Mode direkt
+   unter der Edit-Banner-Bar gerendert. CTA „Ersten Pool anlegen" öffnet
+   das Settings-Modal direkt auf dem Pools-Tab im Create-Form. Dismiss
+   persistiert in cram.prefs.v1.poolsMigrationDismissedChart, separat vom
+   Settings-Tab-Banner-Pending-Flag — beide Pfade können unabhängig
+   dismissed werden. */
+function renderPoolsMigrationBannerChart() {
+  return `
+    <div class="pools-migration-banner" role="status" data-chart-migration-banner>
+      <strong>${escapeHTML(t('settings.pools.migration_banner_title'))}</strong>
+      <div class="pools-migration-banner-body">${escapeHTML(t('settings.pools.migration_banner_body'))}</div>
+      <div class="pools-migration-banner-actions">
+        <button class="btn-secondary" data-action="pools-migration-chart-cta">${escapeHTML(t('settings.pools.migration_banner_cta_create'))}</button>
+        <button class="btn-ghost" data-action="pools-migration-chart-dismiss">${escapeHTML(t('settings.pools.migration_banner_dismiss'))}</button>
+      </div>
+    </div>
+  `;
+}
+
 function renderSettingsPools() {
   // Falls Pool-Edit-Form aktiv ist, statt der Liste das Form anzeigen.
   if (settingsState.poolFormMode) {
@@ -19163,23 +19447,130 @@ function poolMigrationBannerCta() {
    ephemerer Zustand pro Session. */
 function poolToggleCollapse(poolId) {
   if (!poolId) return;
+  // V2.1.1: Pools werden im Chart doppelt gerendert (Spalten-Wrapper für
+  // ≥1024px, Level-End-Fallback für <1024px). Beide DOM-Knoten müssen den
+  // gleichen Collapsed-State führen, damit Re-Renders bei Breakpoint-Wechsel
+  // konsistent sind.
+  const pools = document.querySelectorAll('.level-pool[data-pool-id="' + CSS.escape(poolId) + '"]');
+  if (!pools.length) return;
+  const first = pools[0];
+  const isCollapsed = first.getAttribute('data-mobile-collapsed') === 'true';
+  const labelKey = isCollapsed ? 'chart.pool_toggle_collapse' : 'chart.pool_toggle_expand';
+  pools.forEach((pool) => {
+    if (isCollapsed) {
+      pool.removeAttribute('data-mobile-collapsed');
+      pool.setAttribute('aria-expanded', 'true');
+    } else {
+      pool.setAttribute('data-mobile-collapsed', 'true');
+      pool.setAttribute('aria-expanded', 'false');
+    }
+    const btn = pool.querySelector('.level-pool-toggle');
+    if (btn) {
+      btn.setAttribute('aria-label', t(labelKey));
+      btn.setAttribute('title', t(labelKey));
+    }
+  });
+}
+
+/* V2.1.1: Chart-Inline-Edit-Pfade. Wiederverwendung der bestehenden
+   Settings-State-Maschine: settingsState wird so vorbereitet, dass das
+   Pool-Edit-Form direkt angezeigt wird; openSettingsModal() würde diesen
+   State zurücksetzen, daher manuell modal-aufmachen + Form-Render
+   triggern. */
+function chartPoolAdd(levelIdx, roleId) {
+  // Vorbelegung: leadRoleId aus dem Click-Kontext der Rolle-Spalte.
+  settingsState.activeTab = 'pools';
+  settingsState.editingSourceId = null;
+  settingsState.formMode = null;
+  settingsState.formSourceType = null;
+  if (!settingsState.expandedAccordions) settingsState.expandedAccordions = new Set();
+  settingsState.poolFormMode = 'create';
+  settingsState.poolFormDraft = {
+    name: '',
+    leadRoleId: roleId || null,
+    memberIds: [],
+    notes: '',
+    secondaryLeadRoleIds: [],
+  };
+  settingsState.poolMemberFilter = '';
+  settingsState.poolFormAdvancedOpen = false;
+  renderSettingsModal();
+}
+
+function chartPoolEdit(poolId) {
+  if (!poolId) return;
+  const pools = (State.config && Array.isArray(State.config.pools)) ? State.config.pools : [];
+  const pool = pools.find(p => p && p.id === poolId);
+  if (!pool) {
+    console.warn('[chart] pool-edit: pool not found', poolId);
+    return;
+  }
+  settingsState.activeTab = 'pools';
+  settingsState.editingSourceId = null;
+  settingsState.formMode = null;
+  settingsState.formSourceType = null;
+  if (!settingsState.expandedAccordions) settingsState.expandedAccordions = new Set();
+  settingsState.poolFormMode = 'edit';
+  settingsState.poolFormDraft = {
+    id: pool.id,
+    name: pool.name || '',
+    leadRoleId: pool.leadRoleId || null,
+    memberIds: Array.isArray(pool.memberIds) ? pool.memberIds.slice() : [],
+    notes: pool.notes || '',
+    secondaryLeadRoleIds: Array.isArray(pool.secondaryLeadRoleIds) ? pool.secondaryLeadRoleIds.slice() : [],
+  };
+  settingsState.poolMemberFilter = '';
+  settingsState.poolFormAdvancedOpen = false;
+  renderSettingsModal();
+}
+
+function chartPoolDelete(poolId) {
+  if (!poolId) return;
+  const pools = (State.config && Array.isArray(State.config.pools)) ? State.config.pools : [];
+  const pool = pools.find(p => p && p.id === poolId);
+  if (!pool) return;
+  const confirmMsg = t('settings.pools.delete_confirm', { name: pool.name || '' });
+  if (!window.confirm(confirmMsg)) return;
+  try {
+    Storage.removePool(poolId);
+    logConfigEdit('Pool deleted', { name: pool.name || '' });
+    showToast(t('settings.pools.toast_deleted'), 'success');
+    // Im Chart-Kontext re-rendert renderOrgChart das aktualisierte Layout.
+    renderOrgChart();
+  } catch (e) {
+    console.warn('[chart] pool-delete failed', e);
+    showToast(String(e && e.message ? e.message : e), 'warning');
+  }
+}
+
+/* V2.1.1: Scroll/Highlight zum primary-Vorkommen eines Pools im Chart.
+   Wird vom Cross-Reference-Link in der secondary-Lead-Spalte aufgerufen. */
+function poolScrollTo(poolId) {
+  if (!poolId) return;
+  // Primary-Vorkommen finden: data-occurrence="primary" (Spalten-Wrapper)
+  // oder "level-end" (Fallback) — first match reicht, beide zeigen denselben
+  // Pool. scrollIntoView mit smooth-Behavior plus kurz-andauernder Highlight.
   const pool = document.querySelector('.level-pool[data-pool-id="' + CSS.escape(poolId) + '"]');
   if (!pool) return;
-  const isCollapsed = pool.getAttribute('data-mobile-collapsed') === 'true';
-  if (isCollapsed) {
-    pool.removeAttribute('data-mobile-collapsed');
-    pool.setAttribute('aria-expanded', 'true');
-  } else {
-    pool.setAttribute('data-mobile-collapsed', 'true');
-    pool.setAttribute('aria-expanded', 'false');
-  }
-  // Aria-Label des Toggle-Buttons aktualisieren
-  const btn = pool.querySelector('.level-pool-toggle');
-  if (btn) {
-    const labelKey = isCollapsed ? 'chart.pool_toggle_collapse' : 'chart.pool_toggle_expand';
-    btn.setAttribute('aria-label', t(labelKey));
-    btn.setAttribute('title', t(labelKey));
-  }
+  pool.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  pool.classList.add('level-pool-flash');
+  setTimeout(() => { pool.classList.remove('level-pool-flash'); }, 1400);
+}
+
+/* V2.1.1: Chart-Migration-Banner-Dismiss. Pref persistiert separat vom
+   Settings-Tab-Pending-Flag, damit beide Pfade unabhängig dismissed
+   werden können. */
+function poolsMigrationChartDismiss() {
+  if (!State.prefs) State.prefs = {};
+  State.prefs.poolsMigrationDismissedChart = true;
+  Storage.savePrefs(State.prefs);
+  renderOrgChart();
+}
+
+function poolsMigrationChartCta() {
+  // CTA: ersten Pool anlegen. Settings-Modal mit Pool-Create-Form öffnen,
+  // ohne Lead-Vorbelegung (User wählt im Modal).
+  chartPoolAdd(null, null);
 }
 
 function saveSettingsModal() {

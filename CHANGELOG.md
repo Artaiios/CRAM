@@ -2,6 +2,42 @@
 
 All notable changes to CRAM are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.1] — 2026-05-20
+
+Patch-Release nach V2.1.0-Klick-Test. Keine neuen Features — eng auf die Pool-UX zugeschnitten, damit Pools dort auftauchen, wo Nutzer sie suchen, und dort editierbar sind, wo sie ohnehin gerade arbeiten.
+
+### Changed
+
+- **Pool-Discoverability:** Pools sind im Chart-Edit-Mode direkt sichtbar und editierbar, statt nur im Settings-Modal versteckt zu sein. Der Klick-Test mit Patrick hat gezeigt, dass Pools im Settings-Tab nicht gefunden werden — und andere Nutzer würden es nicht anders machen.
+- **Layout Desktop (≥ 1024 px):** Pool sitzt direkt unter seiner Lead-Card in derselben Spalte. „POOL OF:"-Label entfällt zugunsten räumlicher Zuordnung, die Klammer-Border wird durch einen dezenten Top-Connector ersetzt.
+- **Layout Tablet (768–1023 px) und Mobile (< 768 px):** unverändert — horizontaler Pool am Level-Ende, kollabiert per Default auf Mobile. Patricks eigene Sorge („in Mobile alles untereinander") bestätigt die Mode-Trennung über die 1024-px-Schwelle.
+- **Secondary-Pool-Vorkommen:** Wenn ein Pool primary unter Rolle A hängt und secondary unter Rolle B, wird unter B nur noch ein kompakter Cross-Reference-Hinweis mit Click-to-Scroll gerendert — keine Member-Listen-Verdopplung mehr.
+- **Migration-Banner:** wandert aus dem Settings-Pools-Tab in den Chart-Edit-Mode (deutlich höhere Discoverability).
+
+### Added
+
+- „+ Pool"-Inline-Button pro Spalte im Edit-Mode, mit Lead-Vorbelegung aus der jeweiligen Rolle.
+- Inline `✎`- und `×`-Buttons am Pool-Header im Edit-Mode (analog zum bestehenden Rolle-Edit-Pattern).
+- Separat dismissible Pool-Migration-Banner-Variante im Chart (`prefs.poolsMigrationDismissedChart`), unabhängig vom Settings-Banner.
+- 5 neue i18n-Keys über DE/EN/ES/FR/ZH (ZH best-effort, mit TODO-Markierung für Native-Speaker-Review).
+
+### Implementation-Details
+
+- **Duplicate-Render-Strategie:** Pool ist im DOM gleichzeitig in `role-column` (für Desktop) und im Level-End-Container (für Tablet/Mobile) vorhanden, CSS schaltet per `@media` welcher sichtbar ist. Bewusste Entscheidung gegen `display: contents`, um A11y-Tücken (Screenreader-Reihenfolge, Fokus-Reihenfolge) zu vermeiden.
+- **Collapsed-State-Sync:** Beide DOM-Vorkommen synchronisieren ihren Collapsed-State bei Viewport-Wechsel über die 1024-px-Schwelle, damit ein Klick auf „kollabieren" im Mobile-Layout nach Drehen ins Desktop-Layout nicht verloren geht.
+- **escapeHTML-Disziplin:** Alle dynamischen Strings in den neuen Code-Pfaden gehen durch `escapeHTML()`. Call-Site-Count steigt von 617 auf 642 (+25).
+
+### Unverändert seit V2.1.0
+
+- Settings → Pools-Tab bleibt als sekundärer Power-User-Pfad (Listen-Ansicht, Bulk-Edit).
+- Datenmodell (kein Schema-Bump, keine Migrations-Logik nötig).
+- Auto-Sync (V2.0) und Resilience-Garantien.
+
+### Referenzen
+
+- ROADMAP.md — V2.1.x-Wartungslinie, Plateau-Strategie.
+- `docs/handbook-de.md`, `docs/handbook-en.md` — Pool-Sektionen reflektieren V2.1.1-Verhalten. PDFs werden mit dem nächsten Screenshot-Update aktualisiert.
+
 ## [2.1.0] — 2026-05-20
 
 First reasoned V2.x expansion after V2.0.0 (see ROADMAP.md "V2.0-Plateau"). Adds a fourth tier below Krisenstab, Management, and Topic-Lead: **team pools** with availability tracking and free-form keyword tags. Plus a full print-template refresh.
