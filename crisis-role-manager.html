@@ -789,7 +789,10 @@ button:focus-visible,
 .org-chart {
   position: relative;
   overflow: auto;
-  padding: var(--space-5);
+  /* V2.2: Top-Padding leicht erhöht, damit der erste Level-Header
+     nicht unmittelbar unter dem Header-Border klebt. Seitliches und
+     unteres Padding bleibt 24px. */
+  padding: var(--space-6) var(--space-5) var(--space-5);
   background:
     radial-gradient(circle at 20% 0%, rgba(74, 144, 226, 0.04), transparent 50%),
     var(--bg-base);
@@ -856,6 +859,18 @@ button:focus-visible,
 
 .level {
   margin-bottom: var(--space-5);
+}
+
+/* V2.2: Empty-State-Container im Chart-Bereich.
+   Vorher inline-margin-only und ohne Font/Color/Padding — auf Mobile
+   wirkte der Text unscharf. Jetzt explizite Regel für Lesbarkeit
+   und horizontalen Atem (max-width hält Zeilenlänge sinnvoll). */
+.level-empty {
+  padding: var(--space-4) var(--space-3);
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.55;
+  max-width: 60ch;
 }
 
 .level-header {
@@ -3449,6 +3464,21 @@ button:focus-visible,
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
+  /* V2.2: klickbare Pills. Cursor + Hover-Feedback nur, wenn
+     data-action vorhanden ist (Edit-Mode-Guard übergibt es nicht). */
+}
+.pool-member-pill[data-action] {
+  cursor: pointer;
+  transition: background 0.1s ease, border-color 0.1s ease;
+}
+.pool-member-pill[data-action]:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+.pool-member-pill[data-action]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 .pool-pill-icon { flex-shrink: 0; }
 .pool-pill-available .pool-pill-icon { color: var(--status-ok); }
@@ -3514,8 +3544,13 @@ button:focus-visible,
     min-width: 44px;
   }
   .pool-member-pill {
-    min-height: 32px;
+    /* V2.2 Mobile-Fix: 44px statt 32px (Apple HIG Touch-Target-Floor).
+       Pool-Pills sind in V2.2 klickbar (öffnen Person-Detail) — bei
+       32px in einem 2-Spalten-Grid mit 6px Gap entstanden Fat-Finger-
+       Mistaps zwischen vertikalen Nachbarn. */
+    min-height: 44px;
     font-size: 12px;
+    padding: 6px 10px;
   }
 }
 
@@ -4218,6 +4253,15 @@ button:focus-visible,
   .btn-lang { min-width: 42px; max-width: 50px; }
   /* Brand-Mark (grüner Punkt) kleiner */
   .brand-mark { width: 6px; height: 6px; }
+  /* V2.2 Mobile-Fix: Modal-Footer-Buttons (z.B. „Drucken"/„Abbrechen"
+     im Print-Modal) hatten unter 500px nur ~32-34px Höhe — Apple-HIG-
+     Fail. Erst der <380px-Block hatte ein Override, aber 380-499px war
+     Lücke. Jetzt durchgängig min-height 44px ab 499px abwärts. */
+  .modal-footer .btn-primary,
+  .modal-footer .btn-secondary {
+    min-height: 44px;
+    padding: 10px 16px;
+  }
 }
 
 /* ---- Sehr schmal (< 380px) — Galaxy-Fold etc. ---- */
@@ -4322,38 +4366,62 @@ button:focus-visible,
   }
 
   /* ============================================================
-     VARIANTE 1 — ÜBERSICHT (1 Seite, groß lesbar)
+     VARIANTE 1 — ÜBERSICHT (1 Seite, Multi-Column-Flow)
+     ----------------------------------------------------------------
+     V2.2: Layout-Wechsel von Grid-pro-Level auf einen einzigen
+     Multi-Column-Container. Level-Header werden Inline-Sub-Header,
+     die mit den Cards fließen — Whitespace-Löcher am Level-Ende
+     entfallen. Auto-Fit (siehe applyOverviewAutoFit) reduziert
+     `--print-scale` schrittweise, bis alles auf eine Seite passt
+     (Floor 0.65). Critical-Encoding zusätzlich als schwarzer Glyph
+     für S/W-Druck.
      ============================================================ */
-  .p-overview .p-levels-grid {
+  /* V2.2: CSS-Grid statt Multi-Column.
+     Multi-Column + Print-Pages war ein Drama (leere Phantom-Seiten,
+     Auto-Fit-Inkonsistenzen zwischen A3 und A4). CSS-Grid ordnet
+     Cards in deterministischen Reihen an, Level-Header spannen über
+     die volle Breite (grid-column: 1/-1) als klare Trenner. Print
+     bricht zwischen Reihen sauber um, keine Spalten-Balancing-Quirks. */
+  .p-overview .p-overview-flow {
     display: grid;
-    gap: 6pt;
-    grid-template-columns: repeat(var(--p-cols, 3), 1fr);
-    align-items: stretch;
+    grid-template-columns: repeat(var(--p-cols, 3), minmax(0, 1fr));
+    gap: 4pt 8pt;
+    align-content: start;
+    /* V2.2 Bug-Fix: align-items:start verhindert, dass Cards in einer
+       Reihe sich vertikal an die größte Card der Reihe strecken.
+       Ohne diesen Fix: kürzere Cards wuchsen auf die Höhe der längsten
+       Card der gleichen Reihe — Gesamthöhe verdoppelte sich, Inhalt
+       passte nie auf eine Seite. */
+    align-items: start;
   }
-  .p-overview .p-level-block {
+  /* Level-Header spannt über alle Spalten als horizontaler Trenner.
+     break-after:avoid + break-inside:avoid verhindern verwaiste Header
+     am Seitenende. */
+  .p-overview .p-overview-level-header {
+    grid-column: 1 / -1;
+    break-after: avoid;
     break-inside: avoid;
-    border: 1pt solid #000;
-    border-radius: 4pt;
-    padding: 5pt 6pt;
-    background: #f7f7f7;
-    display: flex;
-    flex-direction: column;
-    gap: 3pt;
   }
-  .p-overview .p-level-name {
-    font-size: calc(9pt * var(--print-scale, 1));
+  .p-overview .p-overview-level-header {
+    font-size: calc(8pt * var(--print-scale, 1));
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    border-bottom: 0.5pt solid #000;
-    padding-bottom: 2pt;
-    margin-bottom: 2pt;
+    color: #000;
+    border-top: 0.5pt solid #000;
+    padding: 3pt 0 2pt 0;
+    margin: 0;
   }
-  /* Karten-Hierarchie umgedreht (Spec-Fix Overview-2):
-     ROLLE jetzt dominant (12pt fett), Person sekundär (10pt regular).
-     Single-Critical-Encoding (Spec-Fix Overview-5): nur der linke 3pt-Balken
-     markiert kritische Rollen — kein rötlicher Hintergrund und kein Badge
-     mehr. Das macht volle Vorstand-Level lesbar statt rot-ertränkt. */
+  /* Erstes Level: kein Top-Border, weil direkt unter dem Print-Header
+     mit eigener 2pt-Border. */
+  .p-overview .p-overview-flow > .p-overview-level-header:first-child {
+    border-top: none;
+    padding-top: 0;
+  }
+  /* Karten-Hierarchie unverändert (V2.1):
+     ROLLE 12pt fett, Person 10pt regular. Single-Critical-Encoding:
+     linker 3pt-Balken markiert kritische Rollen; V2.2 ergänzt einen
+     schwarzen ‼-Glyph rechts oben für S/W-Druck. */
   .p-overview .p-role-card {
     break-inside: avoid;
     background: #fff;
@@ -4361,12 +4429,36 @@ button:focus-visible,
     border-left: 2.5pt solid #000;
     border-radius: 2pt;
     padding: 4pt 5pt;
+    padding-right: 12pt; /* Platz für Critical-Glyph + Pool-Indikator */
+    /* V2.2 CSS-Grid: kein margin mehr — gap auf .p-overview-flow regelt
+       den Abstand zwischen Cards. min-width auf 0, damit minmax(0, 1fr)
+       die Spalten gleichmäßig verteilt. */
+    margin: 0;
     display: flex;
     flex-direction: column;
     gap: 1pt;
+    min-width: 0;
+    position: relative;
   }
   .p-overview .p-role-card[data-critical="true"] {
     border-left: 3pt solid #c00;
+  }
+  /* V2.2: Critical-Glyph oben rechts. Pseudo-Element, kein extra DOM.
+     Schwarz + fett — funktioniert auf S/W-Drucker zuverlässig.
+     Doppel-Ausrufezeichen U+203C signalisiert „kritisch" und wird
+     auf allen üblichen System-Fonts gerendert. */
+  .p-overview .p-role-card[data-critical="true"]::after {
+    content: "\203C"; /* ‼ */
+    position: absolute;
+    top: 2pt;
+    right: 4pt;
+    /* V2.2 Bug-Fix: Glyph nicht mit Auto-Fit skalieren — bei Scale 0.65
+       wären das nur 5.85pt, kaum sichtbar als Warnsignal. Feste Größe,
+       maximal A4-Reference (10pt) für Lesbarkeit auf Wandchart-Distanz. */
+    font-size: 10pt;
+    font-weight: 700;
+    color: #000;
+    line-height: 1;
   }
   .p-overview .p-role-name {
     font-size: calc(12pt * var(--print-scale, 1));
@@ -4386,22 +4478,167 @@ button:focus-visible,
   .p-overview .p-role-phone {
     font-family: 'IBM Plex Mono', monospace;
     font-size: calc(9pt * var(--print-scale, 1));
+    /* V2.2 Bug-Fix: Telefonnummer auf eine Zeile zwingen. Bei schmalen
+       Spalten (z.B. 5 Spalten auf A4) brach +49-Nummern auf 2-3 Zeilen
+       und blähte die Card-Höhe auf. Ellipsis ist akzeptabel — die
+       letzten Ziffern landen im Pool-Indikator-Bereich, sichtbar. */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     color: #333;
   }
-  /* Spec-Fix Overview-4: Substitution-Hinweis von 7.5pt auf 9pt.
-     Wandchart-Distanz erfordert mind. 9pt Body-Lesbarkeit. */
+  /* Substitution-Hinweis: lesbar aus Wandchart-Distanz (mind. 9pt). */
   .p-overview .p-role-sub-hint {
     font-size: calc(9pt * var(--print-scale, 1));
     color: #555;
     font-weight: 600;
   }
-  /* Pool-Indikator (V2.1 step 7): dezent unter dem Lead.
-     Klein genug um nicht mit dem Rollennamen zu konkurrieren, aber lesbar. */
+  /* V2.2: Pool-Indikator komprimiert „↳ +N Pool".
+     V2.2 UX-Fix: vorher 0.25pt dotted Border-Top — auf 300dpi-Laser-
+     Druckern verschmierten die Punkte zur durchgezogenen Linie und
+     wurden mit einem Card-Trennstrich verwechselt. Jetzt 0.4pt dashed
+     (drucktoleranter) plus vorangestelltes ↳-Glyph als explizite
+     "gehört zu dieser Card"-Semantik. */
   .p-overview .p-role-pool-indicator {
     font-size: calc(8pt * var(--print-scale, 1));
     color: #555;
-    letter-spacing: 0.03em;
-    margin-top: 1pt;
+    letter-spacing: 0.02em;
+    line-height: 1.1;
+    margin-top: 2pt;
+    padding-top: 2pt;
+    border-top: 0.4pt dashed #999;
+  }
+  .p-overview .p-role-pool-indicator::before {
+    content: "↳ ";
+    color: #555;
+  }
+  /* V2.2: Pool-Card für Pool-only-Levels (Level ohne Rollen, aber mit
+     Pools, oder orphaned Pools im Overview-Flow). Visuell etwas
+     schmaler als Lead-Card, gestrichelter linker Border. */
+  .p-overview .p-pool-card {
+    break-inside: avoid;
+    background: #fafafa;
+    border: 0.5pt dashed #888;
+    border-left: 2.5pt dashed #555;
+    border-radius: 2pt;
+    padding: 4pt 5pt;
+    /* V2.2 CSS-Grid: gap-basiert statt margin. min-width:0 für saubere
+       Spalten-Verteilung via minmax(0, 1fr). */
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1pt;
+    min-width: 0;
+  }
+  .p-overview .p-pool-card-name {
+    font-size: calc(11pt * var(--print-scale, 1));
+    font-weight: 700;
+    color: #000;
+    line-height: 1.2;
+  }
+  .p-overview .p-pool-card-members {
+    font-size: calc(9pt * var(--print-scale, 1));
+    color: #333;
+    line-height: 1.3;
+  }
+  .p-overview .p-pool-card-empty {
+    font-size: calc(9pt * var(--print-scale, 1));
+    color: #888;
+    font-style: italic;
+  }
+
+  /* ============================================================
+     VARIANTE 4 — POOLS (mehrseitig, alphabetisch nach Pool-Name)
+     ============================================================ */
+  .p-pools .p-pool-block {
+    break-inside: avoid;
+    border: 0.5pt solid #999;
+    padding: 5pt 6pt;
+    margin-bottom: 6pt;
+    background: #fafafa;
+  }
+  .p-pools .p-pool-block-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 6pt;
+    border-bottom: 0.5pt solid #000;
+    padding-bottom: 2pt;
+    margin-bottom: 3pt;
+  }
+  .p-pools .p-pool-block-name {
+    font-size: calc(12pt * var(--print-scale, 1));
+    font-weight: 700;
+  }
+  .p-pools .p-pool-block-count {
+    font-size: calc(9pt * var(--print-scale, 1));
+    color: #555;
+  }
+  .p-pools .p-pool-block-leads {
+    font-size: calc(9pt * var(--print-scale, 1));
+    color: #444;
+    margin-bottom: 4pt;
+  }
+  .p-pools .p-pool-block-leads-label {
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: calc(8pt * var(--print-scale, 1));
+    color: #555;
+  }
+  .p-pools .p-pool-member {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2pt 8pt;
+    padding: 2pt 0;
+    border-top: 0.25pt dotted #bbb;
+    break-inside: avoid;
+  }
+  .p-pools .p-pool-member:first-of-type { border-top: none; }
+  .p-pools .p-pool-member-name {
+    font-size: calc(10pt * var(--print-scale, 1));
+    font-weight: 600;
+    color: #000;
+  }
+  .p-pools .p-pool-member[data-absent="true"] .p-pool-member-name {
+    color: #c00;
+    font-weight: 700;
+  }
+  .p-pools .p-pool-member-phone {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: calc(9pt * var(--print-scale, 1));
+    color: #333;
+    text-align: right;
+  }
+  .p-pools .p-pool-member-kw {
+    font-size: calc(8.5pt * var(--print-scale, 1));
+    color: #555;
+    grid-column: 1 / -1;
+    font-style: italic;
+  }
+  .p-pools .p-pool-member-kw-label {
+    font-style: normal;
+    font-weight: 600;
+    color: #444;
+  }
+  .p-pools .p-pool-member-status {
+    font-size: calc(8pt * var(--print-scale, 1));
+    grid-column: 1 / -1;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #555;
+  }
+  .p-pools .p-pool-member[data-absent="true"] .p-pool-member-status {
+    color: #c00;
+    font-weight: 700;
+  }
+  .p-pools .p-pool-empty {
+    font-size: calc(10pt * var(--print-scale, 1));
+    color: #666;
+    font-style: italic;
+    padding: 8pt;
+    text-align: center;
+    border: 0.5pt dashed #999;
   }
 
   /* ============================================================
@@ -8227,134 +8464,18 @@ const DEFAULT_CONFIG = {
   // banner fires, because Storage.loadConfig() only stamps the banner
   // flag when it actually had to migrate an older persisted config.
   schemaVersion: 3,
-  // V2.1: pools live at the top of the config tree (alongside levels,
-  // persons, meta). Demo personas in DEFAULT_CONFIG do not yet carry
-  // `keywords: []`; that normalisation runs through migrateConfigV3()
-  // during init() so the per-person field stays consistent.
+  // V2.2: Tool is shipped empty by default. Wirken professioneller —
+  // kein Default-Demo-Stamm an PII-Beispieldaten beim ersten Start.
+  // Demo-Configs liegen separat unter repo/demo/ (siehe README) und
+  // sind zusätzlich als Release-Assets verfügbar.
   pools: [],
   meta: {
     organizationName: '',
     printTitle: '',
     lastModified: new Date().toISOString(),
   },
-  persons: [
-    { id: 'p1', name: 'Dr. Markus Weber',    phone: '+49 170 1234567', email: 'm.weber@example.com' },
-    { id: 'p2', name: 'Sabine Hoffmann',     phone: '+49 170 2345678', email: 's.hoffmann@example.com' },
-    { id: 'p3', name: 'Thomas Richter',      phone: '+49 170 3456789', email: 't.richter@example.com' },
-    { id: 'p4', name: 'Claudia Schneider',   phone: '+49 170 4567890', email: 'c.schneider@example.com' },
-    { id: 'p5', name: 'Michael Bauer',       phone: '+49 170 5678901', email: 'm.bauer@example.com' },
-    { id: 'p6', name: 'Andrea Keller',       phone: '+49 170 6789012', email: 'a.keller@example.com' },
-    { id: 'p7', name: 'Stefan Wagner',       phone: '+49 170 7890123', email: 's.wagner@example.com' },
-    { id: 'p8', name: 'Julia Meyer',         phone: '+49 170 8901234', email: 'j.meyer@example.com' },
-    { id: 'p9', name: 'Robert Fischer',      phone: '+49 170 9012345', email: 'r.fischer@example.com' },
-    { id: 'p10', name: 'Nicole Schmitz',     phone: '+49 170 0123456', email: 'n.schmitz@example.com' },
-    { id: 'p11', name: 'Patrick Lehmann',    phone: '+49 170 1111222', email: 'p.lehmann@example.com' },
-    { id: 'p12', name: 'Sandra König',       phone: '+49 170 2222333', email: 's.koenig@example.com' },
-  ],
-  levels: [
-    {
-      id: 'l1',
-      name: 'Strategische Ebene',
-      roles: [
-        {
-          id: 'r1',
-          name: 'Krisenstabsleiter',
-          description: 'Gesamtverantwortung für den Krisenstab, strategische Entscheidungen',
-          critical: true,
-          assignments: [
-            { personId: 'p1', rank: 0 },
-            { personId: 'p2', rank: 1 },
-            { personId: 'p3', rank: 2 },
-          ],
-        },
-        {
-          id: 'r2',
-          name: 'Kommunikationsleitung',
-          description: 'Externe und interne Krisenkommunikation, Medienkontakt',
-          critical: true,
-          assignments: [
-            { personId: 'p4', rank: 0 },
-            { personId: 'p5', rank: 1 },
-          ],
-        },
-      ],
-    },
-    {
-      id: 'l2',
-      name: 'Taktische Ebene',
-      roles: [
-        {
-          id: 'r3',
-          name: 'IT-Security-Lead',
-          description: 'Koordination aller technischen Response-Maßnahmen',
-          critical: true,
-          assignments: [
-            { personId: 'p6', rank: 0 },
-            { personId: 'p7', rank: 1 },
-            { personId: 'p8', rank: 2 },
-          ],
-        },
-        {
-          id: 'r4',
-          name: 'Infrastruktur-Koordinator',
-          description: 'Netzwerk, Server, Containment-Maßnahmen',
-          critical: false,
-          assignments: [
-            { personId: 'p9', rank: 0 },
-            { personId: 'p10', rank: 1 },
-          ],
-        },
-        {
-          id: 'r5',
-          name: 'Datenschutz-Officer',
-          description: 'DSGVO-Bewertung, Meldung an Aufsichtsbehörden',
-          critical: true,
-          assignments: [
-            { personId: 'p2', rank: 0 },
-            { personId: 'p11', rank: 1 },
-          ],
-        },
-      ],
-    },
-    {
-      id: 'l3',
-      name: 'Operative Ebene',
-      roles: [
-        {
-          id: 'r6',
-          name: 'SOC-Schichtleitung',
-          description: 'Laufende Überwachung, Eskalation, 24/7-Präsenz',
-          critical: true,
-          assignments: [
-            { personId: 'p7', rank: 0 },
-            { personId: 'p8', rank: 1 },
-            { personId: 'p12', rank: 2 },
-          ],
-        },
-        {
-          id: 'r7',
-          name: 'Forensik',
-          description: 'Evidenzsicherung, Root-Cause-Analyse',
-          critical: false,
-          assignments: [
-            { personId: 'p8', rank: 0 },
-            { personId: 'p12', rank: 1 },
-          ],
-        },
-        {
-          id: 'r8',
-          name: 'Response-Team-Lead',
-          description: 'Ausführung der Containment- und Eradication-Schritte',
-          critical: false,
-          assignments: [
-            { personId: 'p11', rank: 0 },
-            { personId: 'p12', rank: 1 },
-            { personId: 'p9', rank: 2 },
-          ],
-        },
-      ],
-    },
-  ],
+  persons: [],
+  levels: [],
 };
 
 /* =========================================================================
@@ -8385,6 +8506,7 @@ const TRANSLATIONS = {
     'status.substitute_active': 'STV aktiv',
     'status.unoccupied': 'Unbesetzt',
     'status.absent': 'Abwesend',
+    'status.available': 'Verfügbar',
     'status.critical_suffix': ' ({n} kritisch)',
     'tabs.occupancy': 'Besetzung',
     'tabs.persons': 'Personen',
@@ -8873,8 +8995,8 @@ const TRANSLATIONS = {
     'print.title': 'Druckansicht',
     'print.intro': 'Wähle die passende Vorlage für Ausdruck oder PDF-Export. Format und Ausrichtung werden im Druckdialog bestätigt.',
     'print.variant_label': 'Vorlage',
-    'print.variant_overview': 'Übersicht (eine Seite)',
-    'print.variant_overview_hint': 'Rollen und aktuelle Besetzung — groß lesbar, ideal als Pinnwand-Ausdruck.',
+    'print.variant_overview': 'Übersicht – kompakt',
+    'print.variant_overview_hint': 'Rollen und aktuelle Besetzung — maximal verdichtet, eine Seite wenn möglich, sonst zwei.',
     'print.variant_detail': 'Rollen-Detail',
     'print.variant_detail_hint': 'Strukturierte Auflistung mit vollständigen Vertretungsketten und Kontakten.',
     'print.variant_persons': 'Personen-Liste',
@@ -8909,6 +9031,20 @@ const TRANSLATIONS = {
     'print.role_pool_members_count': '{n} Mitglieder',
     'print.person_keywords_label': 'Schwerpunkte',
     'print.overview_pool_indicator': 'POOL: {name} ({n})',
+    'print.overview_pool_indicator_compact': '+{n} Pool',
+    'print.critical_glyph_aria': 'Kritische Rolle',
+    'print.variant_pools': 'Pools',
+    'print.variant_pools_hint': 'Alle Team-Pools mit Mitgliedern, Schwerpunkten, Telefon und Status.',
+    'print.pool.no_pools': 'Keine Pools konfiguriert.',
+    'print.pool.lead_roles': 'Lead-Rolle(n)',
+    'print.pool.no_lead': 'Kein Lead zugewiesen',
+    'print.pool.members_count': '{n} Mitglieder',
+    'print.pool.keywords_label': 'Schwerpunkte',
+    'print.pool.status_present': 'anwesend',
+    'print.pool.status_absent': 'abwesend',
+    'print.pool.no_members': 'Keine Mitglieder',
+    'print.pool.header_title': 'CRAM — Pool-Übersicht',
+    'print.autofit_floor_warning': 'Übersicht wird auf zwei Seiten gedruckt — kleinere Schrift wäre nicht mehr lesbar.',
     'header.panel': 'Panel',
     'header.panel_tooltip': 'Seitenpanel ein-/ausblenden',
     'toast.panel_shown': 'Seitenpanel eingeblendet',
@@ -9009,7 +9145,7 @@ const TRANSLATIONS = {
     'edit.confirm_delete_level': 'Ebene „{name}" mit {roles} Rolle(n) löschen?',
     'edit.confirm_delete_role': 'Rolle „{name}" löschen?',
     'edit.confirm_delete_person': 'Person „{name}" löschen? Sie wird aus allen Rollen entfernt.',
-    'edit.empty_org': 'Noch keine Ebenen angelegt.',
+    'edit.empty_org': 'Noch keine Konfiguration angelegt. Lege Ebenen und Rollen direkt im Edit-Modus an — oder importiere eine bestehende JSON-Datei über das Menü „Daten“. Demo-Configs zum Ausprobieren liegen im Projekt-Verzeichnis unter demo/ und sind auch als GitHub-Release-Asset verfügbar.',
     'edit.empty_level': 'Keine Rollen auf dieser Ebene.',
     'edit.empty_persons': 'Keine Personen angelegt.',
     'edit.empty_assignments': 'Noch keine Zuordnungen.',
@@ -9040,6 +9176,7 @@ const TRANSLATIONS = {
     'status.substitute_active': 'Sub. active',
     'status.unoccupied': 'Unoccupied',
     'status.absent': 'Absent',
+    'status.available': 'Available',
     'status.critical_suffix': ' ({n} critical)',
     'tabs.occupancy': 'Roster',
     'tabs.persons': 'People',
@@ -9525,8 +9662,8 @@ const TRANSLATIONS = {
     'print.title': 'Print view',
     'print.intro': 'Choose the template for your printout or PDF export. Paper size and orientation are confirmed in the print dialog.',
     'print.variant_label': 'Template',
-    'print.variant_overview': 'Overview (single page)',
-    'print.variant_overview_hint': 'Roles and current occupants — large print, ideal as a crisis-room wall chart.',
+    'print.variant_overview': 'Overview – compact',
+    'print.variant_overview_hint': 'Roles and current occupants — maximally condensed, one page if possible, otherwise two.',
     'print.variant_detail': 'Role detail',
     'print.variant_detail_hint': 'Structured listing with full substitution chains and contact data.',
     'print.variant_persons': 'People list',
@@ -9561,6 +9698,20 @@ const TRANSLATIONS = {
     'print.role_pool_members_count': '{n} members',
     'print.person_keywords_label': 'Focus areas',
     'print.overview_pool_indicator': 'POOL: {name} ({n})',
+    'print.overview_pool_indicator_compact': '+{n} Pool',
+    'print.critical_glyph_aria': 'Critical role',
+    'print.variant_pools': 'Pools',
+    'print.variant_pools_hint': 'All team pools with members, focus areas, phone and status.',
+    'print.pool.no_pools': 'No pools configured.',
+    'print.pool.lead_roles': 'Lead role(s)',
+    'print.pool.no_lead': 'No lead assigned',
+    'print.pool.members_count': '{n} members',
+    'print.pool.keywords_label': 'Focus areas',
+    'print.pool.status_present': 'available',
+    'print.pool.status_absent': 'absent',
+    'print.pool.no_members': 'No members',
+    'print.pool.header_title': 'CRAM — Pool overview',
+    'print.autofit_floor_warning': 'Overview is printed across two pages — a smaller font would no longer be readable.',
     'header.panel': 'Panel',
     'header.panel_tooltip': 'Show/hide side panel',
     'toast.panel_shown': 'Side panel shown',
@@ -9660,7 +9811,7 @@ const TRANSLATIONS = {
     'edit.confirm_delete_level': 'Delete level "{name}" with {roles} role(s)?',
     'edit.confirm_delete_role': 'Delete role "{name}"?',
     'edit.confirm_delete_person': 'Delete person "{name}"? They will be removed from all roles.',
-    'edit.empty_org': 'No levels configured yet.',
+    'edit.empty_org': 'No configuration yet. Build levels and roles directly in edit mode — or import an existing JSON file via the “Data” menu. Demo configurations for trying things out live in the project directory under demo/ and are also available as GitHub release assets.',
     'edit.empty_level': 'No roles on this level.',
     'edit.empty_persons': 'No people registered.',
     'edit.empty_assignments': 'No assignments yet.',
@@ -9691,6 +9842,7 @@ const TRANSLATIONS = {
     'status.substitute_active': 'Supl. activo',
     'status.unoccupied': 'Sin cubrir',
     'status.absent': 'Ausente',
+    'status.available': 'Disponible',
     'status.critical_suffix': ' ({n} críticos)',
     'tabs.occupancy': 'Asignación',
     'tabs.persons': 'Personas',
@@ -10176,8 +10328,8 @@ const TRANSLATIONS = {
     'print.title': 'Vista de impresión',
     'print.intro': 'Elija la plantilla para la impresión o exportación a PDF. El tamaño de papel y la orientación se confirman en el cuadro de diálogo de impresión.',
     'print.variant_label': 'Plantilla',
-    'print.variant_overview': 'Resumen (una página)',
-    'print.variant_overview_hint': 'Roles y ocupantes actuales — letra grande, ideal como gráfico mural.',
+    'print.variant_overview': 'Resumen – compacto',
+    'print.variant_overview_hint': 'Roles y ocupantes actuales — máxima densidad, una página si es posible, si no dos.',
     'print.variant_detail': 'Detalle de roles',
     'print.variant_detail_hint': 'Listado estructurado con cadenas de suplencia completas y contactos.',
     'print.variant_persons': 'Lista de personas',
@@ -10212,6 +10364,20 @@ const TRANSLATIONS = {
     'print.role_pool_members_count': '{n} miembros',
     'print.person_keywords_label': 'Áreas de enfoque',
     'print.overview_pool_indicator': 'GRUPO: {name} ({n})',
+    'print.overview_pool_indicator_compact': '+{n} Grupo',
+    'print.critical_glyph_aria': 'Rol crítico',
+    'print.variant_pools': 'Grupos',
+    'print.variant_pools_hint': 'Todos los grupos de equipo con miembros, áreas de enfoque, teléfono y estado.',
+    'print.pool.no_pools': 'No hay grupos configurados.',
+    'print.pool.lead_roles': 'Rol(es) de liderazgo',
+    'print.pool.no_lead': 'Sin líder asignado',
+    'print.pool.members_count': '{n} miembros',
+    'print.pool.keywords_label': 'Áreas de enfoque',
+    'print.pool.status_present': 'disponible',
+    'print.pool.status_absent': 'ausente',
+    'print.pool.no_members': 'Sin miembros',
+    'print.pool.header_title': 'CRAM — Vista general de grupos',
+    'print.autofit_floor_warning': 'El resumen se imprime en dos páginas — una letra más pequeña ya no sería legible.',
     'header.panel': 'Panel',
     'header.panel_tooltip': 'Mostrar/ocultar panel lateral',
     'toast.panel_shown': 'Panel lateral mostrado',
@@ -10312,7 +10478,7 @@ const TRANSLATIONS = {
     'edit.confirm_delete_level': '¿Eliminar nivel «{name}» con {roles} rol(es)?',
     'edit.confirm_delete_role': '¿Eliminar rol «{name}»?',
     'edit.confirm_delete_person': '¿Eliminar persona «{name}»? Se quitará de todos los roles.',
-    'edit.empty_org': 'Aún no hay niveles configurados.',
+    'edit.empty_org': 'Aún no hay configuración. Crea niveles y roles directamente en el modo de edición, o importa un archivo JSON existente desde el menú «Datos». Las configuraciones de demostración están en el directorio del proyecto bajo demo/ y también como asset de release en GitHub.',
     'edit.empty_level': 'Sin roles en este nivel.',
     'edit.empty_persons': 'No hay personas registradas.',
     'edit.empty_assignments': 'Aún no hay asignaciones.',
@@ -10343,6 +10509,7 @@ const TRANSLATIONS = {
     'status.substitute_active': 'Suppl. actif',
     'status.unoccupied': 'Non pourvu',
     'status.absent': 'Absent',
+    'status.available': 'Disponible',
     'status.critical_suffix': ' ({n} critique(s))',
     'tabs.occupancy': 'Affectation',
     'tabs.persons': 'Personnes',
@@ -10828,8 +10995,8 @@ const TRANSLATIONS = {
     'print.title': 'Aperçu d\u2019impression',
     'print.intro': 'Choisissez le modèle pour l\u2019impression ou l\u2019export PDF. Le format et l\u2019orientation sont confirmés dans la boîte de dialogue d\u2019impression.',
     'print.variant_label': 'Modèle',
-    'print.variant_overview': 'Vue d\u2019ensemble (une page)',
-    'print.variant_overview_hint': 'Rôles et titulaires actuels — gros caractères, idéal comme affichage mural.',
+    'print.variant_overview': 'Vue d\u2019ensemble \u2013 compacte',
+    'print.variant_overview_hint': 'Rôles et titulaires actuels — densité maximale, une page si possible, sinon deux.',
     'print.variant_detail': 'Détail des rôles',
     'print.variant_detail_hint': 'Liste structurée avec chaînes de suppléance complètes et coordonnées.',
     'print.variant_persons': 'Liste des personnes',
@@ -10864,6 +11031,20 @@ const TRANSLATIONS = {
     'print.role_pool_members_count': '{n} membres',
     'print.person_keywords_label': 'Domaines clés',
     'print.overview_pool_indicator': 'POOL : {name} ({n})',
+    'print.overview_pool_indicator_compact': '+{n} Pool',
+    'print.critical_glyph_aria': 'Rôle critique',
+    'print.variant_pools': 'Pools',
+    'print.variant_pools_hint': 'Tous les pools d\'équipe avec membres, domaines clés, téléphone et statut.',
+    'print.pool.no_pools': 'Aucun pool configuré.',
+    'print.pool.lead_roles': 'Rôle(s) responsable(s)',
+    'print.pool.no_lead': 'Aucun responsable assigné',
+    'print.pool.members_count': '{n} membres',
+    'print.pool.keywords_label': 'Domaines clés',
+    'print.pool.status_present': 'présent',
+    'print.pool.status_absent': 'absent',
+    'print.pool.no_members': 'Aucun membre',
+    'print.pool.header_title': 'CRAM — Aperçu des pools',
+    'print.autofit_floor_warning': 'L\'aperçu est imprimé sur deux pages — une police plus petite ne serait plus lisible.',
     'header.panel': 'Panneau',
     'header.panel_tooltip': 'Afficher/masquer le panneau latéral',
     'toast.panel_shown': 'Panneau latéral affiché',
@@ -10964,7 +11145,7 @@ const TRANSLATIONS = {
     'edit.confirm_delete_level': 'Supprimer le niveau « {name} » avec {roles} rôle(s) ?',
     'edit.confirm_delete_role': 'Supprimer le rôle « {name} » ?',
     'edit.confirm_delete_person': 'Supprimer la personne « {name} » ? Elle sera retirée de tous les rôles.',
-    'edit.empty_org': 'Aucun niveau configuré.',
+    'edit.empty_org': 'Aucune configuration pour l\'instant. Créez des niveaux et des rôles directement en mode édition, ou importez un fichier JSON existant via le menu « Données ». Les configurations de démonstration se trouvent dans le répertoire du projet sous demo/ et sont aussi disponibles comme asset de release sur GitHub.',
     'edit.empty_level': 'Aucun rôle sur ce niveau.',
     'edit.empty_persons': 'Aucune personne enregistrée.',
     'edit.empty_assignments': 'Aucune affectation.',
@@ -10995,6 +11176,7 @@ const TRANSLATIONS = {
     'status.substitute_active': '替补在岗',
     'status.unoccupied': '空缺',
     'status.absent': '缺席',
+    'status.available': '可用',
     'status.critical_suffix': '（{n} 个关键）',
     'tabs.occupancy': '岗位',
     'tabs.persons': '人员',
@@ -11485,8 +11667,8 @@ const TRANSLATIONS = {
     'print.title': '打印视图',
     'print.intro': '请选择打印或 PDF 导出的模板。纸张大小和方向将在打印对话框中确认。',
     'print.variant_label': '模板',
-    'print.variant_overview': '总览（单页）',
-    'print.variant_overview_hint': '角色与当前任职者——字体放大，适合作为墙面图表。',
+    'print.variant_overview': '总览 – 紧凑',
+    'print.variant_overview_hint': '角色与当前任职者——最大化压缩，可能时单页，否则双页。',
     'print.variant_detail': '角色详情',
     'print.variant_detail_hint': '结构化列表，包含完整替补链与联系方式。',
     'print.variant_persons': '人员名单',
@@ -11521,6 +11703,20 @@ const TRANSLATIONS = {
     'print.role_pool_members_count': '{n} 名成员',
     'print.person_keywords_label': '重点领域',
     'print.overview_pool_indicator': '人员池：{name}（{n}）',
+    'print.overview_pool_indicator_compact': '+{n} 池',
+    'print.critical_glyph_aria': '关键角色',
+    'print.variant_pools': '人员池',
+    'print.variant_pools_hint': '所有团队池，包括成员、关键词、电话和状态。',
+    'print.pool.no_pools': '未配置人员池。',
+    'print.pool.lead_roles': '负责角色',
+    'print.pool.no_lead': '未分配负责人',
+    'print.pool.members_count': '{n} 名成员',
+    'print.pool.keywords_label': '关键词',
+    'print.pool.status_present': '可用',
+    'print.pool.status_absent': '缺席',
+    'print.pool.no_members': '无成员',
+    'print.pool.header_title': 'CRAM — 人员池概览',
+    'print.autofit_floor_warning': '概览分两页打印 — 更小的字号将不再清晰可读。',
     'header.panel': '面板',
     'header.panel_tooltip': '显示/隐藏侧面板',
     'toast.panel_shown': '已显示侧面板',
@@ -11622,7 +11818,7 @@ const TRANSLATIONS = {
     'edit.confirm_delete_level': '删除层级「{name}」及其 {roles} 个角色？',
     'edit.confirm_delete_role': '删除角色「{name}」？',
     'edit.confirm_delete_person': '删除人员「{name}」？将从所有角色中移除。',
-    'edit.empty_org': '尚未配置层级。',
+    'edit.empty_org': '尚未配置。请在编辑模式下直接创建层级和角色，或通过"数据"菜单导入现有 JSON 文件。示例配置位于项目目录的 demo/ 文件夹下，也可作为 GitHub 发行版资源下载。',
     'edit.empty_level': '本层级暂无角色。',
     'edit.empty_persons': '暂无人员。',
     'edit.empty_assignments': '暂无分配。',
@@ -12405,6 +12601,19 @@ function renderOrgChart() {
       }
     });
   });
+  // V2.2: Pool-Member-Pills sind klickbar (außer im Edit-Modus).
+  // Click-Pfad läuft über den globalen Dispatcher (data-action="open-person-detail").
+  // Tastatur muss explizit gebunden werden, weil <span> kein nativer Button ist.
+  container.querySelectorAll('.pool-member-pill[data-action="open-person-detail"]').forEach(pill => {
+    pill.addEventListener('keydown', (e) => {
+      if (State.isEditMode) return;
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        e.stopPropagation();
+        openPersonDetail(pill.dataset.personId);
+      }
+    });
+  });
 }
 
 function renderLevel(level, idx) {
@@ -12589,7 +12798,26 @@ function renderPoolMemberPill(person, isSubForLead) {
     ? '<span class="pool-pill-sub-badge" title="' + escapeHTML(t('chart.pool_sub_badge_title')) + '">SUB</span>'
     : '';
 
-  return '<span class="pool-member-pill ' + statusClass + '" data-person-id="' + escapeHTML(person.id) + '" title="' + escapeHTML(person.name || '') + '">'
+  // V2.2: Pool-Pills sind klickbar (öffnen Person-Detail im Side-Panel),
+  // außer im Edit-Modus — dort würde der Klick versehentlich aus dem
+  // Pool-Editing-Kontext herausreißen. Analog zu renderRoleCard und
+  // chain-slot.
+  const clickable = !State.isEditMode;
+  const action = clickable ? ' data-action="open-person-detail"' : '';
+  const roleAttr = clickable ? ' role="button"' : '';
+  const tabindexAttr = clickable ? ' tabindex="0"' : '';
+  // A11y: aria-label kombiniert Name + Status, damit Screenreader die
+  // Abwesenheit lesen, ohne dass die SUB-Badge gesondert behandelt werden muss.
+  const statusLabel = isUnavailable ? t('status.absent') : t('status.available');
+  const ariaLabel = (person.name || '') + ' — ' + statusLabel;
+
+  return '<span class="pool-member-pill ' + statusClass + '"'
+    + ' data-person-id="' + escapeHTML(person.id) + '"'
+    + action
+    + roleAttr
+    + tabindexAttr
+    + ' aria-label="' + escapeHTML(ariaLabel) + '"'
+    + ' title="' + escapeHTML(person.name || '') + '">'
     + '<span class="pool-pill-icon" aria-hidden="true">' + statusIcon + '</span>'
     + '<span class="pool-pill-name">' + escapeHTML(person.name || '') + '</span>'
     + subBadge
@@ -17090,7 +17318,7 @@ function updateMobileNavUI() {
    }
    ========================================================================= */
 const EXPORT_FORMAT_VERSION = 1;
-const APP_VERSION = '2.1.2';
+const APP_VERSION = '2.2.0-rc1';
 
 // State für Import-Modal (parsed file content + ursprünglicher Filename)
 let dataModalState = {
@@ -17719,6 +17947,8 @@ function renderPrintModal() {
     { v: 'overview', labelKey: 'print.variant_overview', hintKey: 'print.variant_overview_hint' },
     { v: 'detail',   labelKey: 'print.variant_detail',   hintKey: 'print.variant_detail_hint' },
     { v: 'persons',  labelKey: 'print.variant_persons',  hintKey: 'print.variant_persons_hint' },
+    // V2.2: neue Pool-Variante
+    { v: 'pools',    labelKey: 'print.variant_pools',    hintKey: 'print.variant_pools_hint' },
   ];
   const formatOptions = [
     { f: 'a4',     label: 'A4' },
@@ -17797,6 +18027,12 @@ function startPrint() {
     const container = document.getElementById('print-container');
     container.innerHTML = buildPrintHTML(printState.variant, printState.format, printState.orientation);
 
+    // 2b. V2.2: Auto-Fit nur für Overview-Variante. Skalierung
+    //     reduzieren bis alles auf eine Seite passt. Floor 0.65.
+    if (printState.variant === 'overview') {
+      applyOverviewAutoFit(container, printState.format, printState.orientation);
+    }
+
     // 3. Modal schließen — Backdrop sofort ausblenden (keine State-Reset-Kaskade,
     //    weil wir im User-Click-Kontext bleiben müssen für window.print())
     document.getElementById('modal-backdrop').style.display = 'none';
@@ -17807,6 +18043,145 @@ function startPrint() {
   } catch (err) {
     console.error('Print-Fehler:', err);
     showToast('Druckfehler: ' + (err.message || err), 'warning');
+  }
+}
+
+// V2.2: Auto-Fit für die Übersicht-Variante.
+// Strategie: Wir messen, wie hoch der Print-Container im Bildschirmkontext
+// rendert, und vergleichen mit der nutzbaren Seitenhöhe (Papierhöhe minus
+// 2 × 18mm Margin). Wenn der Container überläuft, drücken wir
+// --print-scale schrittweise (1.0 → 0.92 → 0.85 → 0.78 → 0.70 → 0.65)
+// und messen neu. Floor: 0.65. Darunter ist Lesbarkeit weg.
+//
+// V2.2 KRITISCH: Die Print-CSS-Regeln stecken alle in @media print {} und
+// gelten beim Off-Screen-Messen *nicht*. Wir extrahieren sie einmalig und
+// injizieren sie temporär als @media all, sodass der Measure-Container
+// realistische Höhen (mit Grid-Layout, Padding, Schrift) liefert. Ohne
+// diesen Trick misst er rohe Block-Höhen ohne Print-Styling und Auto-Fit
+// arbeitet auf falscher Datenbasis.
+let __printCssAll = null;
+function __getPrintCssAsScreen() {
+  if (__printCssAll !== null) return __printCssAll;
+  __printCssAll = '';
+  for (const sheet of document.styleSheets) {
+    try {
+      for (const rule of sheet.cssRules) {
+        if (rule.type === CSSRule.MEDIA_RULE
+            && rule.conditionText.includes('print')
+            && rule.cssRules.length > 10) {
+          for (const r of rule.cssRules) __printCssAll += r.cssText + '\n';
+          break;
+        }
+      }
+    } catch (e) { /* CORS-protected sheet */ }
+    if (__printCssAll) break;
+  }
+  return __printCssAll;
+}
+
+function applyOverviewAutoFit(container, format, orientation) {
+  const paper = PAPER_MM[format] || PAPER_MM.a4;
+  const isLandscape = orientation === 'landscape';
+  const widthMM = isLandscape ? paper.h : paper.w;
+  const heightMM = isLandscape ? paper.w : paper.h;
+  // @page margin (18mm rundum) + #print-container Innen-Padding (5mm rundum)
+  // = 23mm pro Seite. Beides muss von der nutzbaren Fläche abgezogen werden,
+  // sonst rutscht der Flow auf Seite 2.
+  const PAGE_MARGIN_MM = 18;
+  const CONTAINER_PAD_MM = 5;
+  const totalSideReductionMM = 2 * (PAGE_MARGIN_MM + CONTAINER_PAD_MM); // 46mm
+  const usableWmm = widthMM - totalSideReductionMM;
+  const usableHmm = heightMM - totalSideReductionMM;
+  const MM_TO_PX = 3.7795275591; // 1mm in CSS-Pixeln bei 96dpi
+
+  // Format-Base-Scale (A4=1.00, A3=1.15, Letter=1.03) als Startpunkt.
+  // Auto-Fit reduziert von hier aus schrittweise, bis alles auf 1 Seite
+  // passt. Floor 0.70 — darunter wird ehrlich auf 2 Seiten gebrochen
+  // ("Übersicht – kompakt", max 2 Seiten).
+  const baseScale = computePrintScale(format, orientation);
+  const scaleSteps = [baseScale, baseScale*0.92, baseScale*0.85, baseScale*0.78, baseScale*0.70];
+  // Floor begrenzen — niemals unter absoluten 0.70, sonst unleserlich
+  const scaleStops = scaleSteps.map(s => Math.max(0.70, s));
+
+  // V2.2 KRITISCHER FIX: Print-CSS-Regeln aus @media print extrahieren und
+  // temporär als @media all injizieren — sonst rendert der Off-Screen-
+  // Measure-Container mit Standard-Block-Styling (Card-Höhen 0px, kein Grid)
+  // und Auto-Fit arbeitet auf Mülldaten.
+  const printCss = __getPrintCssAsScreen();
+  const styleEl = document.createElement('style');
+  styleEl.id = '__cram-print-measure__';
+  styleEl.textContent = printCss;
+  document.head.appendChild(styleEl);
+
+  // Off-Screen-Messcontainer: gleiche Innenbreite wie das Druckpapier
+  // *nach* Abzug aller Margins und Container-Paddings.
+  // Wir geben ihm `id="print-container"` damit die #print-container-Selektoren
+  // im Print-CSS greifen. Der echte Print-Container kriegt temporär eine
+  // andere ID, damit es keinen ID-Konflikt gibt.
+  const measure = document.createElement('div');
+  measure.id = 'print-container';
+  measure.style.position = 'absolute';
+  measure.style.left = '-99999px';
+  measure.style.top = '0';
+  measure.style.width = (widthMM * MM_TO_PX) + 'px'; // volle Papierbreite, Padding kommt aus #print-container Regel
+  measure.style.visibility = 'hidden';
+  measure.style.display = 'block'; // override "display: none" aus dem Default-CSS
+  // Print-Container-Inhalt klonen — Header + Overview-Flow.
+  measure.innerHTML = container.innerHTML;
+
+  // ID-Tausch: echter Print-Container temporär umbenennen
+  const origId = container.id;
+  container.id = '__orig_print_container';
+  document.body.appendChild(measure);
+
+  const usableHpx = usableHmm * MM_TO_PX;
+
+  let chosenScale = scaleStops[0];
+  let fitsAt = -1;
+  try {
+    const root = measure.querySelector('.p-overview');
+    if (!root) return; // keine Overview gerendert, abort
+    for (let i = 0; i < scaleStops.length; i++) {
+      const s = scaleStops[i];
+      root.style.setProperty('--print-scale', String(s));
+      // forced reflow — measure.scrollHeight liefert Header + Overview
+      const h = measure.scrollHeight;
+      if (h <= usableHpx) {
+        chosenScale = s;
+        fitsAt = i;
+        break;
+      }
+      chosenScale = s; // floor merken
+    }
+  } finally {
+    document.body.removeChild(measure);
+    container.id = origId;
+    document.head.removeChild(styleEl);
+  }
+
+  // Skalierung auf den echten Print-Container anwenden — SAME element
+  // wie buildPrintHTML, damit nur eine Direktive aktiv ist.
+  const root = container.querySelector('.p-overview');
+  if (root) root.style.setProperty('--print-scale', String(chosenScale));
+
+  if (fitsAt === -1) {
+    // Selbst Floor reicht nicht — Warnung loggen
+    console.warn('CRAM Print: Overview overflows even at --print-scale=0.65.');
+    try {
+      showToast(t('print.autofit_floor_warning'), 'info');
+    } catch (e) { /* showToast best-effort */ }
+    // Best-effort Audit (kein Hard-Dep — Storage muss da sein)
+    try {
+      if (typeof Storage !== 'undefined' && Storage.appendAudit) {
+        Storage.appendAudit({
+          id: uid('a'),
+          timestamp: new Date().toISOString(),
+          type: 'print',
+          action: 'overview_autofit_floor_hit',
+          detail: 'Overview overflow at scale 0.65 (' + format + ' ' + orientation + ')',
+        });
+      }
+    } catch (e) { /* audit best-effort */ }
   }
 }
 
@@ -17835,16 +18210,18 @@ function applyPrintPageStyle(format, orientation) {
 }
 
 function computePrintScale(format, orientation) {
-  // Referenz: A4 = 1.0. Bei größerem Papier skaliert die Schrift mit der
-  // kleineren Papierdimension (denn Landscape A3 ist 297×420, wir wollen
-  // dass die Schrift sich nach der „kurzen" Seite richtet, damit die Spalten
-  // sinnvoll breit bleiben)
-  const paper = PAPER_MM[format] || PAPER_MM.a4;
-  const shortSide = Math.min(paper.w, paper.h);  // A4: 210, A3: 297, Letter: 216
-  // A4 als Referenz = 210mm → scale 1.0
-  const scale = shortSide / 210;
-  // Begrenze auf sinnvollen Rahmen
-  return Math.max(0.85, Math.min(1.6, scale));
+  // V2.2 Bug-Fix: vorher proportional zur Papierbreite (A3 → 1.41),
+  // was Schrift auf A3 unnötig riesig machte UND mit Auto-Fit
+  // kollidierte (Auto-Fit setzte intern wieder 1.0, daraus entstand
+  // unklare CSS-Cascade). Jetzt dezenter Format-Zuschlag — A3 hat
+  // mehr Platz, etwas größere Schrift ist gerechtfertigt, aber nicht
+  // proportional. Auto-Fit nimmt diesen Wert als Startpunkt.
+  const FORMAT_BASE_SCALE = {
+    a4:     1.00,
+    a3:     1.15,
+    letter: 1.03,
+  };
+  return FORMAT_BASE_SCALE[format] || 1.00;
 }
 
 function computeOverviewColumns(format, orientation, totalRoles) {
@@ -17857,7 +18234,9 @@ function computeOverviewColumns(format, orientation, totalRoles) {
   let cols = Math.max(1, Math.floor(usableW / targetColW));
   // Wenn wenige Rollen → weniger Spalten
   if (totalRoles > 0 && totalRoles < cols) cols = totalRoles;
-  return Math.min(cols, 6);
+  // V2.2: Cap auf 5. 6 Spalten auf A4 quer waren zu eng — Rollennamen
+  // brachen häufig auf 2-3 Zeilen.
+  return Math.min(cols, 5);
 }
 
 // V2.1 step 7: lookup helpers for print templates -----------------------
@@ -17889,9 +18268,15 @@ function _resolvePoolMembers(pool) {
 // Spalten.
 function _adaptiveColumnCount(baseCount, longestNameLen) {
   if (!Number.isFinite(longestNameLen) || longestNameLen <= 0) return baseCount;
-  if (longestNameLen > 28) return Math.min(baseCount, 3);
-  if (longestNameLen > 20) return Math.min(baseCount, 4);
-  return baseCount;
+  // V2.2 CSS-Grid: weniger restriktiv als bei Multi-Column. Lange
+  // Rollennamen brechen jetzt sauber innerhalb der Grid-Spalte (min-width:0
+  // + minmax(0,1fr)) statt eine ganze Spalte zu sprengen.
+  // - sehr lange Namen (>32): max 4 Spalten
+  // - lange Namen (>24):       max 5 Spalten
+  // - normal:                  bis zum Format-Maximum
+  if (longestNameLen > 32) return Math.min(baseCount, 4);
+  if (longestNameLen > 24) return Math.min(baseCount, 5);
+  return Math.min(baseCount, 5);
 }
 
 function buildPrintHTML(variant, format, orientation) {
@@ -17929,6 +18314,8 @@ function buildPrintHTML(variant, format, orientation) {
     contentHTML = buildPrintDetail();
   } else if (variant === 'persons') {
     contentHTML = buildPrintPersons();
+  } else if (variant === 'pools') {
+    contentHTML = buildPrintPools();
   }
 
   return `
@@ -17940,12 +18327,17 @@ function buildPrintHTML(variant, format, orientation) {
 }
 
 function buildPrintOverview(format, orientation) {
-  // Spec-Fix Overview-3: Spaltenzahl ist jetzt zweistufig.
-  // 1) computeOverviewColumns liefert das Format-bedingte Maximum (Papier-
-  //    breite vs. 62mm Ziel-Spalten-Breite, gedeckelt auf 6).
-  // 2) _adaptiveColumnCount drückt das herunter, wenn der längste
-  //    Rollenname das Layout brechen würde. Lieber 3 breite Spalten als
-  //    6 enge mit 3-Zeilen-Rollennamen.
+  // V2.2: Multi-Column-Flow statt Grid pro Level.
+  // - Container ist ein einziger column-count-Container.
+  // - Level-Header sind Inline-Sub-Header (dünne Border-Top), fließen
+  //   mit den Cards. Header + erste Card desselben Levels stehen
+  //   gemeinsam unter break-inside: avoid, damit der Header nicht
+  //   verwaist am Spaltenende landet.
+  // - Pool-only-Levels (Level ohne roles, aber mit Pools, deren Lead
+  //   in einem anderen Level liegt — Edge-Case) rendern Pool-Cards.
+  // - Auto-Fit (siehe applyOverviewAutoFit) wird NACH dem Render
+  //   ausgeführt und reduziert --print-scale, bis alles auf 1 Seite
+  //   passt.
   const baseCols = computeOverviewColumns(format, orientation, State.config.levels.length);
   let longestNameLen = 0;
   State.config.levels.forEach(level => {
@@ -17956,10 +18348,39 @@ function buildPrintOverview(format, orientation) {
   });
   const cols = _adaptiveColumnCount(baseCols, longestNameLen);
 
-  // Pro Level ein Block mit den Rollen drin. Wir packen die Level in
-  // ein Grid mit auto-berechneter Spaltenzahl.
-  const levelsHTML = State.config.levels.map(level => {
-    const rolesHTML = level.roles.map(role => {
+  const allPools = Array.isArray(State.config.pools) ? State.config.pools : [];
+
+  // Edge-Case: Pool-only-Level. Ein Level ohne roles, aber mit Pools,
+  // deren Lead in keinem anderen Level existiert (orphaned) ODER deren
+  // Lead nirgendwo zugeordnet ist. Wir rendern hier nur Pools, die
+  // explizit „heimisch" wirken: orphaned Pools (leadRoleId === null)
+  // erscheinen in den ersten leeren Level, falls vorhanden. Alternativ
+  // ein eigenes Sub-Bucket je leerer Level. Pragmatischer Ansatz: leere
+  // Level zeigen NUR orphaned Pools (nicht doppelt aus anderen Levels).
+  const orphanedPools = allPools.filter(p => p && !p.leadRoleId);
+
+  const groupsHTML = State.config.levels.map((level, lIdx) => {
+    const hasRoles = Array.isArray(level.roles) && level.roles.length > 0;
+
+    // Pool-Cards für dieses Level: nur in leeren Levels und nur orphaned.
+    // (Pools mit leadRoleId hängen visuell schon an der Lead-Rolle via
+    // Pool-Indikator — kein Doppel-Listing in der Übersicht.)
+    let poolCardsHTML = '';
+    if (!hasRoles) {
+      // Erstes leeres Level beansprucht alle orphaned Pools. Folgende
+      // leere Level bleiben dann ohne Pool-Cards (eine Position für
+      // orphaned Pools reicht).
+      const isFirstEmptyLevel = State.config.levels
+        .slice(0, lIdx)
+        .every(l => Array.isArray(l.roles) && l.roles.length > 0);
+      if (isFirstEmptyLevel && orphanedPools.length > 0) {
+        poolCardsHTML = orphanedPools.map(pool => _renderOverviewPoolCard(pool)).join('');
+      }
+      // Vollständig leer (keine Rollen, keine Pools): Level überspringen.
+      if (!poolCardsHTML) return '';
+    }
+
+    const rolesHTML = hasRoles ? level.roles.map(role => {
       const occ = State.occupancy[role.id];
       let personName = '';
       let phone = '';
@@ -17978,30 +18399,28 @@ function buildPrintOverview(format, orientation) {
             subHint = t('print.currently_absent_note', { name: primaryPerson.name });
           }
         } else if (occ.manual) {
-          subHint = '🔒 ' + t('manual.badge');
+          // V2.2: Emoji 🔒 raus, Krisenstabs-Drucker rendern Emoji uneinheitlich.
+          subHint = t('manual.badge');
         }
       } else {
         personName = t('print.no_person');
         unoccupied = true;
       }
 
-      // V2.1 step 7: Pool-Indikator unter dem Lead, kompakt mit Count.
-      // Nur primary lead-Pools (siehe _getPrimaryPoolForLeadRole) — kein
-      // Doppel-Listing für Sekundär-Leads.
+      // V2.2: Pool-Indikator komprimiert. Rechts unten am Card-Rand,
+      // nur "+N Pool" ohne Pool-Name. Card-Höhe wächst nicht.
       let poolIndicator = '';
       const pool = _getPrimaryPoolForLeadRole(role.id);
       if (pool) {
         const memberCount = Array.isArray(pool.memberIds) ? pool.memberIds.length : 0;
-        const poolLabel = t('print.overview_pool_indicator', {
-          name: pool.name,
-          n: memberCount,
-        });
-        poolIndicator = `<div class="p-role-pool-indicator">${escapeHTML(poolLabel)}</div>`;
+        if (memberCount > 0) {
+          const poolLabel = t('print.overview_pool_indicator_compact', { n: memberCount });
+          poolIndicator = `<div class="p-role-pool-indicator">${escapeHTML(poolLabel)}</div>`;
+        }
       }
 
-      // Spec-Fix Overview-1+5: kein CRITICAL-Badge mehr — der linke
-      // 3pt-Balken ist die einzige Codierung (data-critical Attribut
-      // triggert das CSS).
+      // Single-Critical-Encoding: linker 3pt-Balken + V2.2-Glyph ‼
+      // (per CSS-Pseudo). Kein zusätzliches DOM-Element nötig.
       return `
         <div class="p-role-card" data-critical="${role.critical || false}">
           <div class="p-role-name">${escapeHTML(role.name)}</div>
@@ -18011,19 +18430,46 @@ function buildPrintOverview(format, orientation) {
           ${poolIndicator}
         </div>
       `;
-    }).join('');
+    }).join('') : '';
 
+    // V2.2 CSS-Grid: Header + Cards als direkte Geschwister im Grid.
+    // Level-Header spannt über alle Spalten (CSS: grid-column: 1/-1).
+    // Cards fließen in den Reihen — Grid-Layout ist print-stabil.
     return `
-      <div class="p-level-block">
-        <div class="p-level-name">${escapeHTML(level.name)}</div>
-        ${rolesHTML}
-      </div>
+      <div class="p-overview-level-header">${escapeHTML(level.name)}</div>
+      ${rolesHTML}
+      ${poolCardsHTML}
     `;
-  }).join('');
+  }).filter(Boolean).join('');
 
   return `
-    <div class="p-levels-grid" style="--p-cols: ${cols};">
-      ${levelsHTML}
+    <div class="p-overview-flow" style="--p-cols: ${cols};">
+      ${groupsHTML}
+    </div>
+  `;
+}
+
+// V2.2: Pool-Card für Übersicht (Pool-only-Level / orphaned Pools).
+// Komprimiert: Pool-Name + Inline-Member-Liste (max 3 namentlich, Rest
+// als Counter).
+function _renderOverviewPoolCard(pool) {
+  const members = _resolvePoolMembers(pool);
+  const total = members.length;
+  let membersHTML;
+  if (total === 0) {
+    membersHTML = `<div class="p-pool-card-empty">${escapeHTML(t('print.pool.no_members'))}</div>`;
+  } else if (total <= 3) {
+    membersHTML = `<div class="p-pool-card-members">${escapeHTML(members.map(m => m.name).join(', '))}</div>`;
+  } else {
+    const firstThree = members.slice(0, 3).map(m => m.name).join(', ');
+    const rest = total - 3;
+    // Plus-Syntax wie bei Pool-Indikator, konsistent
+    membersHTML = `<div class="p-pool-card-members">${escapeHTML(firstThree)} +${rest}</div>`;
+  }
+  return `
+    <div class="p-pool-card">
+      <div class="p-pool-card-name">${escapeHTML(pool.name || '')}</div>
+      ${membersHTML}
     </div>
   `;
 }
@@ -18254,6 +18700,101 @@ function buildPrintPersons() {
     </div>
   `;
   return html;
+}
+
+/* =========================================================================
+   V2.2: VARIANTE 4 — POOLS
+   ----------------------------------------------------------------
+   Mehrseitig erlaubt, alphabetisch nach Pool-Name. Pro Pool: Name,
+   Lead-Rollen-Bezug (alle Rollen, die diesen Pool als Primary oder
+   Secondary nutzen), Member-Liste mit Keywords, Telefon, Status.
+   ========================================================================= */
+function buildPrintPools() {
+  const allPools = Array.isArray(State.config.pools) ? State.config.pools.slice() : [];
+
+  // Empty-State
+  if (allPools.length === 0) {
+    return `
+      <div class="p-pool-empty">${escapeHTML(t('print.pool.no_pools'))}</div>
+    `;
+  }
+
+  // Alphabetisch nach Pool-Name
+  allPools.sort((a, b) =>
+    String(a.name || '').localeCompare(String(b.name || ''), State.language || 'de')
+  );
+
+  // Lookup: roleId -> roleName, für Lead-Rollen-Bezug
+  const roleIdToName = {};
+  (State.config.levels || []).forEach(lvl => {
+    (lvl && lvl.roles || []).forEach(r => {
+      if (r && r.id) roleIdToName[r.id] = r.name || '';
+    });
+  });
+
+  const unavail = (State.runtime && State.runtime.unavailable) ? State.runtime.unavailable : {};
+
+  const poolsHTML = allPools.map(pool => {
+    const members = _resolvePoolMembers(pool);
+    const memberCountLabel = t('print.pool.members_count', { n: members.length });
+
+    // Lead-Rollen-Bezug: alle Rollen, die diesen Pool als Primary
+    // ODER Secondary referenzieren. Mehrere möglich.
+    const leadRoleIds = [];
+    if (pool.leadRoleId) leadRoleIds.push(pool.leadRoleId);
+    if (Array.isArray(pool.secondaryLeadRoleIds)) {
+      pool.secondaryLeadRoleIds.forEach(id => {
+        if (id && leadRoleIds.indexOf(id) === -1) leadRoleIds.push(id);
+      });
+    }
+    const leadNames = leadRoleIds
+      .map(id => roleIdToName[id])
+      .filter(Boolean);
+    const leadsText = leadNames.length > 0
+      ? leadNames.join(', ')
+      : t('print.pool.no_lead');
+
+    // Member-Block. Wenn leer: hint, kein Block-Body.
+    let membersBlockHTML = '';
+    if (members.length === 0) {
+      membersBlockHTML = `<div class="p-pool-card-empty">${escapeHTML(t('print.pool.no_members'))}</div>`;
+    } else {
+      membersBlockHTML = members.map(m => {
+        const isAbsent = !!unavail[m.id];
+        const statusKey = isAbsent ? 'print.pool.status_absent' : 'print.pool.status_present';
+        const statusText = t(statusKey);
+        const phone = m.phone || '';
+        const kws = Array.isArray(m.keywords) ? m.keywords.filter(Boolean) : [];
+        const kwHTML = kws.length
+          ? `<div class="p-pool-member-kw"><span class="p-pool-member-kw-label">${escapeHTML(t('print.pool.keywords_label'))}:</span> ${escapeHTML(kws.join(', '))}</div>`
+          : '';
+        return `
+          <div class="p-pool-member" data-absent="${isAbsent}">
+            <div class="p-pool-member-name">${escapeHTML(m.name || '?')}</div>
+            <div class="p-pool-member-phone">${escapeHTML(phone)}</div>
+            ${kwHTML}
+            <div class="p-pool-member-status">${escapeHTML(statusText)}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    return `
+      <div class="p-pool-block">
+        <div class="p-pool-block-head">
+          <div class="p-pool-block-name">${escapeHTML(pool.name || '')}</div>
+          <div class="p-pool-block-count">${escapeHTML(memberCountLabel)}</div>
+        </div>
+        <div class="p-pool-block-leads">
+          <span class="p-pool-block-leads-label">${escapeHTML(t('print.pool.lead_roles'))}:</span>
+          ${escapeHTML(leadsText)}
+        </div>
+        ${membersBlockHTML}
+      </div>
+    `;
+  }).join('');
+
+  return poolsHTML;
 }
 
 /* =========================================================================

@@ -2,6 +2,28 @@
 
 All notable changes to CRAM are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Neue Druckvariante „Pools" (Variante 4):** Alphabetisch nach Pool-Name, pro Pool Lead-Rollen-Bezug + alle Mitglieder mit Telefon, Schwerpunkten und Anwesenheits-Status. Mehrseitig.
+- **Pool-Member-Pills in der Hauptansicht klickbar:** Klick öffnet das Person-Detail im Side-Panel; im Edit-Modus deaktiviert, damit Pool-Editing nicht unterbrochen wird. Tastatur-Navigation (Tab + Enter/Space) und `aria-label` mit Anwesenheits-Status.
+- **Critical-Rollen im Print zusätzlich mit Glyph (S/W-tauglich):** Roter Balken bleibt, ergänzt um ein schwarzes ‼-Symbol oben rechts in der Card — Krisenstabs-Drucker rendern dann auch ohne Farbe eindeutig.
+- **Auto-Fit für Übersichts-Druck:** `--print-scale` wird vor dem Druck schrittweise reduziert (1.0 → 0.92 → 0.85 → 0.78 → 0.70 → 0.65), bis die Übersicht auf eine Seite passt. Floor 0.65 — darunter ist Lesbarkeit weg. Floor-Treffer wird per Toast + Audit-Eintrag protokolliert.
+- **Neue Demo-Konfigurationen** (`demo/cram-demo-enterprise-de.json`, `demo/cram-demo-enterprise-en.json`): 70 Personen, 4 Ebenen (Strategisch/Taktisch/Fachbereich/Operativ), 28 Rollen, 5 Skill-basierte Pools (SOC-Analysten, Forensik, Krisenkommunikation, IT-Recovery, Legal-Response). Personennamen ausschließlich lateinisch — auch für asiatische Personae, damit jeder Drucker und PDF-Reader die Daten korrekt darstellt. Eine Person als Anker-Abwesenheit gesetzt, damit die Cascade-Visualisierung nach Import sofort sichtbar ist.
+- **Generierungs-Skript für Demo-Configs** (`scripts/build_demo_config.py`): Deterministischer Build + integrierte Cross-Reference-Validierung (Pool-Member-IDs, Lead-Role-IDs, Runtime-Anker).
+
+### Changed
+- **Tool wird leer ausgeliefert (`DEFAULT_CONFIG` ohne Personen/Levels/Pools):** Frischer Install zeigt keine Beispieldaten mehr — wirkt professioneller und vermeidet, dass Platzhalter-PII versehentlich für echte Krisensituationen verwendet wird. Demo-Konfigurationen liegen separat unter `demo/` und sind als Release-Assets verfügbar.
+- **Empty-State-Text auf der Chart-Seite erweitert** (5 Sprachen): nennt jetzt den Edit-Modus, den Import-Pfad und den GitHub-Demo-Ordner.
+- **Print-Übersicht: Layout von Level-Block-Grid auf Multi-Column-Flow umgestellt.** Level-Header werden inline gerendert (dünne Border-Top + 8pt UPPERCASE-Label). Whitespace-Löcher am Level-Ende entfallen.
+- **Print-Übersicht: Pool-Indikator komprimiert auf „+n Pool"** rechts unten in der Lead-Card. Card-Höhe wächst nicht.
+- **Pool-only-Level werden in der Übersicht als Pool-Cards gerendert** (vorher: leerer Header-Block). Komplett leere Level werden übersprungen.
+- **Max-Spaltenzahl der Übersicht von 6 auf 5 reduziert** — 6 Spalten waren auf A4 quer zu eng.
+- **Manuell-Hinweis im Print-Overview:** Emoji 🔒 entfernt zugunsten des Text-Labels — Krisenstabs-Drucker rendern Emoji uneinheitlich.
+
+### Fixed
+- **Leerer Header-Block bei Pool-only-Level im Übersichts-Druck** (Regression seit V2.1.0).
+
 ## [2.1.2] — 2026-05-20
 
 ### Changed
