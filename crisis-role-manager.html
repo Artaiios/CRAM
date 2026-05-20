@@ -365,6 +365,15 @@ button:focus-visible,
   text-transform: uppercase;
   font-size: 10px;
   letter-spacing: 0.05em;
+  /* RC-Bug-Fix (2026-05-20): defense-in-depth gegen overlong-label →
+     Header-Grid-Overflow. Der Primärfix ist der Human-Readable Format-
+     Helper (_renderSyncedAgo); CSS hier fängt nur edge cases ab, in denen
+     ein unerwartet langer i18n-String (oder ein zukünftiger neuer Status)
+     durchrutscht. Ohne overflow:hidden würde max-width nicht clippen. */
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .sync-indicator[data-state="synced"]      { color: var(--status-ok); border-color: var(--status-ok-border); }
 .sync-indicator[data-state="syncing"]     { color: var(--status-warn); border-color: var(--status-warn-border); }
@@ -4868,6 +4877,15 @@ const Sync = (function() {
       state.dirty = false;
       state.lastError = null;
       save(state);
+      // RC-Bug-Fix (2026-05-20): live-countdown im Header las
+      // source.lastAutoPollAt — der wurde aber nur im AutoPoller-Pfad
+      // geschrieben. Manuelle Pulls (syncOnlinePullStatus / Drift-Resolve /
+      // dataOnlinePullFull) hinterliessen den Counter auf dem letzten
+      // Auto-Tick → Header zeigte z.B. "vor 76150 S" während Settings
+      // korrekt "vor 1 Minute" anzeigte. Zentral hier: jeder erfolgreiche
+      // Pull aktualisiert das Feld, egal von welchem Aufrufer.
+      try { updateSource(sourceId, { lastAutoPollAt: new Date().toISOString() }); }
+      catch (e) { /* best-effort — countdown-only, not safety-critical */ }
       return envelope;
     } catch (e) {
       if (e && (e.name === 'PassphraseRequiredError' || e.name === 'ConfigDriftError')) {
@@ -4971,6 +4989,12 @@ const Sync = (function() {
       state.dirty = false;
       state.lastError = null;
       save(state);
+      // RC-Bug-Fix (2026-05-20): identisch zu pull() — manuelle Pushes
+      // (syncOnlinePushStatus / dataOnlinePush) sollen den Live-Countdown
+      // ebenfalls zurücksetzen. Aus User-Sicht ist ein erfolgreicher Push
+      // genauso "synced" wie ein Pull.
+      try { updateSource(sourceId, { lastAutoPollAt: new Date().toISOString() }); }
+      catch (e) { /* best-effort — countdown-only, not safety-critical */ }
       return envelope;
     } catch (e) {
       if (e && (e.name === 'PassphraseRequiredError' || e.name === 'ConfigDriftError' || e.name === 'ConcurrentUpdateError')) {
@@ -7259,6 +7283,9 @@ const TRANSLATIONS = {
     // Sekunde via _updateSyncStatusLabel aktualisiert, ersetzt das statische
     // "Synced"-Label nur im 'synced'-State.
     'sync.auto.status_synced_ago': 'Synced vor {n}s',
+    'sync.auto.status_synced_ago_min': 'Synced vor {n} min',
+    'sync.auto.status_synced_ago_hour': 'Synced vor {n} h',
+    'sync.auto.status_synced_ago_day': 'Synced vor {n} T',
     'sync.auto.status_next_in': 'nächster in {n}s',
     'sync.auto.status_never_synced': 'Nicht synchronisiert',
     'sync.auto.status_separator': ' · ',
@@ -7833,6 +7860,9 @@ const TRANSLATIONS = {
     'header.sync_status_config_drift': 'Config drift',
     'header.sync_tooltip_config_drift': 'Server has a different configuration. Click opens Data → Online to reconcile.',
     'sync.auto.status_synced_ago': 'Synced {n}s ago',
+    'sync.auto.status_synced_ago_min': 'Synced {n} min ago',
+    'sync.auto.status_synced_ago_hour': 'Synced {n} h ago',
+    'sync.auto.status_synced_ago_day': 'Synced {n} d ago',
     'sync.auto.status_next_in': 'next in {n}s',
     'sync.auto.status_never_synced': 'Not synced',
     'sync.auto.status_separator': ' · ',
@@ -8406,6 +8436,9 @@ const TRANSLATIONS = {
     'header.sync_status_config_drift': 'Config diferente',
     'header.sync_tooltip_config_drift': 'El servidor tiene otra configuración. Click abre Datos → Online para reconciliar.',
     'sync.auto.status_synced_ago': 'Sincronizado hace {n}s',
+    'sync.auto.status_synced_ago_min': 'Sincronizado hace {n} min',
+    'sync.auto.status_synced_ago_hour': 'Sincronizado hace {n} h',
+    'sync.auto.status_synced_ago_day': 'Sincronizado hace {n} d',
     'sync.auto.status_next_in': 'próximo en {n}s',
     'sync.auto.status_never_synced': 'No sincronizado',
     'sync.auto.status_separator': ' · ',
@@ -8980,6 +9013,9 @@ const TRANSLATIONS = {
     'header.sync_status_config_drift': 'Drift config',
     'header.sync_tooltip_config_drift': 'Le serveur a une configuration différente. Cliquer ouvre Données → Online pour réconcilier.',
     'sync.auto.status_synced_ago': 'Synchro il y a {n}s',
+    'sync.auto.status_synced_ago_min': 'Synchro il y a {n} min',
+    'sync.auto.status_synced_ago_hour': 'Synchro il y a {n} h',
+    'sync.auto.status_synced_ago_day': 'Synchro il y a {n} j',
     'sync.auto.status_next_in': 'prochain dans {n}s',
     'sync.auto.status_never_synced': 'Pas synchronisé',
     'sync.auto.status_separator': ' · ',
@@ -9555,6 +9591,9 @@ const TRANSLATIONS = {
     'header.sync_tooltip_config_drift': '服务器配置不同。点击打开 数据 → 在线 进行同步。',
     // TODO(i18n): ZH translation best-effort, review by native speaker pending.
     'sync.auto.status_synced_ago': '{n}秒前已同步',
+    'sync.auto.status_synced_ago_min': '{n}分钟前已同步',
+    'sync.auto.status_synced_ago_hour': '{n}小时前已同步',
+    'sync.auto.status_synced_ago_day': '{n}天前已同步',
     'sync.auto.status_next_in': '{n}秒后再次同步',
     'sync.auto.status_never_synced': '未同步',
     'sync.auto.status_separator': ' / ',
@@ -10402,6 +10441,24 @@ function _formatAutoSyncStatus() {
   return null;
 }
 
+/* RC-Bug-Fix (2026-05-20): Human-readable Schwellen für den "synced
+   ago"-Anteil. Vorher zählte das Label in Sekunden hoch — bei Stale-State
+   (manueller Sync nach langer Pause, Auto-off Source mit letztem Sync von
+   gestern) wurden daraus 5- oder 6-stellige Sekundenzahlen ("vor 76150 S"),
+   was den Sync-Indikator-Container über die Header-Grid-Spalte hinaus
+   wachsen ließ und mit dem Sprach-Switcher kollidierte. Schwellen:
+     <60s    : "vor N s"
+     <60min  : "vor N min"
+     <24h    : "vor N h"
+     ≥24h    : "vor N d"
+   Die 4 _min/_hour/_day-Varianten sind in allen 5 Sprachen lokalisiert. */
+function _renderSyncedAgo(sec) {
+  if (sec < 60) return t('sync.auto.status_synced_ago', { n: sec });
+  if (sec < 3600) return t('sync.auto.status_synced_ago_min', { n: Math.floor(sec / 60) });
+  if (sec < 86400) return t('sync.auto.status_synced_ago_hour', { n: Math.floor(sec / 3600) });
+  return t('sync.auto.status_synced_ago_day', { n: Math.floor(sec / 86400) });
+}
+
 /* RC-feature: Live-Label-Builder.
    Wandelt das _formatAutoSyncStatus-Ergebnis in den Anzeige-String um.
    Fallback (status==null oder lastSec==null im Auto-Mode ohne nextSec):
@@ -10416,15 +10473,15 @@ function _renderAutoSyncLabel(status, fallbackText) {
              t('sync.auto.status_next_in', { n: status.nextSec || 0 });
     }
     if (status.nextSec === null) {
-      return t('sync.auto.status_synced_ago', { n: status.lastSec });
+      return _renderSyncedAgo(status.lastSec);
     }
-    return t('sync.auto.status_synced_ago', { n: status.lastSec }) +
+    return _renderSyncedAgo(status.lastSec) +
            t('sync.auto.status_separator') +
            t('sync.auto.status_next_in', { n: status.nextSec });
   }
   if (status.mode === 'manual') {
     if (status.lastSec === null) return t('sync.auto.status_never_synced');
-    return t('sync.auto.status_synced_ago', { n: status.lastSec });
+    return _renderSyncedAgo(status.lastSec);
   }
   return fallbackText;
 }
