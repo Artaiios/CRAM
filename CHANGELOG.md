@@ -2,6 +2,15 @@
 
 All notable changes to CRAM are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.2] — 2026-05-20
+
+### Changed
+- **README + Handbücher (DE/EN):** V2.1-Kapitel ergänzt — Team-Pools, Keywords/Schwerpunktthemen, Sidebar-Suche. README mit V2.1-Feature-Subsection. Lücke aus V2.1.0/V2.1.1 (Doku war auf V2.0-Stand stehen geblieben).
+- **PDFs neu gebaut** aus den aktualisierten Markdown-Quellen — Pool/Keyword/Search-Inhalt jetzt auch in der gedruckten Doku. Screenshots zeigen weiterhin V2.0-UI-Stand (Pool-Layout-Screenshots folgen, sobald Patrick Demo-Config-Screenshots liefert).
+
+### Notes
+- Reines Doku-Release, keine Code-Änderungen. Kein Schema-Bump, kein Daten-Migration, keine Verhaltens-Änderung im Tool.
+
 ## [2.1.1] — 2026-05-20
 
 Patch-Release nach V2.1.0-Klick-Test. Keine neuen Features — eng auf die Pool-UX zugeschnitten, damit Pools dort auftauchen, wo Nutzer sie suchen, und dort editierbar sind, wo sie ohnehin gerade arbeiten.
