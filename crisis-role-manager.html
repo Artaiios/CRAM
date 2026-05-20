@@ -3257,6 +3257,120 @@ button:focus-visible,
   }
 }
 
+/* ---- Person-Edit-Modal: Keywords-Field (V2.1 Schritt 4) ---- */
+.person-edit-keywords {
+  margin-top: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+}
+.person-edit-keywords > label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.keyword-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 32px;
+  padding: 4px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  margin-bottom: 6px;
+}
+.keyword-chips-empty {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding: 4px 6px;
+  font-style: italic;
+}
+.keyword-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  background: var(--accent-bg);
+  color: var(--accent);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+.keyword-chip-remove {
+  background: none;
+  border: none;
+  color: currentColor;
+  cursor: pointer;
+  font-weight: bold;
+  padding: 0 2px;
+  font-size: 14px;
+  line-height: 1;
+}
+.keyword-chip-remove:hover { opacity: 0.7; }
+.keyword-input {
+  width: 100%;
+  padding: 6px 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  box-sizing: border-box;
+}
+.keyword-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.keyword-suggestions {
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+  margin-top: 2px;
+  max-height: 160px;
+  overflow-y: auto;
+  border-radius: var(--radius-sm);
+}
+.keyword-suggestions[hidden] { display: none; }
+.keyword-suggestion-item {
+  padding: 6px 10px;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-primary);
+}
+.keyword-suggestion-item:hover {
+  background: var(--bg-hover);
+}
+.keyword-hint {
+  font-size: 10px;
+  color: var(--text-secondary);
+  margin: 4px 0 0 0;
+  font-family: var(--font-mono);
+}
+
+@media (max-width: 600px) {
+  .keyword-input {
+    min-height: 44px;
+    font-size: 14px;
+  }
+  .keyword-chip-remove {
+    min-width: 24px;
+    min-height: 24px;
+    font-size: 16px;
+  }
+  .keyword-suggestion-item {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+}
+
 /* ---- Sync-Modal Online-Tab (V1.2 → V1.3 Karten-Layout) ---- */
 .sync-online-list {
   display: flex;
@@ -7573,6 +7687,10 @@ const TRANSLATIONS = {
     'person.mark_available': '✓ Als verfügbar markieren',
     'person.back_to_overview': '← Zurück zur Übersicht',
     'person.no_roles_assigned': 'Keine Rollen zugeordnet.',
+    'person.keywords_label': 'Schwerpunktthemen / Keywords',
+    'person.keywords_placeholder': 'Tippen und Enter…',
+    'person.keywords_hint': 'Freie Tags. Enter, Komma oder Vorschlag zum Hinzufügen. Backspace entfernt letztes.',
+    'person.keywords_empty': 'Noch keine Schwerpunktthemen',
     'absence.vacation': 'Urlaub',
     'absence.sick': 'Krank',
     'absence.business_trip': 'Dienstreise',
@@ -8191,6 +8309,10 @@ const TRANSLATIONS = {
     'person.mark_available': '✓ Mark as available',
     'person.back_to_overview': '← Back to overview',
     'person.no_roles_assigned': 'No roles assigned.',
+    'person.keywords_label': 'Focus areas / Keywords',
+    'person.keywords_placeholder': 'Type and press Enter…',
+    'person.keywords_hint': 'Free tags. Enter, comma or pick a suggestion to add. Backspace removes the last.',
+    'person.keywords_empty': 'No focus areas yet',
     'absence.vacation': 'On leave',
     'absence.sick': 'Sick',
     'absence.business_trip': 'Business trip',
@@ -8805,6 +8927,10 @@ const TRANSLATIONS = {
     'person.mark_available': '✓ Marcar como disponible',
     'person.back_to_overview': '← Volver al resumen',
     'person.no_roles_assigned': 'Sin roles asignados.',
+    'person.keywords_label': 'Áreas de enfoque / Palabras clave',
+    'person.keywords_placeholder': 'Escribe y pulsa Enter…',
+    'person.keywords_hint': 'Etiquetas libres. Enter, coma o elige una sugerencia para añadir. Retroceso elimina la última.',
+    'person.keywords_empty': 'Aún no hay áreas de enfoque',
     'absence.vacation': 'Vacaciones',
     'absence.sick': 'Enfermedad',
     'absence.business_trip': 'Viaje de trabajo',
@@ -9420,6 +9546,10 @@ const TRANSLATIONS = {
     'person.mark_available': '✓ Marquer comme disponible',
     'person.back_to_overview': '← Retour à la vue d\u2019ensemble',
     'person.no_roles_assigned': 'Aucun rôle attribué.',
+    'person.keywords_label': 'Domaines d’expertise / Mots-clés',
+    'person.keywords_placeholder': 'Tapez et appuyez sur Entrée…',
+    'person.keywords_hint': 'Tags libres. Entrée, virgule ou choisir une suggestion pour ajouter. Retour arrière supprime le dernier.',
+    'person.keywords_empty': 'Aucun domaine d’expertise',
     'absence.vacation': 'Congé',
     'absence.sick': 'Maladie',
     'absence.business_trip': 'Déplacement',
@@ -10035,6 +10165,10 @@ const TRANSLATIONS = {
     'person.mark_available': '✓ 标记为可用',
     'person.back_to_overview': '← 返回概览',
     'person.no_roles_assigned': '未分配角色。',
+    'person.keywords_label': '专长领域 / 关键词', // TODO i18n-zh review
+    'person.keywords_placeholder': '输入后按回车…', // TODO i18n-zh review
+    'person.keywords_hint': '自由标签。回车、逗号或选择建议以添加。退格键删除最后一个。', // TODO i18n-zh review
+    'person.keywords_empty': '尚无专长领域', // TODO i18n-zh review
     'absence.vacation': '休假',
     'absence.sick': '病假',
     'absence.business_trip': '出差',
@@ -12119,7 +12253,7 @@ function openMarkUnavailableModal(personId) {
 let markUnavailState = { personId: null };
 let editLevelState   = { idx: null };
 let editRoleState    = { levelIdx: null, roleIdx: null, role: null, draftAssignments: [] };
-let editPersonState  = { personId: null };
+let editPersonState  = { personId: null, keywordsDraft: [], keywordSuggestPick: null };
 let manualAssignState = { roleId: null };
 
 const CLICK_HANDLERS = {
@@ -12187,7 +12321,9 @@ const CLICK_HANDLERS = {
   'role-assign-remove': (el) => roleModalRemoveAssignment(parseInt(el.dataset.idx, 10)),
 
   // Edit-Person-Modal
-  'edit-person-save': () => saveEditPersonModal(),
+  'edit-person-save':            () => saveEditPersonModal(),
+  'person-keyword-remove':       (el) => personKeywordRemove(el.dataset.keyword),
+  'person-keyword-suggest-pick': (el) => personKeywordSuggestPick(el.dataset.keyword),
 
   // Manual-Assignment-Modal
   'manual-save':    () => saveManualAssignmentFromModal(),
@@ -12511,8 +12647,17 @@ function saveEditPersonModal() {
     if (errEl) { errEl.textContent = t('edit.err_email_invalid'); errEl.style.display = 'block'; }
     return;
   }
+  // Pending Keyword-Input flushen: was im Feld steht, beim Save als Tag aufnehmen.
+  const kwInput = document.getElementById('person-keyword-input');
+  if (kwInput && kwInput.value.trim()) {
+    personKeywordAdd(kwInput.value);
+    kwInput.value = '';
+  }
+  const keywordsDraft = Array.isArray(editPersonState.keywordsDraft) ? editPersonState.keywordsDraft.slice() : [];
+  let targetPersonId = pid;
   if (isNew) {
-    State.config.persons.push({ id: uid('p'), name, phone, email });
+    targetPersonId = uid('p');
+    State.config.persons.push({ id: targetPersonId, name, phone, email, keywords: [] });
     logConfigEdit('Person added', { name });
   } else {
     const target = findPerson(pid);
@@ -12522,6 +12667,14 @@ function saveEditPersonModal() {
       target.email = email;
       logConfigEdit('Person edited', { name });
     }
+  }
+  // Keywords über Storage-Helper persistieren (trim + ci-dedupe + saveConfig).
+  // Wirft theoretisch, wenn die Person fehlt — sollte nach push() oben nicht
+  // passieren, aber defensiv abfangen.
+  try {
+    Storage.setPersonKeywords(targetPersonId, keywordsDraft);
+  } catch (e) {
+    console.warn('setPersonKeywords failed:', e && e.message);
   }
   closeModal();
   saveConfigAndRerender();
@@ -12565,7 +12718,7 @@ function closeModal() {
   markUnavailState = { personId: null };
   editLevelState   = { idx: null };
   editRoleState    = { levelIdx: null, roleIdx: null, role: null, draftAssignments: [] };
-  editPersonState  = { personId: null };
+  editPersonState  = { personId: null, keywordsDraft: [], keywordSuggestPick: null };
   manualAssignState = { roleId: null };
   // QR-Autocycle stoppen, falls aktiv
   if (typeof qrCleanupOnModalClose === 'function') qrCleanupOnModalClose();
@@ -14991,10 +15144,13 @@ function handleDeletePerson(personId) {
 
 function openEditPersonModal(personId) {
   const isNew = !personId;
-  const person = isNew ? { name: '', phone: '', email: '' } : findPerson(personId);
+  const person = isNew ? { name: '', phone: '', email: '', keywords: [] } : findPerson(personId);
   if (!person) return;
 
   editPersonState.personId = isNew ? null : personId;
+  // Draft-Copy: bis Save kein Persist. Storage normalisiert beim Setzen
+  // ohnehin (trim, case-insensitive dedupe).
+  editPersonState.keywordsDraft = Array.isArray(person.keywords) ? person.keywords.slice() : [];
 
   const title = document.getElementById('modal-title');
   const body = document.getElementById('modal-body');
@@ -15014,6 +15170,18 @@ function openEditPersonModal(personId) {
       <label class="form-label" for="person-email">${escapeHTML(t('edit.field_person_email'))}</label>
       <input type="email" id="person-email" class="form-input" value="${escapeHTML(person.email || '')}" autocomplete="off" />
     </div>
+    <div class="person-edit-keywords">
+      <label>${escapeHTML(t('person.keywords_label'))}</label>
+      <div class="keyword-chips" data-keyword-chips id="person-keyword-chips"></div>
+      <input type="text"
+             class="keyword-input"
+             id="person-keyword-input"
+             data-keyword-input
+             placeholder="${escapeHTML(t('person.keywords_placeholder'))}"
+             autocomplete="off" />
+      <div class="keyword-suggestions" id="person-keyword-suggestions" data-keyword-suggestions hidden></div>
+      <p class="keyword-hint">${escapeHTML(t('person.keywords_hint'))}</p>
+    </div>
     <div id="person-error" class="sync-error" style="display:none;"></div>
   `;
   footer.innerHTML = `
@@ -15022,7 +15190,134 @@ function openEditPersonModal(personId) {
   `;
 
   document.getElementById('modal-backdrop').style.display = 'flex';
+  renderPersonKeywordChips();
+  attachPersonKeywordInputHandlers();
   setTimeout(() => document.getElementById('person-name').focus(), 50);
+}
+
+/* =========================================================================
+   PERSON KEYWORDS (V2.1 Schritt 4)
+   ----------------------------------------------------------------
+   Chips + Autocomplete-Input innerhalb des Person-Edit-Modals.
+   Draft-State in editPersonState.keywordsDraft; Persist erst beim Save.
+   ========================================================================= */
+function renderPersonKeywordChips() {
+  const wrap = document.getElementById('person-keyword-chips');
+  if (!wrap) return;
+  const list = Array.isArray(editPersonState.keywordsDraft) ? editPersonState.keywordsDraft : [];
+  if (list.length === 0) {
+    wrap.innerHTML = `<span class="keyword-chips-empty">${escapeHTML(t('person.keywords_empty'))}</span>`;
+    return;
+  }
+  wrap.innerHTML = list.map(kw => `
+    <span class="keyword-chip">
+      ${escapeHTML(kw)}
+      <button type="button" class="keyword-chip-remove" data-action="person-keyword-remove" data-keyword="${escapeHTML(kw)}" aria-label="${escapeHTML(t('btn.cancel'))}">×</button>
+    </span>
+  `).join('');
+}
+
+function renderPersonKeywordSuggestions(query) {
+  const box = document.getElementById('person-keyword-suggestions');
+  if (!box) return;
+  const q = (query || '').trim().toLowerCase();
+  const draft = Array.isArray(editPersonState.keywordsDraft) ? editPersonState.keywordsDraft : [];
+  const draftLc = new Set(draft.map(k => k.toLowerCase()));
+  let all = [];
+  try { all = Storage.getAllKeywords(); }
+  catch (e) { all = []; }
+  const filtered = all
+    .filter(kw => !draftLc.has(kw.toLowerCase()))
+    .filter(kw => q ? kw.toLowerCase().includes(q) : true)
+    .slice(0, 5);
+  if (filtered.length === 0) {
+    box.hidden = true;
+    box.innerHTML = '';
+    return;
+  }
+  box.hidden = false;
+  box.innerHTML = filtered.map(kw => `
+    <div class="keyword-suggestion-item" data-action="person-keyword-suggest-pick" data-keyword="${escapeHTML(kw)}">${escapeHTML(kw)}</div>
+  `).join('');
+}
+
+function personKeywordAdd(raw) {
+  if (typeof raw !== 'string') return false;
+  const trimmed = raw.trim();
+  if (!trimmed) return false;
+  const lc = trimmed.toLowerCase();
+  const draft = Array.isArray(editPersonState.keywordsDraft) ? editPersonState.keywordsDraft : [];
+  if (draft.some(k => k.toLowerCase() === lc)) return false; // dedupe ci
+  draft.push(trimmed);
+  editPersonState.keywordsDraft = draft;
+  renderPersonKeywordChips();
+  return true;
+}
+
+function personKeywordRemove(keyword) {
+  if (typeof keyword !== 'string') return;
+  const lc = keyword.toLowerCase();
+  const draft = Array.isArray(editPersonState.keywordsDraft) ? editPersonState.keywordsDraft : [];
+  editPersonState.keywordsDraft = draft.filter(k => k.toLowerCase() !== lc);
+  renderPersonKeywordChips();
+  const input = document.getElementById('person-keyword-input');
+  if (input) renderPersonKeywordSuggestions(input.value);
+}
+
+function personKeywordSuggestPick(keyword) {
+  if (typeof keyword !== 'string') return;
+  personKeywordAdd(keyword);
+  const input = document.getElementById('person-keyword-input');
+  if (input) {
+    input.value = '';
+    input.focus();
+  }
+  const box = document.getElementById('person-keyword-suggestions');
+  if (box) { box.hidden = true; box.innerHTML = ''; }
+}
+
+function attachPersonKeywordInputHandlers() {
+  const input = document.getElementById('person-keyword-input');
+  if (!input) return;
+  input.addEventListener('input', (e) => {
+    renderPersonKeywordSuggestions(e.target.value);
+  });
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      // Komma + Enter: aktuelles Eingabewort als Tag hinzufügen.
+      const raw = input.value;
+      if (raw.trim()) {
+        e.preventDefault();
+        personKeywordAdd(raw);
+        input.value = '';
+        renderPersonKeywordSuggestions('');
+      } else if (e.key === 'Enter') {
+        // Leeres Enter darf nicht das Form submitten (Modal kennt keinen
+        // Submit, aber wir blocken die Default-Action trotzdem defensiv).
+        e.preventDefault();
+      }
+    } else if (e.key === 'Backspace' && input.value === '') {
+      const draft = Array.isArray(editPersonState.keywordsDraft) ? editPersonState.keywordsDraft : [];
+      if (draft.length > 0) {
+        e.preventDefault();
+        draft.pop();
+        editPersonState.keywordsDraft = draft;
+        renderPersonKeywordChips();
+        renderPersonKeywordSuggestions('');
+      }
+    }
+  });
+  // Dropdown ausblenden, wenn der Fokus weg ist (mit kleinem Delay, damit
+  // ein Click auf einen Vorschlag noch durchgeht).
+  input.addEventListener('blur', () => {
+    setTimeout(() => {
+      const box = document.getElementById('person-keyword-suggestions');
+      if (box) { box.hidden = true; }
+    }, 150);
+  });
+  input.addEventListener('focus', () => {
+    renderPersonKeywordSuggestions(input.value);
+  });
 }
 
 /* =========================================================================
