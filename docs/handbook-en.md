@@ -14,7 +14,13 @@ This handbook describes the operation of CRAM — the Crisis Role Availability M
 
 CRAM is a single HTML file. A double-click is enough — the file opens in the default browser. No server is required, no installation, no internet connection.
 
-On first start, a sample configuration is loaded that shows a small crisis committee for cybersecurity incidents. This configuration can be edited or replaced entirely.
+On first start, CRAM is **empty** — no people, no levels, no roles, no pools. This is deliberate (since V2.2): the tool must not be confused with sample personal data that could accidentally end up powering a real committee. The empty-state on the chart page points to three ways forward:
+
+1. **Enter edit mode** (✎ in the header) and build your own structure.
+2. **Import a demo configuration** — `cram-demo-enterprise-en.json` or the German variant. Both live in the repository under `demo/` and are attached as assets to every GitHub release (see Quick start below).
+3. **Import an existing export file** from another instance via **Data → Import**.
+
+If you opened CRAM just to explore it, load one of the demo configurations — it carries 70 people, 4 levels, and 5 pools and shows a visible cascade immediately after import (one person is deliberately marked absent).
 
 Anyone using CRAM regularly should install it as a Progressive Web App (PWA):
 
@@ -113,6 +119,10 @@ CRAM uses colour and animation to signal the current state of every role and cas
 
 The arrow colour is determined by the **target role** (where the person is standing in), not by the person's home role. A green substitute stepping into a red-critical role produces a red arrow; a primary from a critical role covering a non-critical role produces a yellow arrow.
 
+### Critical roles in print (since V2.2)
+
+On screen, "critical" is marked by the lightning symbol and the red colour coding. Neither carries reliably to print — red bars vanish on black-and-white printers. Since V2.2 every critical role card in print also carries a **‼ symbol in the top right**. Dual-coded (colour + glyph), fixed at 10pt, does not scale with Auto-Fit reduction — the symbol stays readable even at small scaling factors.
+
 ### Header status pills — system-wide state
 
 | Colour | Meaning |
@@ -176,6 +186,10 @@ Edit and delete are inline via `✎` and `×` on the pool header — same patter
 - **Tablet (768–1023 px) and mobile (< 768 px)**: pool sits at the end of the level, horizontally. On mobile it is collapsed by default and expands on click.
 - **Pill layout**: max four members per row, sorted by availability (available first), then alphabetically.
 - **Status icons** are shape-coded, not colour-only — state is recognisable without colour perception (accessibility).
+
+### Pool pills are clickable (since V2.2)
+
+In normal mode (outside edit mode), clicking a pool pill opens the person detail in the side panel — same path as clicking a name in a role card. Keyboard works too (Tab to focus, Enter or Space to trigger). In edit mode the click is disabled so that editing on the pool header (`✎`/`×`) is not accidentally hidden behind a person modal.
 
 ### Availability at the pool level
 
@@ -470,18 +484,20 @@ If the tab is closed during a push, CRAM detects a sentinel on the next start an
 
 ## Printing
 
-CRAM has three print templates for paper copies, and all three work with A4, A3 or Letter in portrait or landscape.
+CRAM has four print templates for paper copies. All four work with A4, A3 or Letter in portrait or landscape.
 
-**Overview**: A single-page wall chart. All roles grouped by level, each showing its current primary occupant and phone number in large type. Critical roles are highlighted red.
+**Overview – compact** (variant 1): Wall chart with all roles grouped by level, each showing its primary occupant and phone number in large type. Targets one page; since V2.2 with an honest caveat — on larger committees it can become two (see Auto-Fit below). Critical roles carry a red bar plus a ‼ symbol in the top right — both readable in black-and-white print too.
 
-**Role detail**: Multi-page structured listing. One section per level; each role shows the current occupant, the complete substitution chain with phone numbers, and any manual assignment.
+**Role detail** (variant 2): Multi-page structured listing. One section per level; each role shows the current occupant, the complete substitution chain with phone numbers, any manual assignment, pool members, and keyword tags.
 
-**People list**: Alphabetical phone directory with current status. Absent people are called out in a separate section.
+**People list** (variant 3): Alphabetical phone directory with current status. Absent people are called out in a separate section, keywords listed as a compact chip row per person.
+
+**Pools** (variant 4, new in V2.2): One section per team pool, sorted alphabetically by pool name. Per pool: lead role (including secondary leads if any), every member with phone number, keyword tags, and current availability state. Multi-page — no single-page constraint.
 
 **Operation:**
 
 1. Print button (🖨) in header
-2. Pick template
+2. Pick template (Overview, Role detail, People list, Pools)
 3. Pick paper size and orientation
 4. "Open print dialog" — in the browser's print dialog, choose "Save as PDF" as destination if needed
 
@@ -490,6 +506,28 @@ CRAM has three print templates for paper copies, and all three work with A4, A3 
 ![Overview print template rendered against the Enterprise demo committee](screenshots/23-print-overview-output.png)
 
 The organisation and print titles set in Settings appear in the header of every printout. If empty, a language-dependent default title is used.
+
+### Auto-Fit for the overview print (V2.2)
+
+Since V2.2 the overview variant scales the wall chart to one page when it can. Scaling starts at a format-base factor (A4=1.00, A3=1.15, Letter=1.03) and steps down. The floor is 0.70 — below that CRAM stops scaling so the print stays readable.
+
+What that means in practice:
+
+- **A3 portrait or landscape** reliably carries typical committees up to about 40 roles on a single page.
+- **A4** handles small committees (up to roughly 20 roles) on one page. Larger committees honestly become two pages — the variant hint in the print modal announces this ("maximally dense, one page when possible, otherwise two").
+- **Floor warning:** if even at scale 0.70 the layout overflows, a toast after the print dialog suggests A3 or the Role detail variant. The floor hit is also logged in the audit log.
+
+The layout uses CSS Grid instead of a multi-column flow. Consequence: cards no longer stretch vertically, long phone numbers are truncated with an ellipsis in a single line instead of wrapping, and empty levels are skipped instead of rendering a hollow header.
+
+### Pool print variant – when to use
+
+The pool variant (V2.2) complements the phone directory with a skill-oriented view. Typical uses:
+
+- **On-call room notice board next to the phone:** who is in the SOC pool, who in Forensics, who in Legal Response — at a glance.
+- **Shift handover:** print the pool state at end of shift, hand it over at the next briefing.
+- **Tabletop exercise:** print the pool list before the exercise, lay it out in the exercise room.
+
+Unlike the overview, there is no single-page ambition here — pools grow across pages, and the alphabetical sort keeps every pool findable.
 
 ## Switching language
 
@@ -546,9 +584,9 @@ The About tab in Settings carries the version, the build hash, and the list of e
 
 Starting from scratch, there are two options:
 
-**Option A — From the default:** After first opening, a sample configuration is loaded. It can be adapted step by step in edit mode to your own organisation. Good for small committees (up to ~15 roles).
+**Option A — Build from the empty tool:** Since V2.2 CRAM starts empty. Enter edit mode and add levels, people, roles step by step. Good for small committees (up to ~15 roles) or when the structure is strictly prescribed.
 
-**Option B — From a demo file:** The repository ships with two enterprise demo configurations with 100 people and 40 roles across 7 levels. These can be imported and then adjusted. Faster for larger committees, since the basic structure is already in place.
+**Option B — From a demo file:** Under `demo/` the repository ships two enterprise demo configurations with 70 people, 4 levels, 28 roles, and 5 skill-based pools (SOC analysts, Forensics, Crisis Communications, IT Recovery, Legal Response). Import and then adjust — faster for larger committees, because the basic structure and the pool model are already in place. Both demo files are also attached as assets to every GitHub release.
 
 **Recommendation:** First create all **levels**, then enter the **people**, finally the **roles with substitution chains**. In this order because:
 

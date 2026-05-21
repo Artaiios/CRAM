@@ -71,7 +71,7 @@ Seit V2.0 läuft die Synchronisation **opt-in pro Sync-Source** automatisch im H
 ### Krisenstabs-tauglich entworfen
 
 - **30-Tage-Audit-Log** für nachträgliche Lessons-Learned-Analyse
-- **Druck-Templates** für Stabsraum-Wand-Chart, Telefonlisten und Personen-Übersichten
+- **Vier Druck-Templates** (V2.2): Wandtafel-Übersicht (mit Auto-Fit auf Eine-Seite), Rollendetail, Telefonliste, Team-Pools — A4/A3/Letter, Hoch- und Querformat. Kritische Rollen dual codiert (Farbe + Glyph) für Schwarzweiß-Druck.
 - **Mehrsprachig** (Deutsch, Englisch, Spanisch, Französisch, Chinesisch)
 - **Mobile-tauglich** — iPhone-Safari mit korrekten Tap-Targets und Safe-Area-Handling
 
@@ -144,6 +144,6 @@ Sekundär: jede Organisation mit Bereitschaftsdiensten und Vertretungslogik, die
 
 ---
 
-**Stand:** V2.1.2 — Mai 2026
+**Stand:** V2.2.0 — Mai 2026
 **Lizenz:** Apache 2.0
 **Kontakt:** Patrick Zeller · patrick.zeller.ger@gmail.com

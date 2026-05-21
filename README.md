@@ -15,7 +15,7 @@ Runs entirely in the browser. No server, no database, no external dependencies a
 - Mark people as **unavailable** (holiday, sick, business trip, active elsewhere, other) and see the substitution chain take over automatically
 - Visualise the flow with **cascade lines** that show where a substitute is actively covering for someone else on a different level
 - **Override** an automatic assignment when a specific person must hold a role regardless of availability
-- **Print paper versions** of the roster — in three different layouts, sized for A4, A3 or Letter, portrait or landscape
+- **Print paper versions** of the roster — in four different layouts (overview, role detail, people list, team pools), sized for A4, A3 or Letter, portrait or landscape
 - **Transfer state between devices** via four independent channels, each for a different realistic situation:
   - A short code read over the phone for quick status updates
   - QR codes for full configuration transfer between nearby devices
@@ -44,7 +44,7 @@ After installation, CRAM launches in its own window, without the browser chrome,
 
 ## Quick start
 
-1. Open `crisis-role-manager.html`. The default configuration contains a small example committee.
+1. Open `crisis-role-manager.html`. Since V2.2 the tool ships **empty** — the chart shows an empty-state explaining the next steps. If you want to explore, import one of the demo configurations from the [Demo configurations](#demo-configurations) section below.
 2. Click the edit icon (✎) in the header to enter edit mode.
 3. Click ⚙ **Settings** to set your organisation name and the title that should appear on printouts.
 4. Add or modify roles, persons, and assignments. The organisation chart updates in real time.
@@ -157,8 +157,10 @@ Below the classic three-tier hierarchy (Krisenstab → Management → Topic-Lead
 
 - A pool member can simultaneously appear in the lead's substitution chain. A `[SUB]` badge in the chart surfaces that overlap.
 - Pools render directly under their lead role on desktop (≥ 1024 px, V2.1.1 layout) and as collapsible level-end blocks on tablet and mobile.
+- Pool pills are **clickable** (V2.2) — outside edit mode a click opens the person detail in the side panel; Tab + Enter/Space works for keyboard users. Inside edit mode the click is disabled.
 - Pools are created and edited from the chart in edit mode (`+ Pool` button per column, `✎`/`×` on the pool header). A bulk-edit list also exists under Settings → Pools.
 - If the lead role is deleted, the pool is preserved as **orphaned** in a dedicated section at the end of the chart — no cascade delete.
+- A dedicated **Pools print variant** (V2.2) lists every pool with its lead role, members, phones, keywords, and availability — useful for on-call room notice boards and shift handovers. See [Print / PDF](#print--pdf) below.
 
 Each person carries a free-form list of **keywords** (max 32 per person, 64 characters each). Keywords are stored as chips with autocomplete and surface in the new **sidebar Search tab** (between People and Log; fifth nav button on mobile). Search matches name, keyword, phone, and e-mail; filters cover availability and keyword cloud (AND logic). Hit cards show roles (primary/sub), pool membership, and keyword chips, and click through to the person-edit modal.
 
@@ -229,17 +231,20 @@ For end-user step-by-step instructions, see [docs/handbook-en.md](docs/handbook-
 
 ## Print / PDF
 
-Three variants, each sensibly sized for the chosen paper:
+Four variants, each sensibly sized for the chosen paper:
 
-- **Overview** — a one-page wall chart. Roles grouped by level, each showing its primary occupant and phone number in large type. Critical roles are marked in red.
-- **Role detail** — multi-page structured listing. One section per level; each role shows the current occupant, the complete substitution chain with phone numbers, and any manual assignment.
-- **People list** — alphabetical phone directory. Absent people are called out in a separate section.
+- **Overview – compact** — wall chart, roles grouped by level, each showing its primary occupant and phone number in large type. Critical roles carry a red bar plus a ‼ glyph in the top right (dual-coded so the signal survives black-and-white printing). Targets one page; on large committees may honestly become two — see the Auto-Fit note below.
+- **Role detail** — multi-page structured listing. One section per level; each role shows the current occupant, the complete substitution chain with phone numbers, manual assignments, pool members, and keyword tags.
+- **People list** — alphabetical phone directory. Absent people called out in a separate section; per-person keyword chips inline.
+- **Team pools** (V2.2) — one section per pool, sorted alphabetically by pool name. Per pool: lead role plus secondary leads, every member with phone, keywords, and current availability. Multi-page.
 
 ![Print dialog — template chooser with paper size and orientation](docs/screenshots/22-print-template-chooser.png)
 
 ![Overview print template rendered for the Enterprise demo committee](docs/screenshots/23-print-overview-output.png)
 
-All three variants support A4, A3, and Letter in both portrait and landscape. The layout scales to fill the selected page.
+All four variants support A4, A3, and Letter in both portrait and landscape.
+
+**Auto-Fit (V2.2, overview variant):** the layout uses CSS Grid and scales down from a format base (A4=1.00, A3=1.15, Letter=1.03) with a floor of 0.70. A3 reliably carries typical committees on one page; A4 handles small committees on one page and larger ones on two. Floor hits surface as a toast and an audit-log entry that suggest A3 or the Role-detail variant.
 
 ## Languages
 

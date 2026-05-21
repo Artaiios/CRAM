@@ -2,27 +2,45 @@
 
 All notable changes to CRAM are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.2.0] — 2026-05-20
+
+Print-Pipeline-Überarbeitung, neue vierte Druckvariante, klickbare Pool-Member-Pills in der Hauptansicht, leerer Default-Tool-Start. V2.2 stellt das Print-Verhalten auf ein deterministisches Fundament (CSS-Grid statt Multi-Column, Auto-Fit mit echten Print-Styles) und liefert das Tool ab Werk ohne Beispieldaten aus.
 
 ### Added
-- **Neue Druckvariante „Pools" (Variante 4):** Alphabetisch nach Pool-Name, pro Pool Lead-Rollen-Bezug + alle Mitglieder mit Telefon, Schwerpunkten und Anwesenheits-Status. Mehrseitig.
-- **Pool-Member-Pills in der Hauptansicht klickbar:** Klick öffnet das Person-Detail im Side-Panel; im Edit-Modus deaktiviert, damit Pool-Editing nicht unterbrochen wird. Tastatur-Navigation (Tab + Enter/Space) und `aria-label` mit Anwesenheits-Status.
-- **Critical-Rollen im Print zusätzlich mit Glyph (S/W-tauglich):** Roter Balken bleibt, ergänzt um ein schwarzes ‼-Symbol oben rechts in der Card — Krisenstabs-Drucker rendern dann auch ohne Farbe eindeutig.
-- **Auto-Fit für Übersichts-Druck:** `--print-scale` wird vor dem Druck schrittweise reduziert (1.0 → 0.92 → 0.85 → 0.78 → 0.70 → 0.65), bis die Übersicht auf eine Seite passt. Floor 0.65 — darunter ist Lesbarkeit weg. Floor-Treffer wird per Toast + Audit-Eintrag protokolliert.
-- **Neue Demo-Konfigurationen** (`demo/cram-demo-enterprise-de.json`, `demo/cram-demo-enterprise-en.json`): 70 Personen, 4 Ebenen (Strategisch/Taktisch/Fachbereich/Operativ), 28 Rollen, 5 Skill-basierte Pools (SOC-Analysten, Forensik, Krisenkommunikation, IT-Recovery, Legal-Response). Personennamen ausschließlich lateinisch — auch für asiatische Personae, damit jeder Drucker und PDF-Reader die Daten korrekt darstellt. Eine Person als Anker-Abwesenheit gesetzt, damit die Cascade-Visualisierung nach Import sofort sichtbar ist.
+- **Neue Druckvariante „Pools" (Variante 4):** Pro Pool Lead-Rollen-Bezug (inkl. Secondary-Leads) + alle Mitglieder mit Telefon, Schwerpunkten und Anwesenheits-Status. Alphabetisch nach Pool-Name sortiert, mehrseitig.
+- **Pool-Member-Pills in der Hauptansicht klickbar:** Klick öffnet das Person-Detail im Side-Panel. Im Edit-Modus deaktiviert. Tastatur-Navigation (Tab + Enter/Space), `aria-label` mit Anwesenheits-Status, `:focus-visible`-Outline für A11y.
+- **Critical-Rollen im Print mit zusätzlichem Glyph (S/W-tauglich):** Roter Balken bleibt, ergänzt um ein schwarzes ‼-Symbol oben rechts in der Card — auf S/W-Druckern eindeutig erkennbar. Fixe 10pt, skaliert nicht mit Auto-Fit-Reduktion.
+- **Auto-Fit für Übersichts-Druck:** `--print-scale` startet bei der Format-Base-Scale (A4=1.00, A3=1.15, Letter=1.03) und reduziert schrittweise bis Floor 0.70. Floor-Treffer wird per Toast + Audit-Eintrag protokolliert. Off-Screen-Measure extrahiert die `@media print`-Regeln einmalig und injiziert sie temporär als `@media all`, damit die Mess-Höhen den echten Print-Layout entsprechen.
+- **Neue Demo-Konfigurationen** (`demo/cram-demo-enterprise-{de,en}.json`): 70 Personen, 4 Ebenen (Strategisch/Taktisch/Fachbereich/Operativ), 28 Rollen, 5 Skill-basierte Pools (SOC-Analysten, Forensik, Krisenkommunikation, IT-Recovery, Legal-Response). Personennamen ausschließlich lateinisch — auch für asiatische Personae, damit jeder Drucker und PDF-Reader die Daten korrekt darstellt. Eine Person als Anker-Abwesenheit gesetzt, damit die Cascade-Visualisierung nach Import sofort sichtbar ist.
 - **Generierungs-Skript für Demo-Configs** (`scripts/build_demo_config.py`): Deterministischer Build + integrierte Cross-Reference-Validierung (Pool-Member-IDs, Lead-Role-IDs, Runtime-Anker).
 
 ### Changed
 - **Tool wird leer ausgeliefert (`DEFAULT_CONFIG` ohne Personen/Levels/Pools):** Frischer Install zeigt keine Beispieldaten mehr — wirkt professioneller und vermeidet, dass Platzhalter-PII versehentlich für echte Krisensituationen verwendet wird. Demo-Konfigurationen liegen separat unter `demo/` und sind als Release-Assets verfügbar.
-- **Empty-State-Text auf der Chart-Seite erweitert** (5 Sprachen): nennt jetzt den Edit-Modus, den Import-Pfad und den GitHub-Demo-Ordner.
-- **Print-Übersicht: Layout von Level-Block-Grid auf Multi-Column-Flow umgestellt.** Level-Header werden inline gerendert (dünne Border-Top + 8pt UPPERCASE-Label). Whitespace-Löcher am Level-Ende entfallen.
-- **Print-Übersicht: Pool-Indikator komprimiert auf „+n Pool"** rechts unten in der Lead-Card. Card-Höhe wächst nicht.
-- **Pool-only-Level werden in der Übersicht als Pool-Cards gerendert** (vorher: leerer Header-Block). Komplett leere Level werden übersprungen.
-- **Max-Spaltenzahl der Übersicht von 6 auf 5 reduziert** — 6 Spalten waren auf A4 quer zu eng.
+- **Empty-State-Text auf der Chart-Seite erweitert** (5 Sprachen): nennt Edit-Modus, Import-Pfad und den lokalen `demo/`-Pfad zuerst, GitHub als Backup-Erwähnung (Air-Gap-Krisenstab-tauglich).
+- **Print-Übersicht: Layout von Multi-Column-Flow auf CSS-Grid umgestellt.** `display: grid` mit `grid-template-columns: repeat(--p-cols, minmax(0, 1fr))`, `align-items: start` (verhindert vertikales Strecken der Cards), `gap: 4pt 8pt`. Phone-Zeile mit `white-space: nowrap` + `text-overflow: ellipsis`. Level-Header spannt mit `grid-column: 1 / -1` über alle Spalten als horizontaler Trenner.
+- **Print-Übersicht: Pool-Indikator als ankerverbundener Tag.** „↳ +N Pool" mit dezenter dashed Border-Top — sekundär unter Phone, klar einer Card zugeordnet (vorher: position-absolute rechts-unten, schwebte bei breiten Cards isoliert).
+- **Pool-only-Level werden in der Übersicht als Pool-Cards gerendert** (vorher: leerer Header-Block). Vollständig leere Level werden übersprungen.
+- **Adaptive Spaltenzahl gelockert:** Bei langen Rollennamen max 4-5 Spalten statt 3 (CSS-Grid handhabt Wort-Wrapping innerhalb der Spalte sauber, was Multi-Column nicht konnte).
+- **Variant-Label „Übersicht (eine Seite)" → „Übersicht – kompakt"** in 5 Sprachen, mit ehrlicherem Hint „maximal verdichtet, eine Seite wenn möglich, sonst zwei". Floor-Warning-Toast neutral formuliert, Tone `warning` → `info`.
 - **Manuell-Hinweis im Print-Overview:** Emoji 🔒 entfernt zugunsten des Text-Labels — Krisenstabs-Drucker rendern Emoji uneinheitlich.
+- **Mobile-Touch-Targets:** Pool-Member-Pills auf 44px Mindesthöhe unter 600px (vorher 32px, HIG-Floor verfehlt). Modal-Footer-Buttons (Print-Modal „Drucken"/„Abbrechen") auf 44px unter 500px — vorher Lücke im 380-499px-Bereich.
 
 ### Fixed
 - **Leerer Header-Block bei Pool-only-Level im Übersichts-Druck** (Regression seit V2.1.0).
+- **Auto-Fit arbeitete auf Müll-Daten:** Off-Screen-Measure-Container rendererte mit Standard-Block-Styling statt Print-Styles — Card-Höhen waren 0, Auto-Fit wählte daher immer den Floor. Behoben durch Extraktion + temporäre Injektion der `@media print`-Regeln plus ID-Tausch.
+- **Phantom-Leerseite am Ende des Übersichts-Drucks** (`column-fill: balance` reservierte Höhe für Balancing-Operation, die sich auf neue Seite verlagerte).
+- **A3-Print landete fälschlich auf Seite 2:** Mit korrigiertem Auto-Fit passt A3 Portrait bei Scale 1.15 und A3 Landscape bei Scale 0.978 verlässlich auf 1 Seite.
+- **JavaScript-Syntax-Fehler in französischen i18n-Strings** durch Doppel-Apostroph statt `\'`-Escape (`'L''aperçu...'`, `'pools d''équipe...'`) — hätte den Haupt-Script-Block beim Laden gebrochen. Vor Release durch Code-Review entdeckt.
+
+### Security
+- **escapeHTML-Disziplin auf allen neuen Pool-Print-Interpolationen** (Pool-Namen, Lead-Rollen-Namen, Member-Namen, Phones, Keywords, Status-Labels).
+- **Auto-Fit-Style-Injection** nutzt `textContent` (XSS-immun); Quelle ist ausschließlich `document.styleSheets` der eigenen Page (kein User-Input). CSP-Status quo erhalten — keine neuen `'unsafe-eval'`-Bedarfe.
+
+### Deferred (post-V2.2)
+- Empty-State mit Aktions-Buttons (Komponente statt Text-Hinweis)
+- Pool-Pill-Affordance stärker im Default-State (cursor:pointer dauerhaft)
+- Edit-Mode-Pool-Pill-Disabled-State klar visuell statt totaler Deaktivierung
+- Critical-Glyph-Doku im Handbuch-Legenden-Abschnitt
 
 ## [2.1.2] — 2026-05-20
 

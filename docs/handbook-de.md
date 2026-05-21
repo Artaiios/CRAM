@@ -14,7 +14,13 @@ Dieses Handbuch beschreibt den Betrieb von CRAM — dem Crisis Role Availability
 
 CRAM ist eine einzelne HTML-Datei. Ein Doppelklick genügt — die Datei öffnet sich im Standard-Browser. Es wird kein Server benötigt, keine Installation, keine Internetverbindung.
 
-Beim ersten Start ist eine Beispiel-Konfiguration geladen, die einen kleinen Krisenstab für Cybersicherheitsvorfälle zeigt. Diese Konfiguration kann bearbeitet oder komplett ersetzt werden.
+Beim ersten Start ist CRAM **leer** — keine Personen, keine Ebenen, keine Rollen, keine Pools. Das ist Absicht (seit V2.2): das Tool soll nicht mit Beispiel-Personaldaten verwechselt werden, die versehentlich für einen echten Stab übernommen werden. Der Empty-State auf der Chart-Seite verlinkt drei Wege weiter:
+
+1. **Edit-Modus** öffnen (✎ in der Kopfleiste) und die eigene Struktur aufbauen.
+2. **Demo-Konfiguration importieren** — `cram-demo-enterprise-de.json` oder die englische Variante. Beide liegen im Repository unter `demo/` und sind als Release-Assets verfügbar (siehe Quick-Start unten).
+3. **Bestehende Export-Datei** aus einer anderen Instanz über **Daten → Import** einspielen.
+
+Wer CRAM zum Ausprobieren öffnet, sollte eine Demo-Konfiguration laden — sie enthält 70 Personen, 4 Ebenen und 5 Pools und zeigt direkt nach dem Import eine sichtbare Vertretungs-Kaskade (eine Person ist bewusst als abwesend markiert).
 
 Wer CRAM regelmäßig nutzt, installiert sich das Tool als Progressive Web App (PWA):
 
@@ -113,6 +119,10 @@ CRAM nutzt Farben und Animationen, um den aktuellen Zustand jeder Rolle und jede
 
 Die Pfeilfarbe richtet sich nach der **Ziel-Rolle** (wohin vertreten wird), nicht nach der Heim-Rolle der Person. Ein grüner Vertreter, der eine rote Rolle auffängt, erzeugt einen roten Pfeil; ein Primär aus einer kritischen Rolle, der in eine unkritische Rolle einspringt, erzeugt einen gelben.
 
+### Kritische Rollen im Druck (ab V2.2)
+
+Im Bildschirm-Chart ist „kritisch" durch das Blitz-Symbol und die rote Farbcodierung markiert. Im Druck reichten beide Signale alleine nicht — rote Balken sind auf Schwarzweiß-Druckern unsichtbar. Ab V2.2 trägt jede kritische Rollen-Card im Print zusätzlich ein **‼-Symbol oben rechts**. Dual codiert (Farbe + Glyph), 10pt fix, skaliert nicht mit Auto-Fit-Reduktion — das Symbol bleibt damit auch bei kleinen Skalierungen lesbar.
+
 ### Statuspills in der Kopfleiste — Gesamtzustand
 
 | Farbe | Bedeutung |
@@ -176,6 +186,10 @@ Editieren und Löschen erfolgt über die Inline-Buttons `✎` und `×` am Pool-H
 - **Tablet (768–1023 px) und Mobile (< 768 px)**: Pool sitzt am Ende des Levels, horizontal angeordnet. Auf Mobile ist er per Default kollabiert und wird per Klick aufgeklappt.
 - **Pillen-Anordnung**: max vier Mitglieder pro Zeile, sortiert nach Verfügbarkeit (verfügbare zuerst), dann alphabetisch.
 - **Statussymbole** sind formgegeben, nicht nur farbig — damit auch ohne Farbwahrnehmung der Zustand erkennbar ist (Accessibility).
+
+### Pool-Pillen sind klickbar (ab V2.2)
+
+Im normalen Betrieb (außerhalb Edit-Modus) öffnet ein Klick auf eine Pool-Pille das Person-Detail im Side-Panel — gleicher Pfad wie ein Klick auf einen Namen in einer Rollenkarte. Tastatur funktioniert ebenfalls (Tab anspringen, Enter oder Space auslösen). Im Edit-Modus ist der Klick deaktiviert, damit das Bearbeiten am Pool-Header (`✎`/`×`) nicht versehentlich von der Person-Modal überlagert wird.
 
 ### Verfügbarkeit auf Pool-Ebene
 
@@ -470,18 +484,20 @@ Wenn der Tab während eines Pushes geschlossen wird, erkennt CRAM beim nächsten
 
 ## Drucken
 
-CRAM hat drei Druckvorlagen für den Papieraushang, und alle drei funktionieren mit A4, A3 oder Letter in Hoch- und Querformat.
+CRAM hat vier Druckvorlagen für den Papieraushang. Alle vier funktionieren mit A4, A3 oder Letter in Hoch- und Querformat.
 
-**Übersicht**: Eine einseitige Wandtafel. Alle Rollen gruppiert nach Ebenen, jede mit ihrer aktuellen Primär-Besetzung und Telefonnummer in großer Schrift. Kritische Rollen sind rot hervorgehoben.
+**Übersicht – kompakt** (Variante 1): Wandtafel mit allen Rollen gruppiert nach Ebenen, jede mit Primär-Besetzung und Telefonnummer in großer Schrift. Ziel ist eine Seite, ab V2.2 mit ehrlichem Hinweis: bei großen Stäben können es zwei werden (siehe Auto-Fit unten). Kritische Rollen tragen einen roten Balken plus ein ‼-Symbol oben rechts in der Card — beides eindeutig auch im Schwarzweiß-Druck.
 
-**Rollendetail**: Mehrseitiges strukturiertes Verzeichnis. Eine Sektion pro Ebene; jede Rolle zeigt den aktuellen Besetzer, die vollständige Vertretungskette mit Telefonnummern, eine etwaige manuelle Zuordnung.
+**Rollendetail** (Variante 2): Mehrseitiges strukturiertes Verzeichnis. Eine Sektion pro Ebene; jede Rolle zeigt den aktuellen Besetzer, die vollständige Vertretungskette mit Telefonnummern, eine etwaige manuelle Zuordnung, Pool-Mitglieder und Schwerpunktthemen.
 
-**Personenliste**: Alphabetisches Telefonverzeichnis mit aktuellem Status. Abwesende Personen werden in einem separaten Abschnitt aufgeführt.
+**Personenliste** (Variante 3): Alphabetisches Telefonverzeichnis mit aktuellem Status. Abwesende Personen werden in einem separaten Abschnitt aufgeführt, Schwerpunktthemen pro Person als kompakte Chip-Zeile.
+
+**Pools** (Variante 4, neu in V2.2): Eine Sektion pro Team-Pool, alphabetisch nach Pool-Name sortiert. Pro Pool: Lead-Rolle (inkl. Secondary-Leads, falls vorhanden), alle Mitglieder mit Telefonnummer, Schwerpunktthemen und aktuellem Anwesenheits-Status. Mehrseitig — keine Eine-Seite-Vorgabe.
 
 **Bedienung:**
 
 1. Druck-Button (🖨) in der Kopfleiste
-2. Template wählen
+2. Template wählen (Übersicht, Rollendetail, Personenliste, Pools)
 3. Papierformat und Ausrichtung wählen
 4. „Druckdialog öffnen" — im Browser-Druckdialog kann als Ziel „Als PDF speichern" gewählt werden
 
@@ -490,6 +506,28 @@ CRAM hat drei Druckvorlagen für den Papieraushang, und alle drei funktionieren 
 ![Übersichts-Druckvorlage, gerendert für den Enterprise-Demo-Krisenstab](screenshots/23-print-overview-output.png)
 
 Die Organisations- und Drucktitel, die in den Einstellungen gesetzt sind, erscheinen in der Kopfzeile jedes Ausdrucks. Sind sie leer, wird ein sprachabhängiger Standardtitel eingesetzt.
+
+### Auto-Fit beim Übersichts-Druck (V2.2)
+
+Die Übersichts-Variante versucht ab V2.2, die Wandtafel auf eine Seite zu skalieren. Skalierung startet bei einer Format-Base-Scale (A4=1.00, A3=1.15, Letter=1.03) und wird schrittweise reduziert. Untergrenze ist Faktor 0.70 — darunter wird nicht weiter verkleinert, damit der Druck lesbar bleibt.
+
+Was das in der Praxis bedeutet:
+
+- **A3 Hoch- oder Querformat** trägt typische Stäbe bis ca. 40 Rollen verlässlich auf einer Seite.
+- **A4** schafft kleine Stäbe (bis ca. 20 Rollen) auf einer Seite. Größere Stäbe werden ehrlich zwei Seiten — der Variant-Hint im Druck-Modal kündigt das an („maximal verdichtet, eine Seite wenn möglich, sonst zwei").
+- **Floor-Warnung:** Wenn auch bei Skalierung 0.70 das Layout nicht passt, erscheint nach dem Druckdialog ein Toast mit Hinweis, dass A3 oder die Rollendetail-Variante besser geeignet ist. Der Auto-Fit-Floor-Treffer wird zusätzlich im Audit-Log dokumentiert.
+
+Das Layout nutzt CSS-Grid statt Multi-Column-Flow. Folge: Cards strecken sich nicht mehr vertikal, lange Telefonnummern werden in einer Zeile mit Ellipse abgeschnitten statt umzubrechen, und leere Levels werden übersprungen statt einen leeren Header zu rendern.
+
+### Pool-Druck-Variante – wann nutzen
+
+Die Pool-Variante (V2.2) ergänzt das Telefonverzeichnis um die Skill-Sicht. Typische Einsätze:
+
+- **Bereitschaftsraum-Aushang neben dem Telefon:** wer ist im SOC-Pool, wer in Forensik, wer in Legal-Response — auf einen Blick.
+- **Übergabe an die Folge-Schicht:** Pool-Stand zum Abschluss der Schicht ausdrucken, beim Briefing übergeben.
+- **Tabletop-Übung:** vor der Übung Pool-Liste drucken, im Übungsraum auslegen.
+
+Im Gegensatz zur Übersicht ist hier kein Eine-Seite-Anspruch — Pools wachsen mehrseitig, die alphabetische Sortierung macht jeden Pool wiederauffindbar.
 
 ## Sprache wechseln
 
@@ -546,9 +584,9 @@ Der About-Tab in den Einstellungen führt Version, Build-Hash und die Liste der 
 
 Wer aus dem Stand startet, hat zwei Optionen:
 
-**Option A — Vom Standard aus:** Nach dem ersten Öffnen ist eine Beispiel-Konfiguration geladen. Diese kann im Edit-Modus Schritt für Schritt an die eigene Organisation angepasst werden. Gut für kleine Stäbe (bis ~15 Rollen).
+**Option A — Aus dem leeren Tool aufbauen:** Ab V2.2 ist CRAM beim ersten Start leer. Edit-Modus aktivieren und Ebenen, Personen, Rollen schrittweise anlegen. Gut für kleine Stäbe (bis ~15 Rollen) oder wenn die eigene Struktur strikt vorgegeben ist.
 
-**Option B — Aus einer Demo-Datei:** Im Repository liegen zwei Enterprise-Demo-Configs mit 100 Personen und 40 Rollen in 7 Ebenen. Diese können importiert und dann angepasst werden. Schneller für größere Stäbe, da die grundlegende Struktur bereits vorhanden ist.
+**Option B — Aus einer Demo-Datei:** Im Repository unter `demo/` liegen zwei Enterprise-Demo-Configs mit 70 Personen, 4 Ebenen, 28 Rollen und 5 Skill-basierten Pools (SOC-Analysten, Forensik, Krisenkommunikation, IT-Recovery, Legal-Response). Diese können importiert und dann angepasst werden — schneller für größere Stäbe, da die grundlegende Struktur und das Pool-Modell bereits vorhanden sind. Beide Demo-Dateien sind auch als Release-Assets auf GitHub verfügbar.
 
 **Empfehlung:** Erst alle **Ebenen** anlegen, dann die **Personen** einpflegen, zuletzt die **Rollen mit Vertretungsketten**. In dieser Reihenfolge weil:
 
